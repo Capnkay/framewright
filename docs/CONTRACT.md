@@ -1,6 +1,6 @@
 # Framewright — The Contract
 
-**Status: FROZEN — both verification gates passed.** Version 1.3, 2026-08-20.
+**Status: FROZEN — both verification gates passed.** Version 1.4, 2026-08-20.
 
 *v1.0 drafted. **v1.1** after a cold-boot re-derivation from the brief: full wire shapes
 for every endpoint, the `fetchElementsByIds` signature, regeneration semantics, the store
@@ -728,7 +728,7 @@ POST /perceive          multipart: image, plus JSON field `hints`
   }
   422 -> { "ok": false, "error": { "code": "PARSE_FAILURE", "message": "..." } }
 
-GET  /health -> { "ok": true, "models": ["florence-2-base","paddleocr"], "device": "cuda:0" }
+GET  /health -> { "ok": true, "models": ["opencv-contours","paddleocr"], "device": "cuda:0" }
 ```
 
 **There is no `irFragment`.** The service returns the IR's named sub-objects directly,

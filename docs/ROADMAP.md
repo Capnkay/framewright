@@ -1,6 +1,6 @@
 # Framewright — Roadmap
 
-**Version 1.2, 2026-08-20.** Budget: 2–2.5 days on the clock. Planned to **44 working hours**, inside a 48–56 hour
+**Version 1.3, 2026-08-20.** Budget: 2–2.5 days on the clock. Planned to **44 working hours**, inside a 48–56 hour
 window, leaving 4–12 hours of slack for sleep, meals, and the gate that slips.
 Crew: 3+. Executor: Google Antigravity, primary on implementation.
 
@@ -31,6 +31,25 @@ prompting talent. It was preparation."* This roadmap is built on that finding.
 **Vision is required for at most ~15 of 100.** Innovation is 5, and vision is one of five listed routes to it. Input coverage is 20, of which prompt mode is the only *required* mode and code mode needs no GPU — so vision contests perhaps 10 of that 20. **The other 85 points do not depend on a single model weight loading.** Two hard caps decide whether we compete
 at all: a preview with no live store caps at **40**, and the wrong stack caps at **20**.
 
+### Perception, after measurement
+
+The wireframe benchmark ran on 2026-08-20 and **a general-purpose vision model failed
+completely** on low-fidelity wireframe input — whole-image boxes for essentially every
+element, on both model sizes. Full numbers: `docs/BENCHMARK-RESULTS.md`.
+
+VRAM was never the constraint: peak 0.60 GB on a 6 GB card. The constraint is the input
+distribution. Models trained on photographs do not see structure in a line drawing.
+
+So perception is **classical computer vision first**: a wireframe is rectangles and text,
+which is the worst case for a photo-trained detector and close to the best case for
+contour detection. The upgrade path is a detector trained on **synthetic wireframes
+rendered from our own IR schema** — unlimited data, perfect ground-truth boxes, zero
+licence risk, because we generate both sides of the pair.
+
+This is also the strongest demo asset we have. It converts the architecture from an
+assertion into a measurement: *generic models do not read wireframes, here is the
+evidence, so we built something that does.*
+
 The perception pipeline is built — in full, locally, on the GPU — because it is the
 architecture we committed to and because it is what makes the project defensible to a
 professional judge. It is *not* built first, and it is never allowed to block the spine.
@@ -50,7 +69,7 @@ Nothing here consumes event hours. This is the entire advantage.
 | 0.5 | 13 Stage Cards + the Map + Judge Cards | Each teammate can explain their subsystem cold |
 | 0.6 | Golden reference component + seed JSON + the two hand-written helpers, **as standalone files with a unit test** | The component renders against a mocked store and the §9 assertion runs green against that mock. No server, no database — those are Phase 1 |
 | 0.7 | Environments verified on every machine, including the GPU laptop | `GET /health` returns `cuda:0`; one wireframe survives the perception path |
-| 0.8 | **The wireframe benchmark** — install torch and transformers, download weights, run one real wireframe through Florence-2 on the actual 3050, record what labels come back | The single largest unverified assumption in the plan. Budget **2–3 hours**, most of it environment setup, and do it first. If it fails, the perception plan changes shape and we want to know now |
+| 0.8 | ~~**The wireframe benchmark**~~ **DONE 2026-08-20 — see `docs/BENCHMARK-RESULTS.md`.** Florence-2 returned whole-image boxes for ~7 of 7. Retest with the correct task token pending. Original text: — install torch and transformers, download weights, run one real wireframe through Florence-2 on the actual 3050, record what labels come back | The single largest unverified assumption in the plan. Budget **2–3 hours**, most of it environment setup, and do it first. If it fails, the perception plan changes shape and we want to know now |
 
 **Phase 0 exit gate:** the contract is frozen, the hooks are proven, and one person who
 did not write the docs can operate the repo from them alone.
@@ -106,7 +125,7 @@ Now, and only now, the crew divides. Each track owns a subsystem it can explain 
 | **Studio & preview** | 1 | **The Generator Studio** — upload form, code and prompt textareas, mode selector, accent colour, plain-language error surfacing, job history, read-only generated JSX view. Plus the preview shell, CMS editor, responsive toggle, css overlay |
 | **Generation** | **2** | Prompt-to-IR and the keyless fallback, code-to-IR via AST, cross-modal alignment, the three planners, IR finalisation, and the deterministic emitter. **Eight of the thirteen subsystems.** This is the largest track and it is staffed with two people for that reason |
 | **API & Glass Box** | 1 | Endpoints, the ID allocator, job records and stage traces, the Timeline UI, replay, regeneration, the model orchestrator, validation wiring, zip export |
-| **Perception** | 1 (GPU laptop) | Python service: OpenCV normalise → Florence-2 grounding → PaddleOCR → fusion → hierarchy → IR sub-objects |
+| **Perception** | 1 (GPU laptop) | Python service: OpenCV normalise → **contour/rectangle detection** → OCR → fusion → spatial hierarchy → IR sub-objects. Then the synthetic-data detector as the upgrade. **Changed 2026-08-20 on measured evidence — see `docs/BENCHMARK-RESULTS.md`** |
 
 Code-input mode needs no GPU and is half of the input-coverage criterion; it belongs to
 Generation but can float if that track is ahead.

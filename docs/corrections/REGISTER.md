@@ -155,3 +155,37 @@ artifact and its user.**
 Cold-clone verification now passes end to end: manifest intact, 13/13 tests with no
 `npm install`, board resolves, commit blocked before claiming and allowed after, commit
 message rejected without a task id and accepted with one.
+
+---
+
+## 2026-08-20 · The wireframe benchmark — the plan changed on evidence
+
+The single unverified assumption in the whole plan was measured. It failed, and the plan
+changed the same day.
+
+| | |
+|---|---|
+| **Measured** | Florence-2 base and large, on a real low-fidelity wireframe, on the team's RTX 3050 |
+| **Result** | Whole-image bounding boxes for essentially every element. **0 of 7** — the one scored as a hit was the degenerate whole-image box coincidentally overlapping the hero image, which occupies half the frame |
+| **VRAM** | Peak 0.60 GB of 6 GB. **The hardware was never the constraint.** We had assumed it might be, and we were wrong about which risk mattered |
+| **Changed** | Perception is now classical CV first — contour detection on what is, after all, a drawing of rectangles — with a detector trained on wireframes rendered from our own IR schema as the upgrade |
+| **Updated** | ROADMAP v1.3, CONTRACT v1.4 (`/health` model list), stage card 01, `docs/BENCHMARK-RESULTS.md` |
+
+**Our own error, recorded because it nearly cost us the right answer.** The test script —
+written here — used Florence-2's `<CAPTION_TO_PHRASE_GROUNDING>` task with long
+descriptive sentences. That task grounds *short noun phrases*, and whole-image boxes are
+its documented degenerate output on a mismatched phrase. A retest with
+`<OPEN_VOCABULARY_DETECTION>` and short labels is out (`docs/GPU-RETEST.md`) to separate
+"the method was wrong" from "the model cannot read line drawings". The plan changed anyway,
+because classical CV is the better fit for this input either way — but re-planning on a
+flawed test would have been luck, not judgement.
+
+**What made this findable:** the teammate reported the whole-image boxes plainly instead
+of counting them as hits. A less careful report would have read as 1 of 7 — a bad but
+survivable score — and we would have spent two days building on it.
+
+**The gain.** The failure is worth more than a pass would have been. It converts the
+architecture from an assertion into a measurement we can put in front of a judge:
+*generic vision models do not read wireframes, here is the evidence, so we built something
+that does.* That is the benchmark the original architecture diagram asked for, and almost
+no team arrives with one.
