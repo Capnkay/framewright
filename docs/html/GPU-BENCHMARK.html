@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPU Benchmark — Framewright</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink2:#5a5a5a; --paper:#fdfdfb;
+    --yellow:#fff3bf; --green:#b2f2bb; --blue:#a5d8ff; --red:#ffc9c9;
+    --purple:#d0bfff; --grey:#eef0f2;
+    --hand:'Segoe Print','Bradley Hand','Comic Sans MS',cursive;
+    --body:'Segoe UI',system-ui,-apple-system,sans-serif;
+    --mono:Consolas,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.55;
+       background-image:radial-gradient(#e6e6e1 1px,transparent 1px);background-size:22px 22px}
+  .wrap{max-width:820px;margin:0 auto;padding:26px 20px 70px}
+  h1{font-family:var(--hand);font-size:30px;margin:0 0 2px}
+  .sub{color:var(--ink2);margin:0 0 16px}
+  h2{font-family:var(--hand);font-size:18px;margin:26px 0 8px}
+  .card{background:#fff;border:2.4px solid var(--ink);border-radius:12px;padding:13px 16px;
+        box-shadow:3px 4px 0 rgba(26,26,26,.12);margin-bottom:14px}
+  .card.y{background:var(--yellow)} .card.g{background:var(--green)}
+  .card.r{background:var(--red)} .card.b{background:var(--blue)} .card.gr{background:var(--grey)}
+  .step{display:flex;gap:13px;align-items:flex-start;margin-bottom:14px}
+  .num{flex:0 0 40px;height:40px;border:2.6px solid var(--ink);border-radius:50%;
+       font-family:var(--hand);font-size:19px;display:flex;align-items:center;justify-content:center;
+       background:#fff;box-shadow:2.5px 3px 0 rgba(26,26,26,.12)}
+  .step .card{flex:1;margin:0}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:9px;padding:11px 13px;overflow-x:auto;
+      font-family:var(--mono);font-size:12px;line-height:1.5;margin:8px 0 0;border:2.4px solid var(--ink)}
+  code{background:rgba(0,0,0,.07);padding:0 4px;border-radius:3px;font-family:var(--mono);font-size:12.5px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1.4px dashed #c8c8c3;vertical-align:top}
+  th{font-family:var(--hand);font-size:14px;border-bottom:2.4px solid var(--ink)}
+  ul,ol{margin:6px 0 0;padding-left:20px} li{margin:4px 0}
+  .note{font-family:var(--hand);font-size:14.5px;background:var(--yellow);border:2.4px solid var(--ink);
+        border-radius:11px;padding:10px 14px;margin:14px 0;transform:rotate(-.3deg);
+        box-shadow:2.5px 3px 0 rgba(26,26,26,.12)}
+  .note.warn{background:var(--red)} .note.good{background:var(--green)}
+  .ok{color:#1a7f37;font-weight:600} .bad{color:#b42318;font-weight:600}
+  .big{font-family:var(--hand);font-size:20px;display:block;margin-bottom:3px}
+  @media print{body{background:#fff}.card{box-shadow:none}.num{box-shadow:none}@page{margin:11mm}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>GPU Benchmark</h1>
+  <p class="sub">Roughly 2&ndash;3 hours, most of it downloading. Only <b>Step 5</b> actually matters
+     &mdash; everything before it is setup.</p>
+
+  <div class="card y">
+    <span class="big">Why you are doing this</span>
+    <p style="margin:0 0 8px">We are building something that turns a <b>wireframe picture</b> into React code.
+    One stage has to look at a layout and answer: <i>where is the headline, where is the image,
+    where is the button?</i></p>
+    <p style="margin:0 0 8px">We chose <b>Florence-2</b> for that, because you can hand it the words you
+    are looking for &mdash; "call to action button" &mdash; and it hands back a box. No training required.</p>
+    <p style="margin:0"><b>The problem:</b> every published result for this model is on rendered
+    screenshots and photographs. Our real input is <b>low-fidelity wireframes</b>. Nobody has
+    published a number for that. <b>So we genuinely do not know if it works.</b></p>
+  </div>
+
+  <div class="note">Prefer being talked through it? Upload <code>docs/GPU-BENCHMARK.md</code>
+  to ChatGPT or Claude and say <i>"walk me through this one step at a time."</i>
+  The file briefs the assistant too.</div>
+
+  <h2>Before you start</h2>
+  <div class="card">
+    <ul>
+      <li>The laptop with the <b>RTX 3050</b></li>
+      <li>Python 3.10, 3.11 or 3.12</li>
+      <li>~10 GB free disk, and internet</li>
+    </ul>
+  </div>
+
+  <h2>The steps</h2>
+
+  <div class="step"><div class="num">0</div><div class="card">
+    <b>Confirm the GPU is really there</b>
+    <pre>nvidia-smi
+python --version</pre>
+    <p style="margin:8px 0 0"><span class="ok">Good:</span> a table with your GPU name.
+    <b>Write down the total memory</b> &mdash; something like <code>4096MiB</code>.<br>
+    <span class="bad">Bad:</span> command not found &rarr; install the NVIDIA driver, reboot, retry.</p>
+  </div></div>
+
+  <div class="step"><div class="num">1</div><div class="card">
+    <b>Clean workspace &mdash; outside the project repo</b>
+    <pre>mkdir gpu-test
+cd gpu-test
+python -m venv .venv
+
+<span style="color:#7f8697"># PowerShell</span>  .venv\Scripts\Activate.ps1
+<span style="color:#7f8697"># Git Bash </span>  source .venv/Scripts/activate
+<span style="color:#7f8697"># mac/Linux</span>  source .venv/bin/activate</pre>
+    <p style="margin:8px 0 0">Your prompt must now start with <code>(.venv)</code>.
+    <b>If it does not, stop and fix it</b> &mdash; everything after depends on it.</p>
+  </div></div>
+
+  <div class="step"><div class="num">2</div><div class="card">
+    <b>PyTorch with CUDA</b> &mdash; big download, ~2.5 GB
+    <pre>pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124</pre>
+    <p style="margin:8px 0 0">If it complains about CUDA versions, check the version in the
+    top-right of <code>nvidia-smi</code> and swap <code>cu124</code> for <code>cu121</code> or
+    <code>cu118</code>. <b>Do not let it install the CPU-only build</b> &mdash; that silently
+    defeats the whole test.</p>
+  </div></div>
+
+  <div class="step"><div class="num">3</div><div class="card">
+    <b>Confirm PyTorch can see the GPU</b> &mdash; save as <code>check.py</code>
+    <pre>import torch
+print("torch version :", torch.__version__)
+print("CUDA available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("device        :", torch.cuda.get_device_name(0))
+    total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+    print(f"total VRAM    : {total:.2f} GB")</pre>
+    <p style="margin:8px 0 0"><span class="ok">Good:</span> <code>CUDA available: True</code>.
+    <span class="bad">Bad:</span> <code>False</code> &rarr; you got the CPU build. Uninstall and redo step 2.</p>
+  </div></div>
+
+  <div class="step"><div class="num">4</div><div class="card">
+    <b>Model libraries</b>
+    <pre>pip install transformers pillow einops timm accelerate</pre>
+  </div></div>
+
+  <div class="step"><div class="num">5</div><div class="card b">
+    <span class="big">The actual test</span>
+    <p style="margin:0 0 10px">Everything above was setup. This is what the team is waiting on.</p>
+
+    <p style="margin:0 0 4px"><b>5a &mdash; get a real wireframe.</b> <u>Do not use a polished screenshot.</u>
+    We need to know how it copes with the messy input we will actually get.</p>
+    <ol style="margin:0 0 10px">
+      <li><b>Draw one on paper</b> &mdash; big rectangle left (image); on the right: a small label,
+      a big headline, a smaller subheading, a paragraph, three little boxes in a row, a button.
+      Photograph it. <b>This is the most valuable version of the test.</b></li>
+      <li>A low-fidelity Figma or whiteboard wireframe</li>
+      <li>Fallback only: a screenshot of a real website hero</li>
+    </ol>
+    <p style="margin:0 0 8px">Save it as <code>wireframe.png</code> in <code>gpu-test</code>.</p>
+
+    <p style="margin:0"><b>5b &mdash; run it.</b> Use the full <code>test.py</code> from
+    <code>docs/GPU-BENCHMARK.md</code>. It asks the model for each of the seven things we
+    actually need to find, and prints a box, a time, and the peak VRAM.</p>
+  </div></div>
+
+  <div class="card r">
+    <b>5c &mdash; judge it honestly. This is the whole exercise.</b>
+    <p style="margin:6px 0 0">For each of the seven, open your image and ask: <b>is that box
+    actually on the right thing?</b> Count how many of the seven it got <b>right</b>.</p>
+    <p style="margin:8px 0 0">A box that came back but landed on the wrong element is a
+    <b>wrong answer, not a partial one.</b> Please do not tune the test until it looks good.
+    Report what actually happened.</p>
+  </div>
+
+  <div class="step"><div class="num">6</div><div class="card">
+    <b>OCR &mdash; optional, if you have time</b>
+    <pre>pip install paddlepaddle paddleocr</pre>
+    <p style="margin:8px 0 0">Just record whether it installs cleanly on Windows and whether it
+    reads your text. <b>PaddleOCR on Windows is known to be awkward.</b> If it fights you for
+    more than 30 minutes, stop and write down what happened &mdash; that is a useful result too.
+    EasyOCR is our fallback.</p>
+  </div></div>
+
+  <h2>What your number means</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:22%">Correct out of 7</th><th>What we do</th></tr>
+      <tr><td><b>6&ndash;7</b></td><td>Plan stands. Perception runs locally as designed.</td></tr>
+      <tr><td><b>4&ndash;5</b></td><td>Plan stands, plus human-in-the-loop correction for low-confidence regions &mdash; which we designed for anyway.</td></tr>
+      <tr><td><b>2&ndash;3</b></td><td>We rethink. Probably a hosted vision model for this stage, with Florence-2 as the local fallback.</td></tr>
+      <tr><td><b>0&ndash;1</b></td><td>Real change of plan &mdash; and much better to know now. The pipeline still works from prompt and code input; the wireframe path becomes the weakest of the three rather than the flagship.</td></tr>
+    </table>
+  </div>
+
+  <div class="note good">There is no wrong answer here, only an unknown one.
+  <b>A low score is a genuinely useful result</b> &mdash; it redirects three people's work
+  before they spend two days on it.</div>
+
+  <h2>Send this back</h2>
+  <div class="card gr">
+<pre>MACHINE
+  GPU / Total VRAM / Driver / Python:
+  torch.cuda.is_available():   True / False
+
+FLORENCE-2 BASE
+  Load time / VRAM after load / Peak VRAM:
+  Seconds per phrase:
+
+THE NUMBER THAT MATTERS
+  Wireframe used:        hand-drawn / figma / screenshot
+  Correct out of 7:      __ / 7
+  Got right:
+  Missed or misplaced:
+
+FLORENCE-2 LARGE (if run):   peak VRAM __ GB,  __ / 7
+OCR:  installed clean / painful / failed.  Text read: yes / partly / no
+ANYTHING SURPRISING:</pre>
+  </div>
+
+  <h2>Do not</h2>
+  <div class="card r">
+    <ul>
+      <li><b>Do not install <code>ultralytics</code> or use YOLOv8.</b> Its licence has a network
+      clause our architecture triggers. It is on the forbidden list.</li>
+      <li><b>Do not use LayoutLMv3.</b> The code is MIT but the <i>weights</i> are non-commercial.</li>
+      <li><b>Do not commit anything from this folder.</b> Model weights are hundreds of megabytes
+      and must never enter the repository.</li>
+      <li><b>Do not run this inside the project repo.</b> Keep <code>gpu-test</code> separate.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

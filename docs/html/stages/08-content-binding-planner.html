@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Content Binding Planner — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 8 of 13 &nbsp;·&nbsp; pipeline stage 4 &nbsp;·&nbsp; Python emits, Node finalises</p>
+  <span class="stage">Semantic Planning &amp; IR Generation</span>
+  <h1>Content Binding Planner</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Decide what's CMS-editable, its default copy — and the card loop's shape.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>Elements and layout from Cards 6-7.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>Default copy and CSS overlay per field, plus the <code>cards</code> loop shape — count and fields per item.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 240" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="79" width="160" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="88" y="103" font-weight="bold">elements + layout</text><text x="88" y="120" font-size="11">from Cards 6-7</text>
+
+        <rect x="220" y="8" width="170" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="305" y="32" font-weight="bold">make editable</text><text x="305" y="49" font-size="11">default copy (§3)</text>
+
+        <rect x="220" y="150" width="170" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="305" y="174" font-weight="bold">card shape</text><text x="305" y="191" font-size="11">count × fields/item (§4)</text>
+
+        <rect x="438" y="79" width="150" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="513" y="103" font-weight="bold">css overlay</text><text x="513" y="120" font-size="11">allow-list (§8)</text>
+
+        <rect x="636" y="79" width="140" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="706" y="103" font-weight="bold">cards + defaults</text><text x="706" y="120" font-size="11">→ Card 9</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M168 95 L216 50"/><path d="M168 125 L216 170"/>
+          <path d="M390 50 L434 95"/><path d="M390 170 L434 125"/>
+          <path d="M588 110 L632 110"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">Every element gets a default value and a CMS-editable flag, and
+    <code>statBadges</code> gets a loop shape: how many cards, and how many fields inside each one. The
+    fields-per-item count must be uniform (§4) even when the wireframe shows one badge with an icon and
+    another without — this stage normalises that before it ever reaches an element document. It does
+    <b>not</b> allocate the field IDs those loop items will eventually need; that happens later, in the API.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// cards object (§6) — no field IDs; those are attached later by the API (§1, §6)</span>
+{
+  <span class="k">"of"</span>:           <span class="s">"statBadges"</span>,
+  <span class="k">"count"</span>:        <span class="n">3</span>,
+  <span class="k">"gridColumns"</span>:  <span class="n">3</span>,
+  <span class="k">"layoutMode"</span>:   <span class="s">"grid"</span>,
+  <span class="k">"fieldsPerItem"</span>: <span class="n">2</span>,
+  <span class="k">"items"</span>: [
+    { <span class="k">"field1"</span>: <span class="s">"1000+"</span>, <span class="k">"field2"</span>: <span class="s">"Community&lt;br /&gt;Members"</span> },
+    { <span class="k">"field1"</span>: <span class="s">"40+"</span>,   <span class="k">"field2"</span>: <span class="s">"Fitness&lt;br /&gt;Programmes"</span> },
+    { <span class="k">"field1"</span>: <span class="s">"150+"</span>,  <span class="k">"field2"</span>: <span class="s">"Fitness&lt;br /&gt;Channels"</span> }
+  ]
+}</pre>
+  </div>
+
+  <h2>Why everything is editable by default</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:30%">Approach</th><th style="width:16%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Every field CMS-editable by default</b></td><td><b>chosen</b></td>
+          <td>The 25-point criterion is CMS-bindability. A static text node can't be patched or previewed as changed — it scores nothing against the demo's central moment (§9, §13.2).</td></tr>
+      <tr><td>Hard-code "decorative" copy as static JSX</td><td>rejected</td>
+          <td>Looks identical until a judge tries to edit it. Nothing in a wireframe distinguishes "safe to hard-code" from "must be editable," so the safe default is to make everything a field.</td></tr>
+      <tr><td>Card fields start with an empty default</td><td>rejected</td>
+          <td>An empty default defeats the <code>data?.[id] || "DEFAULT"</code> fallback (§9) — the store-liveness safety net depends on every field having real fallback text.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn">Every nested <code>fieldIdN</code> each loop field gets will need its own store key
+  downstream (§5.0) — so the item count and <code>fieldsPerItem</code> decided right here is what
+  determines whether the cards can ever hydrate. Get this shape wrong and no later fix can save it without
+  a fresh section.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Card count disagrees with the prompt</td><td>§6: prompt wins card count. Skip that check here and a "four stats" request silently defaults to 3, and the demo fails live.</td></tr>
+        <tr><td>Uneven fields per item</td><td>§4 rule 3 requires uniformity across the loop, recorded as <code>cards.fieldsPerItem</code>. A wireframe with one icon and not another must be normalised to match.</td></tr>
+        <tr><td>Default copy left empty</td><td>Defeats the <code>|| "DEFAULT"</code> fallback (§9) — the field renders nothing until the store hydrates, invisibly, which is harder to catch than a stray placeholder string.</td></tr>
+        <tr><td>A field the demo expects to edit is marked non-editable</td><td><b>Unverified.</b> The wireframe alone doesn't say which fields a demo script wants edited live; this stage assumes "everything," per the choice above.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">What's never empty</p>
+      <ul style="font-size:12px;margin:0 0 0 -3px">
+        <li>every element's default copy (§9 fallback)</li>
+        <li>every card field's default copy</li>
+        <li><code>fieldsPerItem</code> — same number, every item</li>
+      </ul>
+      <p style="margin:7px 0 0;font-size:12px"><code>css</code> must match §8's declaration-shape regex or a later PATCH is <code>400</code>.</p>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§3</b> — every element document gets a <code>content</code> default and a <code>css</code> slot.</li>
+      <li><b>§4</b> — the cards loop: <code>fieldsPerItem</code> uniform across the loop, not fixed at any particular count.</li>
+      <li><b>§6</b> — the <code>cards</code> object's exact shape: <code>of</code>, <code>count</code>, <code>gridColumns</code>, <code>layoutMode</code>, <code>fieldsPerItem</code>, <code>items</code>.</li>
+      <li><b>§8</b> — any <code>css</code> value written here must satisfy the declaration allow-list, or the sanitiser rejects it write-side.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§3 · §4 · §6 · §8</b></span>
+    <span>Owner: generation track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="07-layout-planner.html">&larr; Layout Planner</a> &middot; <a href="09-ir-finalization.html">next: IR Finalization &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

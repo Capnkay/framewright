@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Framewright — Team Rules</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink2:#555; --line:#1a1a1a;
+    --yellow:#fff3bf; --green:#b2f2bb; --blue:#a5d8ff; --red:#ffc9c9;
+    --purple:#d0bfff; --orange:#ffd8a8; --grey:#eef0f2;
+    --hand:'Segoe Print','Bradley Hand','Comic Sans MS',cursive;
+    --body:'Segoe UI',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--ink);font-family:var(--body);font-size:11.5px;line-height:1.42}
+  .page{width:210mm;min-height:297mm;margin:0 auto;padding:11mm 11mm 8mm;background:#fff}
+  h1{font-family:var(--hand);font-size:25px;margin:0 0 1px}
+  .tag{color:var(--ink2);font-size:11px;margin:0 0 9px}
+  h2{font-family:var(--hand);font-size:14px;margin:0 0 6px;border-bottom:2.5px solid var(--line);padding-bottom:2px}
+  .cols{display:grid;grid-template-columns:1.03fr 1fr;gap:9px}
+  .box{border:2.2px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:9px;
+       box-shadow:2.5px 3px 0 rgba(26,26,26,.12);break-inside:avoid}
+  .box.y{background:var(--yellow)} .box.g{background:var(--green)} .box.r{background:var(--red)}
+  .box.b{background:var(--blue)} .box.gr{background:var(--grey)} .box.o{background:var(--orange)}
+  ol,ul{margin:3px 0 0;padding-left:16px} li{margin:2.5px 0}
+  code{background:rgba(0,0,0,.075);padding:0 3px;border-radius:3px;font-size:10.5px;
+       font-family:Consolas,monospace}
+  table{width:100%;border-collapse:collapse;font-size:10.7px;margin-top:3px}
+  td,th{text-align:left;padding:2.5px 4px;border-bottom:1px dashed #bbb;vertical-align:top}
+  th{font-family:var(--hand);font-size:11.5px;border-bottom:2px solid var(--line)}
+  .rit{counter-reset:s;list-style:none;padding:0;margin:4px 0 0}
+  .rit li{counter-increment:s;position:relative;padding-left:22px;margin:4px 0}
+  .rit li::before{content:counter(s);position:absolute;left:0;top:0;width:16px;height:16px;
+    border:2px solid var(--line);border-radius:50%;font-family:var(--hand);font-size:10px;
+    text-align:center;line-height:13px;background:#fff}
+  .big{font-family:var(--hand);font-size:15px;display:block;margin-bottom:2px}
+  .foot{margin-top:7px;border-top:2.5px solid var(--line);padding-top:5px;
+        display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;font-size:10.5px}
+  .warn{font-family:var(--hand);font-size:12.5px}
+  @media print{ body{font-size:10.3px} .page{width:auto;min-height:0;padding:8mm;margin:0}
+                .box{box-shadow:none} @page{size:A4;margin:8mm} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Framewright &mdash; Team Rules</h1>
+  <p class="tag">Wireframe / code / prompt &rarr; CMS-ready React. <b>React + Node are mandatory.</b>
+     Everything here fits on one page on purpose. Read it once, keep it open.</p>
+
+  <div class="cols">
+    <div>
+
+      <div class="box g">
+        <h2>Every session starts the same way</h2>
+        <span class="big">Type: <code>continue build</code></span>
+        <ol class="rit">
+          <li><code>git pull --rebase</code> &mdash; other people's claims land first.</li>
+          <li><code>baton status</code> &mdash; who holds what, what's blocked.</li>
+          <li><code>baton next</code> &mdash; your next task.</li>
+          <li><b>Open the contract sections the task names.</b> The title is a label. <u>The contract is the spec.</u></li>
+          <li><code>baton claim T-0xx</code> &rarr; push the claim <i>immediately</i>.</li>
+          <li>Build it.</li>
+          <li><code>baton done T-0xx</code> &mdash; runs the check. Failing check = not done.</li>
+          <li>Commit <b>with the task id in the message</b>, and push.</li>
+        </ol>
+        <p style="margin:6px 0 0"><b>Session died mid-task?</b> Your claim stands with a timestamp.
+        Someone runs <code>baton takeover</code>. Nothing is lost silently.<br>
+        <b>Two people claimed the same task?</b> Git raises a conflict. That's the system working &mdash;
+        talk, keep one.</p>
+      </div>
+
+      <div class="box r">
+        <h2>The trap that decides our score</h2>
+        <p style="margin:0 0 4px">Every text node renders as <code>data?.[id] || "DEFAULT"</code>.
+        That fallback is a <b>mask</b>. With a completely dead store the page looks
+        <i>pixel-identical to a working one</i> &mdash; right copy, right layout, right responsive
+        behaviour. It compiles, lints, and passes schema checks.</p>
+        <p style="margin:0 0 4px">It fails only when someone changes a value and nothing moves
+        &mdash; <b>which is exactly what the judge is told to do.</b></p>
+        <p class="warn" style="margin:0">A dead store caps us at <b>40/100</b>. The automated
+        store-liveness check is the only thing that catches it. <b>Never disable it.</b></p>
+      </div>
+
+      <div class="box y">
+        <h2>These look like bad code. They are graded.</h2>
+        <p style="margin:0 0 3px">Do not "clean up" any of it. Cleaning it up costs the 25-point criterion.</p>
+        <ul style="margin:0">
+          <li><code>dangerouslySetInnerHTML</code> with a default fallback &mdash; required</li>
+          <li><code>dynamicStyle</code> / <code>dynamicStyle2</code> marker classes &mdash; look dead, aren't</li>
+          <li>the <code>const ids</code> map &mdash; don't inline it, don't extract it</li>
+          <li>CSS applied via <code>getElementById</code> in an effect &mdash; not a style prop</li>
+          <li>every editable node carries an <code>id</code>, cards included</li>
+        </ul>
+      </div>
+
+    </div>
+    <div>
+
+      <div class="box">
+        <h2>Eight rules</h2>
+        <ol style="margin:0">
+          <li><b>The contract wins.</b> Code disagrees with <code>docs/CONTRACT.md</code>? The code is the bug. Think the contract is wrong? Fix it <i>and</i> log it in <code>corrections/REGISTER.md</code>. Never quietly diverge.</li>
+          <li><b>Prove the store is alive.</b> See the red box.</li>
+          <li><b>IDs come from the API.</b> 10 digits, central, persisted. Never <code>Math.random()</code>, <code>Date.now()</code>, <code>uuid</code>, <code>nanoid</code>. Never from a model.</li>
+          <li><b>The deterministic path always works.</b> Nothing may make generation <i>require</i> a key, a GPU, or a network.</li>
+          <li><b>Producer &ne; verifier.</b> Nothing is done until something that didn't build it has checked it.</li>
+          <li><b>No secret ever reaches a commit.</b> Hooks are law. A hook blocking legitimate work gets <i>fixed and logged</i>, never weakened.</li>
+          <li><b>One task, one claim, one commit message with its id.</b></li>
+          <li><b>Every claim carries a source</b> &mdash; and says whether it was verified or just reported.</li>
+        </ol>
+      </div>
+
+      <div class="box b">
+        <h2>Hygiene &mdash; where things go</h2>
+        <table>
+          <tr><th style="width:44%">Path</th><th>What lives there</th></tr>
+          <tr><td><code>client/src/sections/generated/</code></td><td>generated components &mdash; <b>never hand-edited</b></td></tr>
+          <tr><td><code>client/src/components/</code></td><td>studio, preview, cms-editor, common</td></tr>
+          <tr><td><code>server/src/routes|services|models|validators/</code></td><td>API by responsibility</td></tr>
+          <tr><td><code>perception/</code></td><td>Python service. Never imports from server</td></tr>
+          <tr><td><code>docs/</code></td><td>contract, roadmap, baton, registers, stage cards</td></tr>
+          <tr><td><code>_build/</code></td><td>the board, claims, per-person journals</td></tr>
+          <tr><td><code>uploads/ artifacts/</code></td><td>runtime only &mdash; <b>never committed</b></td></tr>
+        </table>
+        <p style="margin:5px 0 0"><b>Nothing loose at the repo root.</b> No scratch files, no
+        screenshots, no one-off scripts. If it has no home, it needs a folder before it needs a file.</p>
+      </div>
+
+      <div class="box o">
+        <h2>Who owns what</h2>
+        <table>
+          <tr><th style="width:33%">Track</th><th>Scope</th></tr>
+          <tr><td><b>Everyone</b><br><span style="font-size:9.8px">until the spine is green</span></td><td>Contract, Redux, persistence, prompt mode. <b>No splitting before Gate 1.</b></td></tr>
+          <tr><td><b>Studio &amp; preview</b></td><td>Generator form, errors, job history, JSX view, preview shell, CMS editor &mdash; <b>10 pts</b></td></tr>
+          <tr><td><b>Generation</b><br><span style="font-size:9.8px">2 people</span></td><td>Prompt&rarr;IR + keyless fallback, code&rarr;IR via AST, alignment, the three planners, IR finalisation, deterministic emitter. <b>The largest track</b></td></tr>
+          <tr><td><b>API &amp; Glass Box</b></td><td>Endpoints, ID allocator, job traces, timeline, replay, regenerate, orchestrator, zip</td></tr>
+          <tr><td><b>Perception</b><br><span style="font-size:9.8px">GPU laptop</span></td><td>Python service: normalise &rarr; ground &rarr; OCR &rarr; hierarchy &rarr; IR</td></tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="foot">
+    <div>
+      <b style="font-family:var(--hand);font-size:12.5px">Never</b>
+      <ul style="margin:2px 0 0">
+        <li>commit a real key, hostname, client name or DB URI</li>
+        <li>execute pasted code &mdash; parse to AST. No <code>eval</code>, <code>new Function</code>, <code>vm</code></li>
+        <li>commit weights, <code>uploads/</code>, <code>artifacts/</code>, <code>node_modules/</code></li>
+        <li>add a remote, push public, or deploy &mdash; team decision, never a build side effect</li>
+        <li>mark a task done because it looks right</li>
+      </ul>
+    </div>
+    <div>
+      <b style="font-family:var(--hand);font-size:12.5px">Forbidden dependencies</b>
+      <table>
+        <tr><td><b>YOLOv8</b></td><td>AGPL, network clause &rarr; use <b>DETR</b></td></tr>
+        <tr><td><b>LayoutLMv3</b></td><td>weights are CC-BY-NC-SA &rarr; use <b>Florence-2</b></td></tr>
+        <tr><td><b>Qwen2.5-Coder-3B</b></td><td>non-commercial &rarr; use the <b>7B</b></td></tr>
+        <tr><td><b>OmniParser</b></td><td>conflicting licences &mdash; on hold</td></tr>
+      </table>
+      <p style="margin:3px 0 0">The repo LICENSE and the <i>weights</i> licence are often different. Check both.</p>
+    </div>
+    <div>
+      <b style="font-family:var(--hand);font-size:12.5px">Where to look</b>
+      <table>
+        <tr><td><code>docs/CONTRACT.md</code></td><td>the spec. Frozen</td></tr>
+        <tr><td><code>docs/ROADMAP.md</code></td><td>phases, gates, demo</td></tr>
+        <tr><td><code>docs/BATON.md</code></td><td>handoff protocol</td></tr>
+        <tr><td><code>_build/STATE.md</code></td><td>the live board</td></tr>
+        <tr><td><code>SETUP.md</code></td><td>first-run on a new machine</td></tr>
+        <tr><td><code>CLAUDE.md</code></td><td>auto-loaded every session</td></tr>
+      </table>
+      <p style="margin:3px 0 0"><b>First run:</b> put your name in <code>_build/.me</code>,
+      run <code>git config core.hooksPath .githooks</code>, then <code>continue build</code>.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

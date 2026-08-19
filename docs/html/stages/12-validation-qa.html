@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Validation &amp; QA — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 12 of 13 &nbsp;·&nbsp; pipeline stage 6 &nbsp;·&nbsp; runs in Node</p>
+  <span class="stage">Validation &amp; QA</span>
+  <h1>Validation &amp; QA</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Three independent checks a generated component must pass, because each catches what the other two cannot.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>A CMS document set and a generated <code>.jsx</code> component, plus the IR it was generated from.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>Pass, or an error report and a bounded regenerate-then-fallback.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 280" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="110" width="120" height="60" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="68" y="134">generated</text><text x="68" y="150">component</text>
+
+        <rect x="190" y="12" width="150" height="54" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="265" y="33" font-weight="bold">Ajv schemas</text><text x="265" y="48" font-size="11">shape only</text>
+
+        <rect x="190" y="113" width="150" height="54" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="265" y="134" font-weight="bold">ESLint</text><text x="265" y="149" font-size="11">hermetic (§8)</text>
+
+        <rect x="190" y="214" width="150" height="54" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="265" y="235" font-weight="bold">structural</text><text x="265" y="250" font-size="11">vs the IR</text>
+
+        <rect x="390" y="113" width="150" height="54" rx="8" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="465" y="134" font-weight="bold">all three</text><text x="465" y="149" font-size="11">pass?</text>
+
+        <rect x="600" y="50" width="150" height="54" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="675" y="82" font-weight="bold">ship it</text>
+
+        <rect x="600" y="176" width="170" height="54" rx="8" fill="#ffc9c9" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="685" y="197" font-weight="bold">regenerate</text><text x="685" y="212" font-size="11">→ fallback template</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M128 125 L186 39"/><path d="M128 140 L186 140"/><path d="M128 155 L186 241"/>
+          <path d="M340 39 L386 128"/><path d="M340 140 L386 140"/><path d="M340 241 L386 152"/>
+          <path d="M540 128 L596 82"/><path d="M540 152 L596 198"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">Ajv checks the CMS documents against their schemas — shape only. ESLint runs
+    against the generated JSX hermetically, resolved from a fixed inline config rather than anything derived
+    from the input, because a config path built from user data is code execution at lint time. A third,
+    structural check walks the component and the IR side by side: every IR element present, every
+    <code>fieldId</code> in the tree, every nested card ID in the mount-time fetch. A failure regenerates with
+    the error report attached, bounded, then falls back to the deterministic template.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// structural check result</span>
+{
+  <span class="k">"schemaOk"</span>:     <span class="k">true</span>,
+  <span class="k">"lintOk"</span>:       <span class="k">true</span>,
+  <span class="k">"structuralOk"</span>: <span class="k">false</span>,
+  <span class="k">"errors"</span>: [
+    <span class="s">"nested fieldId 3000000004 missing from mount-time fetchElementsByIds call"</span>
+  ]
+}</pre>
+  </div>
+
+  <h2>Three checks, not one</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Three independent checks</b></td><td><b>chosen</b></td>
+          <td>Schema catches shape, lint catches syntax, structural catches semantics against the IR — none of the three can see the other's failure mode.</td></tr>
+      <tr><td>A single "does it look right" model check</td><td>rejected</td><td>Unauditable — no error report to regenerate against, and it cannot prove a negative, such as a nested ID missing from the fetch.</td></tr>
+      <tr><td>Structural check alone</td><td>rejected</td><td>Would miss a schema violation in the seed CMS data itself, and a syntactically broken component the parser cannot even walk.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn"><b>Valid JSX can be perfectly wrong.</b> A component can compile, lint clean, and
+  pass schema validation — and still have a dead store, because every field falls back to its hard-coded
+  default (§9). Only the structural check plus the §9 store-liveness assertion — patch a value, watch it
+  move — catches that.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Schema too strict for the organiser's own seed data</td><td>The seed data is ground truth (§2); a schema that rejects it is the bug, not the data.</td></tr>
+        <tr><td>Regeneration loops</td><td>Retries are bounded; exhausting them falls back to the deterministic template rather than looping forever.</td></tr>
+        <tr><td>Passes lint, semantically dead</td><td>Every field renders its hard-coded default, store never hydrates. Passes schema, passes lint, fails §9 step 5.</td></tr>
+        <tr><td>Hermetic config resolved from an input-derived path</td><td>A config path built from the upload or prompt is code execution at lint time (§8) — the config must be a fixed inline object.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">What each check can and cannot see</p>
+      <table>
+        <tr><td>Ajv</td><td>shape, types, enums</td></tr>
+        <tr><td>ESLint</td><td>syntax, dead imports</td></tr>
+        <tr><td>Structural</td><td>missing elements/fieldIds, unflattened cards</td></tr>
+      </table>
+      <p style="margin:7px 0 0;font-size:12px">None of the three can see what only the §9 assertion catches: a store that never moves.</p>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§9</b> — the store-liveness invariant and its five-step assertion; step 5 (patch a nested card field, assert it moves) is the one a DOM-presence check alone cannot fake.</li>
+      <li><b>§7</b> — every rule the structural check verifies against the component.</li>
+      <li><b>§3</b> — the element document shape the schema check enforces, including the <code>contentType</code> enum and <code>loop</code> required only for <code>Cards</code>.</li>
+      <li><b>§8</b> — hermetic ESLint: a fixed inline config, never one resolved from an input-derived directory.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§9 · §7 · §3 · §8</b></span>
+    <span>Owner: api-glassbox track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="11-code-generation-assembly.html">&larr; Code Generation & Assembly</a> &middot; <a href="13-output-delivery.html">next: Output & Delivery &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

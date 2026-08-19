@@ -1,0 +1,4 @@
+# Framewright is a local design/development studio, not a public site.
+# There is nothing here for a crawler to index.
+User-agent: *
+Disallow: /

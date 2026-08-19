@@ -1,0 +1,130 @@
+#!/bin/sh
+# .githooks/pre-push
+#
+# NOT a Claude Code hook — a real git hook. Active once this repository's
+# hooks path is set: `git config core.hooksPath .githooks` (see SETUP.md).
+#
+# The pre-submit gate over FULL history (docs/CONTRACT.md section 14). Runs
+# every check against `git log -p --all`, not just the working tree or the
+# current branch — a secret removed in a later commit is still a leak.
+#
+# Fails closed: any failed assertion below, or any internal error (a missing
+# tool, a failed git command), produces a non-zero exit and blocks the push.
+
+fail() {
+  echo "pre-push: $1" >&2
+  exit 1
+}
+
+for tool in git grep sed sort mktemp; do
+  command -v "$tool" >/dev/null 2>&1 || fail "required tool not found on PATH: $tool"
+done
+
+TMPFILE=$(mktemp) || fail "could not create a temp file for the history dump"
+trap 'rm -f "$TMPFILE"' EXIT
+
+git log -p --all > "$TMPFILE" 2>/dev/null
+GIT_LOG_STATUS=$?
+[ "$GIT_LOG_STATUS" -eq 0 ] || fail "git log -p --all failed"
+
+# --- 1. secret scan over full history ---------------------------------------
+
+SECRET_PATTERNS='AKIA[0-9A-Z]{16}|sk-ant-[A-Za-z0-9_-]{20,}|sk-(proj-)?[A-Za-z0-9_-]{20,}|gh[po]_[A-Za-z0-9]{36,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(sk|pk)_(live|test)_[A-Za-z0-9]{20,}'
+PLACEHOLDER_PATTERN='YOUR[_-]|placeholder|xxx|example\.com|changeme|change_me|dummy|redacted|sample'
+
+MATCHES=$(grep -E -o "$SECRET_PATTERNS" "$TMPFILE" | grep -Ev "$PLACEHOLDER_PATTERN")
+if [ -n "$MATCHES" ]; then
+  fail "possible secret found in full git history (git log -p --all)"
+fi
+
+# --- 2. .env.example must be tracked AND contain only placeholders ---------
+
+git ls-files --error-unmatch .env.example >/dev/null 2>&1
+[ $? -eq 0 ] || fail ".env.example is not tracked — it must be, and it must contain only placeholders"
+
+ENV_EXAMPLE_CONTENT=$(git show HEAD:.env.example 2>/dev/null)
+[ -n "$ENV_EXAMPLE_CONTENT" ] || fail "could not read the tracked .env.example at HEAD"
+
+BAD_ENV_LINE=""
+OLDIFS=$IFS
+IFS='
+'
+for line in $ENV_EXAMPLE_CONTENT; do
+  trimmed=$(printf '%s' "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  case "$trimmed" in
+    ''|'#'*) continue ;;
+  esac
+  case "$trimmed" in
+    *=*)
+      rhs=$(printf '%s' "$trimmed" | sed 's/^[^=]*=//')
+      case "$rhs" in
+        ''|*YOUR_*|*YOUR-*|*placeholder*|*PLACEHOLDER*|*xxx*|*XXX*|*example.com*|*localhost*|*127.0.0.1*|*changeme*|*CHANGEME*|*change_me*|*dummy*|*DUMMY*|*redacted*|*REDACTED*|*sample*|*SAMPLE*|*.local*)
+            ;;
+        *)
+          BAD_ENV_LINE="$trimmed"
+          ;;
+      esac
+      ;;
+  esac
+done
+IFS=$OLDIFS
+if [ -n "$BAD_ENV_LINE" ]; then
+  fail ".env.example contains a non-placeholder-shaped value: $BAD_ENV_LINE"
+fi
+
+# --- 3. no .env / *.pem / *.key ever tracked, anywhere in history ----------
+
+TRACKED_SECRET_PATHS=$(git log --all --pretty=format: --name-only 2>/dev/null | sort -u | grep -E '(^|/)\.env(\.[^/]+)?$|\.pem$|\.key$' | grep -Ev '(^|/)\.env\.(example|sample|template)$')
+if [ -n "$TRACKED_SECRET_PATHS" ]; then
+  fail "a .env/.pem/.key file was found tracked somewhere in git history: $TRACKED_SECRET_PATHS"
+fi
+
+# --- 4. forbidden-hostname grep ---------------------------------------------
+# Scope: any http(s):// URL host in full history that is not localhost,
+# 127.0.0.1, *.example.com/example.com, or *.local (docs/CONTRACT.md
+# section 14's allowed-host list). Restricted to scheme-prefixed URLs so the
+# check does not drown in unrelated dotted strings (filenames, version
+# numbers) that appear throughout a unified diff.
+
+URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?://##i' | sed -E 's#[:/].*$##' | sort -u)
+if [ -n "$URL_HOSTS" ]; then
+  FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv '^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.com|([a-z0-9-]+\.)*[a-z0-9-]+\.local)$')
+  if [ -n "$FORBIDDEN_HOSTS" ]; then
+    fail "forbidden hostname(s) found in git history (only localhost/127.0.0.1/example.com/.local are allowed): $FORBIDDEN_HOSTS"
+  fi
+fi
+
+# --- 5. no field IDs outside the sanctioned 1000.../2000.../3000... ranges -
+
+BAD_IDS=$(grep -Eo '"[0-9]{10}"' "$TMPFILE" | tr -d '"' | grep -Ev '^[123][0-9]{9}$' | sort -u)
+if [ -n "$BAD_IDS" ]; then
+  fail "ID(s) outside the sanctioned 1000.../2000.../3000... ranges found in git history: $BAD_IDS"
+fi
+
+# --- 6. no absolute local paths ---------------------------------------------
+# Scope note: requires an actual path SEGMENT after the drive/home marker (a
+# real-looking username followed by another separator), not just a bare
+# mention of "C:\Users\", "/home/", or "/Users/". A bare mention is exactly
+# what this repository's own rule-defining prose legitimately contains —
+# docs/CONTRACT.md section 14 names these three markers verbatim when it
+# documents this very rule, and .claude/hooks/block-dangerous-shell.mjs's
+# comments talk about "a root/home/drive-root" as a category of target, not
+# an actual path. A real leak is a concrete path with more after the marker;
+# this pattern is written to catch that shape without permanently failing on
+# the documentation that describes the rule. Known residual gap: a leak that
+# is exactly ".../home/username" with nothing after the username on that line
+# would not match — flagged, not silently accepted as fully covered.
+
+BAD_PATHS=$(grep -E 'C:\\Users\\[A-Za-z][A-Za-z0-9._-]+\\|/home/[A-Za-z][A-Za-z0-9._-]+/|/Users/[A-Za-z][A-Za-z0-9._-]+/' "$TMPFILE")
+if [ -n "$BAD_PATHS" ]; then
+  fail "an absolute local path (C:\\Users\\<name>\\, /home/<name>/, or /Users/<name>/) was found in git history"
+fi
+
+# --- 7. no model weights ever tracked ---------------------------------------
+
+WEIGHT_FILES=$(git log --all --pretty=format: --name-only 2>/dev/null | sort -u | grep -Ei '\.(pt|onnx|safetensors)$')
+if [ -n "$WEIGHT_FILES" ]; then
+  fail "model weight file(s) found tracked somewhere in git history: $WEIGHT_FILES"
+fi
+
+exit 0

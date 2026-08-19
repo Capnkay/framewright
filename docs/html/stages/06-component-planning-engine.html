@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Component Planning Engine — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 6 of 13 &nbsp;·&nbsp; pipeline stage 4 &nbsp;·&nbsp; Python emits, Node finalises</p>
+  <span class="stage">Semantic Planning &amp; IR Generation</span>
+  <h1>Component Planning Engine</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Turn a detected region into a named, typed element from the fixed reference set.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>Detected regions with roles, text and confidence, from stage 5.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>Elements matched to the reference set — a name, a <code>contentType</code>, an HTML tag.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 220" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="18" width="150" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="83" y="42" font-weight="bold">detected region</text><text x="83" y="59" font-size="11">role: heading, 0.94</text>
+
+        <rect x="8" y="140" width="150" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="83" y="164" font-weight="bold">reference set</text><text x="83" y="181" font-size="11">7 fixed names (§3)</text>
+
+        <rect x="214" y="79" width="140" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="284" y="103" font-weight="bold">match</text><text x="284" y="120" font-size="11">name → role</text>
+
+        <rect x="410" y="79" width="150" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="485" y="103" font-weight="bold">assign</text><text x="485" y="120" font-size="11">contentType + tag</text>
+
+        <rect x="616" y="79" width="140" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="686" y="103" font-weight="bold">headlineMain</text><text x="686" y="120" font-size="11">h1 → stage 7</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M158 60 L210 95"/><path d="M158 160 L210 125"/>
+          <path d="M354 110 L406 110"/><path d="M560 110 L612 110"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">The reference set (§3) is seven names, each with a fixed <code>contentType</code>
+    and HTML tag already decided by the brief. This stage's whole job is matching: given a region's role,
+    size and position, which of the seven does it become? A large bold line near the top matches
+    <code>headlineMain</code> — not because of its font size, but because nothing else in the seven-name
+    table fits a short, prominent line of text better. Once matched, <code>contentType</code> and the tag
+    are read straight out of §3, never invented.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// one entry per matched element — order and css are not decided here (§6)</span>
+{
+  <span class="k">"elementName"</span>:  <span class="s">"headlineMain"</span>,
+  <span class="k">"contentType"</span>:  <span class="s">"Text"</span>,
+  <span class="k">"tag"</span>:          <span class="s">"h1"</span>,
+  <span class="k">"confidence"</span>:   <span class="n">0.94</span>,   <span class="c">// carried from stage 5</span>
+  <span class="k">"sourceOf"</span>:     <span class="s">"wireframe"</span>,
+  <span class="k">"bbox"</span>:         [<span class="n">500</span>, <span class="n">80</span>, <span class="n">350</span>, <span class="n">60</span>]
+}</pre>
+  </div>
+
+  <h2>Why a fixed reference set, not free-form names</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:30%">Option</th><th style="width:16%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Fixed 7-name set</b><br><span style="font-size:11px">heroImage, brandBadge, headlineMain, headlineSub, description, statBadges, ctaButton</span></td><td><b>chosen</b></td>
+          <td>§3's table is exhaustive for the split-hero. The rubric grades the generated component against these exact keys, so a judge who knows the brief can search for <code>headlineMain</code> and expect to find it.</td></tr>
+      <tr><td>Free-form region naming<br><span style="font-size:11px">"topText", "mainHeading"</span></td><td>rejected</td>
+          <td>Nothing downstream — the <code>const ids</code> map, the CMS records, the judge's checklist — agrees on a name the model just invented. Two runs of the same wireframe could name the same region two different things.</td></tr>
+      <tr><td>contentType from box size alone</td><td>rejected</td>
+          <td>A large image and a large text block are both "big boxes." Size can't tell <code>Image</code> from <code>Text</code> apart — the match has to go through the matched <code>elementName</code>, which already carries its type in §3.</td></tr>
+      <tr><td>contentType decided later, at generation</td><td>rejected</td>
+          <td>Stage 5 reads the IR and never sees the wireframe again. Leave <code>contentType</code> undecided here and two variations of the same section could render the same region as an <code>&lt;img&gt;</code> in one and a <code>&lt;p&gt;</code> in the other.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn">This stage never invents a name. A region that matches none of the seven falls
+  through — to a lower confidence band (§10) or the deterministic template — rather than being force-fit
+  into the nearest guess, because a wrongly-named element breaks the <code>const ids</code> map that every
+  later stage depends on (R1).</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Two regions both look like the headline</td><td>Only one wins <code>headlineMain</code>. The other must resolve to a different name in §3's table, or drop below the confidence band and escalate (§10).</td></tr>
+        <tr><td>A region with no matching role</td><td>Not force-fit. Recorded unmatched; falls to the deterministic template or a warning (§10, §11.3 if review is on).</td></tr>
+        <tr><td>A wireframe box outside the seven names<br><span style="font-size:11px">e.g. a testimonial quote</span></td><td><b>Unverified.</b> §3's set is scoped to the split-hero brief. Nothing states what happens to a genuinely new region type.</td></tr>
+        <tr><td>contentType mismatch</td><td>Wrong tag downstream — the generated component renders an <code>&lt;img&gt;</code> where a <code>&lt;p&gt;</code> was meant, or the reverse.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">When signals disagree (§6)</p>
+      <table>
+        <tr><td><b>Prompt</b></td><td>copy, colour, CTA, card count</td></tr>
+        <tr><td><b>Wireframe</b></td><td>spatial layout, order, alignment</td></tr>
+        <tr><td><b>Code</b></td><td>selector shape, helper names</td></tr>
+      </table>
+      <p style="margin:7px 0 0;font-size:12px">Every time this order actually fires, it goes into <code>warnings</code>.</p>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§1</b> — this stage never allocates a <code>fieldId</code>. Elements come back identified by name and position only.</li>
+      <li><b>§3</b> — the reference element set is exhaustive for this section type; a name outside it breaks <code>const ids</code> (R1) and every CMS lookup after it.</li>
+      <li><b>§6</b> — <code>contentType</code> must be one of the five closed values (<code>Image | Text | Textfield | Button | Cards</code>); anything else fails Ajv at Card 9.</li>
+      <li><b>§11</b> — this stage's decisions are one immutable trace record. A retry appends; it never overwrites.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§1 · §3 · §6 · §11</b></span>
+    <span>Owner: generation track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="05-confidence-scoring.html">&larr; Confidence Scoring</a> &middot; <a href="07-layout-planner.html">next: Layout Planner &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

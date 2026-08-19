@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Model Orchestrator — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 10 of 13 &nbsp;·&nbsp; pipeline stages 3–5 &nbsp;·&nbsp; runs in Node</p>
+  <span class="stage">Model Orchestration</span>
+  <h1>Model Orchestrator</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">One door for every model call, so five call sites never quietly grow five different retry policies.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>A stage's request for a model call: which job — perception grounding, OCR, or hosted code generation — what input, and its content hash.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>A model result and a written trace record, or a <code>degraded</code> stage status. Never a crash.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 220" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="66" width="126" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="71" y="90">stage 3–5</text><text x="71" y="107">call</text>
+
+        <rect x="176" y="18" width="158" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="255" y="41" font-weight="bold">check cache</text><text x="255" y="58" font-size="11">by input hash</text>
+
+        <rect x="176" y="116" width="158" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="255" y="139" font-weight="bold">call the model</text><text x="255" y="156" font-size="11">retry + timeout</text>
+
+        <rect x="382" y="66" width="132" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="448" y="90" font-weight="bold">trace record</text><text x="448" y="107" font-size="11">§11</text>
+
+        <rect x="560" y="66" width="132" height="62" rx="8" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="626" y="90" font-weight="bold">classify</text><text x="626" y="107" font-size="11">ok / degraded</text>
+
+        <rect x="738" y="66" width="112" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="794" y="90" font-weight="bold">return</text><text x="794" y="107" font-size="11">to caller</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M134 88 L172 49"/><path d="M134 106 L172 145"/>
+          <path d="M334 49 L378 88"/><path d="M334 145 L378 106"/>
+          <path d="M514 97 L556 97"/><path d="M692 97 L734 97"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">Every stage that needs a model — perception grounding, OCR, or the hosted
+    code-generation call — goes through this one door instead of five. It hashes the input, checks the
+    cache, and only calls out on a miss, wrapped in one timeout and one bounded retry policy. Every call,
+    hit or miss, writes an immutable trace record naming the model that produced it, so a result can be
+    explained later. A model that never answers does not fail the job — it marks the stage <code>degraded</code>
+    and the pipeline keeps moving on the deterministic path.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// one immutable record per stage, appended, never overwritten (§11)</span>
+{
+  <span class="k">"stage"</span>:      <span class="n">3</span>,
+  <span class="k">"name"</span>:       <span class="s">"multimodal-understanding"</span>,
+  <span class="k">"status"</span>:     <span class="s">"degraded"</span>,   <span class="c">// closed set (§11.1)</span>
+  <span class="k">"model"</span>:      <span class="k">null</span>,
+  <span class="k">"confidence"</span>: <span class="k">null</span>,
+  <span class="k">"ms"</span>:         <span class="n">3012</span>,
+  <span class="k">"warnings"</span>:   [<span class="s">"/perceive unreachable — fell through to the deterministic template"</span>]
+}</pre>
+  </div>
+
+  <h2>One call site, and what it keeps out</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>One orchestrator</b><br><span style="font-size:11px">single call site</span></td><td><b>chosen</b></td>
+          <td>Retry, timeout, and cache logic written once instead of five times — where five independent copies start disagreeing within a day. It is also the one gate where the forbidden-model list can actually be enforced.</td></tr>
+      <tr><td>A call site per stage</td><td>rejected</td><td>Five slightly different retry behaviours under load, and a licence-forbidden model added to fix one stage's problem is never caught by the other four.</td></tr>
+      <tr><td>YOLOv8</td><td>rejected</td><td>AGPL-3.0. Its network-use clause requires disclosing source for any hosted use — incompatible with running as a service under evaluation.</td></tr>
+      <tr><td>LayoutLMv3 weights</td><td>rejected</td><td>Code is MIT, but the published pretrained weights are CC-BY-NC-SA. Using the code is fine; loading the weights is not.</td></tr>
+      <tr><td>Qwen2.5-Coder-3B</td><td>rejected</td><td>Non-commercial research licence only — and it is the exact size that fits comfortably on a 4–6&nbsp;GB laptop GPU, which is precisely why it's tempting. The Apache-2.0 7B checkpoint is the approved substitute.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn">The model most teams would reach for on a modest GPU is licensed against exactly
+  this use. Qwen2.5-Coder-3B's small footprint is <b>the trap, not a feature</b> — the fix costs VRAM, not code.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Hosted API returns 401</td><td>Bad or missing key. No retry — retrying an auth failure just spends the rate limit. Stage marked <code>failed</code>, warning recorded.</td></tr>
+        <tr><td>Hosted API returns 429</td><td>Retried with backoff, bounded. Exhausted retries degrade the stage rather than fail the job.</td></tr>
+        <tr><td>GPU machine asleep</td><td>Identical handling to a timeout: no 200 from <code>/perceive</code>, stage marked <code>degraded</code>, pipeline continues on the deterministic path (§12).</td></tr>
+        <tr><td>Cached result for a changed input</td><td>A cache keyed on job id instead of content hash returns stale output — a key bug, not accepted behaviour.</td></tr>
+        <tr><td>Non-deterministic model output</td><td>Two runs of the same job can differ. Downstream validation treats every model result as untrusted regardless of cache; the trace record stays reproducible even when the output does not.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">What every trace record fixes in place</p>
+      <table>
+        <tr><td><code>stage / name</code></td><td>one of the seven, canonical (§11.0)</td></tr>
+        <tr><td><code>status</code></td><td>closed set (§11.1)</td></tr>
+        <tr><td><code>model</code></td><td>exact string, or <code>null</code></td></tr>
+        <tr><td><code>warnings</code></td><td>why, in plain language</td></tr>
+      </table>
+      <p style="margin:7px 0 0;font-size:12px">Append-only. A retry adds a record; it never edits the old one.</p>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§11</b> — every model call writes one append-only stage record naming the <code>model</code> that ran, or <code>null</code> if none did. Retries add records; they never overwrite one.</li>
+      <li><b>§11.1</b> — <code>status</code> is a closed set; <code>degraded</code> means the job still succeeds and the stage carries a warning, never a thrown error.</li>
+      <li><b>§12</b> — the Node↔Python boundary is one endpoint, <code>/perceive</code>, and degradation across it is mandatory: prompt mode and the CMS contract must stay demonstrable with the perception service stopped, the GPU absent, and no network.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§11 · §11.1 · §12</b></span>
+    <span>Owner: api-glassbox track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="09-ir-finalization.html">&larr; IR Finalization</a> &middot; <a href="11-code-generation-assembly.html">next: Code Generation & Assembly &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

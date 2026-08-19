@@ -1,0 +1,13 @@
+{
+  "name": "framewright",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Framewright — wireframe, code, or prompt to a CMS-ready React section, with a live preview and store-backed editing.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.mjs"
+  }
+}

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code Generation &amp; Assembly — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 11 of 13 &nbsp;·&nbsp; pipeline stage 5 &nbsp;·&nbsp; runs in Node + hosted model</p>
+  <span class="stage">Code Generation &amp; Assembly</span>
+  <h1>Code Generation &amp; Assembly</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Turn the IR into a React component that satisfies all fourteen rules — by construction, not by luck.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>The finished IR (§6) — layout, theme, cards, elements, and the ID policy.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>A <code>.jsx</code> section component satisfying R1–R14, written to a unique file.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 220" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="66" width="126" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="71" y="90">IR</text><text x="71" y="107" font-size="11">(§6)</text>
+
+        <rect x="176" y="18" width="158" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="255" y="41" font-weight="bold">deterministic emitter</text><text x="255" y="58" font-size="11">always works</text>
+
+        <rect x="176" y="116" width="158" height="62" rx="8" fill="#ffd8a8" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="255" y="139" font-weight="bold">hosted model</text><text x="255" y="156" font-size="11">richer, optional</text>
+
+        <rect x="382" y="66" width="132" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="448" y="90" font-weight="bold">validate</text><text x="448" y="107" font-size="11">Card 12</text>
+
+        <rect x="560" y="66" width="132" height="62" rx="8" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="626" y="90" font-weight="bold">R1–R14</text><text x="626" y="107" font-size="11">check</text>
+
+        <rect x="738" y="66" width="112" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="794" y="90" font-weight="bold">.jsx</text><text x="794" y="107" font-size="11">→ stage 6</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M134 88 L172 49"/><path d="M134 106 L172 145"/>
+          <path d="M334 49 L378 88"/><path d="M334 145 L378 106"/>
+          <path d="M514 97 L556 97"/><path d="M692 97 L734 97"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">Two paths produce the same shape. The <b>deterministic emitter</b> walks the IR
+    and fills a template — no network, no key, correct by construction because it satisfies the contract
+    mechanically. The <b>hosted-model path</b> asks a model to write richer JSX from the same IR; that output
+    is then validated and, on failure, regenerated or replaced by the deterministic emitter. Either path
+    writes one unique file per section, ID, and variation, so a second variation never overwrites the first.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// generated component excerpt — satisfies R1, R2, R3</span>
+<span class="k">const</span> ids = {
+  headlineMain: <span class="s">"2000000003"</span>,
+  ctaButton:    <span class="s">"2000000007"</span>,
+  statBadges:   <span class="s">"2000000006"</span>
+};
+
+useEffect(() => {
+  dispatch(fetchElementsByIds({
+    <span class="c">// every field ID in the tree, nested card IDs included</span>
+    elementIds: [...Object.values(ids), <span class="s">"3000000001"</span>, <span class="s">"3000000002"</span>],
+    pageName
+  }));
+}, [pageName]);</pre>
+  </div>
+
+  <h2>Which path, and why that one</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Deterministic emitter</b><br><span style="font-size:11px">primary path</span></td><td><b>chosen</b></td>
+          <td>Satisfies R1–R14 by construction — no key, no network, latency is a template fill. Must still work with the perception service down and <code>LLM_API_KEY</code> unset.</td></tr>
+      <tr><td>Hosted model, as an enhancement</td><td><b>chosen</b></td>
+          <td>Produces richer, more varied JSX from the same IR — but every output is validated against the same rules before it ships, and a failure regenerates or falls back to the emitter.</td></tr>
+      <tr><td>Hosted model as the only path</td><td>rejected</td><td>Ties every generation to a key, a network call, and a non-deterministic result — none of which the §12 degradation guarantee allows to be load-bearing.</td></tr>
+      <tr><td>Copy the brief's reference component verbatim</td><td>rejected</td><td>Its R9 guard hard-codes <code>.length === 3</code>. A four-stat regeneration then silently renders three stale defaults — compiling, linting, and wrong.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn"><b>Do not "clean up" the odd parts.</b> <code>dangerouslySetInnerHTML</code>,
+  <code>dynamicStyle</code>/<code>dynamicStyle2</code>, the <code>const ids</code> map, and CSS applied via
+  <code>getElementById</code> all look like debt. Every one is graded (§7). Improving them costs the
+  25-point code-quality criterion, not gains it.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Invalid JSX from the model</td><td>Caught by validation (Card 12), triggers a bounded regeneration, then falls back to the deterministic emitter.</td></tr>
+        <tr><td>Fixed filename reused</td><td>Variation 2 overwrites variation 1 on disk; the preview's Vite glob then serves only the survivor.</td></tr>
+        <tr><td>Model omits nested card IDs from the mount fetch</td><td>Compiles and renders defaults perfectly. Card fields never hydrate — invisible until someone edits a card.</td></tr>
+        <tr><td>Model invents a helper import</td><td>Build fails outright — <code>fetchElementsByIds</code> and <code>getSectionTextContrastClass</code> must resolve to real files in this repo.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">The mounting seam (§7)</p>
+      <table>
+        <tr><td>filename</td><td><code>&lt;SectionName&gt;-&lt;sectionId&gt;-v&lt;variation&gt;.jsx</code></td></tr>
+        <tr><td>discovery</td><td><code>import.meta.glob('./sections/generated/*.jsx',&nbsp;{eager:true})</code></td></tr>
+        <tr><td>selection</td><td>by <code>sectionId</code> + <code>variation</code> on the section doc</td></tr>
+      </table>
+      <p style="margin:7px 0 0;font-size:12px">No restart, no manifest — Vite HMR picks it up.</p>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§7</b> — all fourteen rules, R1–R14. A component missing even one (the R9 length guard, most often) is a contract failure, not a style note.</li>
+      <li><b>§7 mounting seam</b> — a unique filename per section, <code>sectionId</code>, and variation. A fixed name silently destroys a prior variation, and the Vite eager glob is how the preview finds the file at all.</li>
+      <li><b>§6</b> — the component is a pure read of the IR; nothing here allocates an ID or invents a field not present in it.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§7 · §6</b></span>
+    <span>Owner: generation track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="10-model-orchestrator.html">&larr; Model Orchestrator</a> &middot; <a href="12-validation-qa.html">next: Validation & QA &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cross-Modal Alignment — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 4 of 13 &nbsp;·&nbsp; pipeline stage 3 &nbsp;·&nbsp; runs in Node</p>
+  <span class="stage">Multi-Modal Understanding</span>
+  <h1>Cross-Modal Alignment</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">When wireframe, code and prompt describe the same section and disagree, decide — out loud.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>Up to three IR fragments — wireframe, code, prompt — for one section.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>One merged IR, each field's winner recorded in <code>sourceOf</code>, every override in <code>warnings</code>.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 240" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="8" width="150" height="56" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="83" y="30" font-weight="bold">wireframe IR</text><text x="83" y="47" font-size="11">layout, order</text>
+
+        <rect x="8" y="84" width="150" height="56" rx="8" fill="#ffd8a8" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="83" y="106" font-weight="bold">code IR</text><text x="83" y="123" font-size="11">selectors, helpers</text>
+
+        <rect x="8" y="160" width="150" height="56" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="83" y="182" font-weight="bold">prompt IR</text><text x="83" y="199" font-size="11">copy, colour, CTA</text>
+
+        <rect x="250" y="84" width="170" height="56" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="335" y="106" font-weight="bold">resolve</text><text x="335" y="123" font-size="11">§6 priority order</text>
+
+        <rect x="520" y="84" width="150" height="56" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="595" y="106" font-weight="bold">merged IR</text><text x="595" y="123" font-size="11">one value per field</text>
+
+        <rect x="712" y="84" width="140" height="56" rx="8" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="782" y="106" font-weight="bold">warnings</text><text x="782" y="123" font-size="11">per override</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M158 40 L246 100"/>
+          <path d="M158 112 L246 112"/>
+          <path d="M158 184 L246 124"/>
+          <path d="M420 112 L516 112"/>
+          <path d="M670 112 L708 112"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">Only fields that two or more sources both describe go through resolution —
+    a field only one source mentions is simply kept, with <code>sourceOf</code> set to whichever supplied
+    it. For a genuine conflict, §6's order decides: <b>prompt</b> wins copy, colour, CTA and card count;
+    <b>wireframe</b> wins spatial layout, order and alignment; <b>code</b> wins technical patterns —
+    selector shape, helper names, class conventions.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// excerpt from the merged IR — wireframe said red-500, prompt said green, prompt wins colour per §6</span>
+{
+  <span class="k">"elements"</span>: [
+    { <span class="k">"elementName"</span>: <span class="s">"ctaButton"</span>, <span class="k">"classes"</span>: <span class="s">"bg-green-500 text-white"</span>, <span class="k">"sourceOf"</span>: <span class="s">"prompt"</span>, <span class="k">"confidence"</span>: <span class="n">0.81</span> }
+  ],
+  <span class="k">"warnings"</span>: [
+    <span class="s">"ctaButton colour: prompt overrode wireframe (green-500 vs red-500), per §6"</span>
+  ]
+}</pre>
+  </div>
+
+  <h2>How it decides</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Approach</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Explicit priority order</b><br><span style="font-size:11px">§6: prompt / wireframe / code, by field domain</span></td><td><b>chosen</b></td>
+          <td>Fixed and named per field domain — anyone can predict the winner before running it, and every firing is logged.</td></tr>
+      <tr><td>Last input wins</td><td>rejected</td><td>Order-dependent on which upload finished processing first. Not reproducible, and silently favours whichever track happened to run last.</td></tr>
+      <tr><td>Ask a model to reconcile</td><td>rejected</td><td>Unauditable — nobody can point to why field X won without re-asking the model, and it may answer differently next time.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn">Every time the priority rule actually fires — a real disagreement, not just one
+  source being silent — it is written to <code>warnings</code>. That's what makes the resolution
+  <b>auditable instead of assumed</b>: a judge (or a later stage) can see exactly which field was
+  overridden, by what, and why.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Two sources at equal priority</td><td>Shouldn't occur by design — every field domain has exactly one deciding source. If it does, that's a bug in the domain mapping, not a case this stage is built to arbitrate.</td></tr>
+        <tr><td>Present in one input, absent from the others</td><td>No conflict. Kept as-is, <code>sourceOf</code> set to whichever input supplied it.</td></tr>
+        <tr><td>Silent resolution, no warning</td><td>The dangerous one — a merge happened but left no trace of it. Only a golden-file diff against expected <code>warnings</code> catches it.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">The priority order, in one line each</p>
+      <ul style="font-size:12px;margin:0 0 0 -3px">
+        <li><b>Prompt</b> — copy, colour, CTA behaviour, card count</li>
+        <li><b>Wireframe</b> — regions, order, alignment</li>
+        <li><b>Code</b> — selector shape, helper names, class conventions</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§6 conflict order</b> — the three-way priority is fixed by field domain, not negotiable per section or per run.</li>
+      <li><b><code>sourceOf</code></b> — set to whichever source's value actually survived into the merged IR, never left blank and never set to something like "combined".</li>
+      <li><b><code>warnings</code></b> — every override the rule actually applies gets one entry; a field that only one source described is not an override and gets none.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§6</b></span>
+    <span>Owner: generation track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="03-prompt-understanding.html">&larr; Prompt Understanding</a> &middot; <a href="05-confidence-scoring.html">next: Confidence Scoring &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

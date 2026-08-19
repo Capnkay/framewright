@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Layout Planner — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 7 of 13 &nbsp;·&nbsp; pipeline stage 4 &nbsp;·&nbsp; Python emits, Node finalises</p>
+  <span class="stage">Semantic Planning &amp; IR Generation</span>
+  <h1>Layout Planner</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Decide the spatial structure — direction, breakpoint, regions, and the order inside each.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>Named elements from Card 6, with their source positions.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>A <code>layout</code> object — regions, sides, container, accents — and an explicit <code>order</code> per element.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 240" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="79" width="150" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="83" y="103" font-weight="bold">named elements</text><text x="83" y="120" font-size="11">from Card 6</text>
+
+        <rect x="210" y="8" width="170" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="295" y="32" font-weight="bold">bbox position</text><text x="295" y="49" font-size="11">spatial reading order</text>
+
+        <rect x="210" y="150" width="170" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="295" y="174" font-weight="bold">prompt hint</text><text x="295" y="191" font-size="11">explicit order text</text>
+
+        <rect x="428" y="79" width="150" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="503" y="103" font-weight="bold">decide once</text><text x="503" y="120" font-size="11">write order (§6)</text>
+
+        <rect x="626" y="79" width="140" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="696" y="103" font-weight="bold">layout.regions</text><text x="696" y="120" font-size="11">→ Card 8</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M158 95 L206 50"/><path d="M158 125 L206 170"/>
+          <path d="M380 50 L424 95"/><path d="M380 170 L424 125"/>
+          <path d="M578 110 L622 110"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">Two candidate orderings exist for the same elements: where a box sits in the
+    picture, and what the prompt says should come first. Both are legitimate and they will not always
+    agree, so this stage is the one place that reads both, picks a winner per §6's conflict order, and
+    writes the result down as an explicit <code>order</code> field on each element. It also decides
+    direction, breakpoint, which region sits left and which right, and the container and accent bars.
+    Everything after this reads <code>order</code> and never recomputes it.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// this stage owns layout.* in full, and writes order onto each element (§6)</span>
+{
+  <span class="k">"direction"</span>:   <span class="s">"row"</span>,
+  <span class="k">"breakpoint"</span>:  <span class="s">"md"</span>,
+  <span class="k">"mobileBehaviour"</span>: <span class="s">"stack"</span>,
+  <span class="k">"container"</span>: { <span class="k">"maxWidth"</span>: <span class="s">"1920px"</span>, <span class="k">"padding"</span>: <span class="s">"px-0 md:px-12"</span> },
+  <span class="k">"regions"</span>: [
+    { <span class="k">"role"</span>: <span class="s">"media"</span>,   <span class="k">"side"</span>: <span class="s">"left"</span>,  <span class="k">"width"</span>: <span class="s">"1/2"</span>, <span class="k">"children"</span>: [<span class="s">"heroImage"</span>] },
+    { <span class="k">"role"</span>: <span class="s">"content"</span>, <span class="k">"side"</span>: <span class="s">"right"</span>, <span class="k">"width"</span>: <span class="s">"1/2"</span>,
+      <span class="k">"children"</span>: [<span class="s">"brandBadge"</span>,<span class="s">"headlineMain"</span>,<span class="s">"headlineSub"</span>,<span class="s">"description"</span>,<span class="s">"statBadges"</span>,<span class="s">"ctaButton"</span>] }
+  ],
+  <span class="k">"accents"</span>: [
+    { <span class="k">"edge"</span>: <span class="s">"left"</span>, <span class="k">"width"</span>: <span class="s">"w-8"</span>, <span class="k">"colour"</span>: <span class="s">"red-500"</span>, <span class="k">"fromBreakpoint"</span>: <span class="s">"md"</span> }
+  ]
+}</pre>
+  </div>
+
+  <h2>Why an explicit order field</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:30%">Approach</th><th style="width:16%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Explicit <code>order</code>, decided once</b><br><span style="font-size:11px">written onto each element in this stage</span></td><td><b>chosen</b></td>
+          <td>§6, verbatim: ordering derived from a bounding box at read time and ordering derived from a prompt at read time will not agree — so it is decided once, here, and written down.</td></tr>
+      <tr><td>Order derived from <code>bbox</code> y at render time</td><td>rejected</td>
+          <td>Works alone, but breaks the moment a prompt override reorders the same section — bbox order and the prompt's stated order can disagree live, with no rule for which wins.</td></tr>
+      <tr><td>Order derived from array position at render time</td><td>rejected</td>
+          <td>Regenerating a section can return <code>elements[]</code> in whatever sequence the model emitted them, which is not necessarily reading order.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn"><code>order</code> is decided exactly once, here. A bounding box read at
+  generation time and a prompt read at generation time can each justify a different position — so nothing
+  downstream is allowed to derive order on its own; it obeys what this stage already wrote.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>A three-column wireframe</td><td>§6's model has exactly two regions, media and content (also R11). A third column has no region to hold — its children fold into one of the two, and which one is <b>unverified</b>.</td></tr>
+        <tr><td>Overlapping regions</td><td><b>Unverified.</b> §6's schema records side and width per region but has no stated overlap check.</td></tr>
+        <tr><td>Mobile order differs from desktop</td><td>IR v1.0 models one <code>order</code> per element, not one per breakpoint. <code>mobileBehaviour: "stack"</code> reuses the same order — a design wanting a different mobile order isn't representable.</td></tr>
+        <tr><td>An unmodelled breakpoint value</td><td><b>Unverified.</b> §6's example only shows <code>"md"</code>; no closed enum for <code>breakpoint</code> is stated.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">Layout defaults (§6, R11)</p>
+      <table>
+        <tr><td><code>direction</code></td><td>row</td></tr>
+        <tr><td><code>breakpoint</code></td><td>md</td></tr>
+        <tr><td><code>mobileBehaviour</code></td><td>stack</td></tr>
+        <tr><td>columns</td><td>two, desktop only</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§6 layout object</b> — direction, breakpoint, mobileBehaviour, container, regions, accents. Stage 5 reads this literally; nothing there is inferred.</li>
+      <li><b>§6 order field</b> — decided once, obeyed by generation. Recomputing it elsewhere reopens the exact disagreement this field exists to prevent.</li>
+      <li><b>§7 R11</b> — two columns on desktop, stacked on mobile, inside a max-width container. A layout that violates this fails the generated-component rule directly.</li>
+      <li><b>§11</b> — layout is persisted as an artifact, so Card 9 and a human replay from stage 4 can read exactly what this stage decided.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§6 · §7 R11 · §11</b></span>
+    <span>Owner: generation track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="06-component-planning-engine.html">&larr; Component Planning Engine</a> &middot; <a href="08-content-binding-planner.html">next: Content Binding Planner &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

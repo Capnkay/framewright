@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Output &amp; Delivery — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 13 of 13 &nbsp;·&nbsp; pipeline stage 7 &nbsp;·&nbsp; runs in Node</p>
+  <span class="stage">Output &amp; Delivery</span>
+  <h1>Output &amp; Delivery</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Persist the section, persist its elements, write the component, and hand back a response a judge can act on.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>A validated IR, its generated component file, and the CMS documents it produced.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>A persisted section + elements, a written <code>.jsx</code> file, and the <code>{ ok, ... }</code> response — plus a ZIP on request.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 220" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="66" width="140" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="78" y="90">component</text><text x="78" y="107" font-size="11">+ docs ready</text>
+
+        <rect x="172" y="66" width="140" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="242" y="90" font-weight="bold">write section</text><text x="242" y="107" font-size="11">row, first</text>
+
+        <rect x="336" y="66" width="140" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="406" y="90" font-weight="bold">write elements</text><text x="406" y="107" font-size="11">IDs, §2.1</text>
+
+        <rect x="500" y="66" width="140" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="570" y="90" font-weight="bold">write .jsx</text><text x="570" y="107" font-size="11">component file</text>
+
+        <rect x="664" y="66" width="180" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="754" y="90" font-weight="bold">response</text><text x="754" y="107" font-size="11">+ optional ZIP</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M148 97 L168 97"/><path d="M312 97 L332 97"/><path d="M476 97 L496 97"/><path d="M640 97 L660 97"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">The section row is written first, then its elements, then the component file
+    — in that order, deliberately. If anything fails partway, the world is left with a section that has no
+    elements yet, which is harmless and re-runnable, never with elements pointing at a section row that does
+    not exist. The API response carries the IDs, the component path, and any warnings; the ZIP export reads
+    what is already persisted, not a separate code path.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// POST /api/generate — success shape (§13)</span>
+{
+  <span class="k">"ok"</span>: <span class="k">true</span>,
+  <span class="k">"jobId"</span>: <span class="s">"job-0000000001"</span>,
+  <span class="k">"sectionId"</span>: <span class="s">"1000000001"</span>,
+  <span class="k">"componentFile"</span>: <span class="s">"src/sections/generated/HeroSection.jsx"</span>,
+  <span class="k">"elementIds"</span>: [<span class="s">"2000000001"</span>, <span class="s">"2000000002"</span>],
+  <span class="k">"warnings"</span>: []
+}</pre>
+  </div>
+
+  <h2>Write order, and why it runs that way</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Section row first, then elements</b></td><td><b>chosen</b></td>
+          <td>A partial failure orphans a section with no elements — harmless, easy to retry or discard.</td></tr>
+      <tr><td>Elements first, then the section row</td><td>rejected</td><td>A partial failure orphans elements with no parent section — those <code>fieldId</code>s are allocated, stored, and unreachable, corrupting the ID space §13's atomicity rule forbids exactly this.</td></tr>
+      <tr><td>Regeneration allocates fresh IDs</td><td>rejected</td><td>Breaks the one thing the demo depends on: <code>idPolicy.mode</code> is forced to <code>preserve</code> on regenerate (§13.3) so a judge's own typed content survives a design change.</td></tr>
+    </table>
+  </div>
+
+  <div class="note good">Regeneration forces <code>contentPolicy: "keep"</code>. A judge types their own
+  headline, the design changes underneath it, and their words survive — because the field kept both its
+  ID and its content (§6, §13.3). That single behaviour is the entire demo.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Partial write (section written, elements fail)</td><td>Section exists with no elements — harmless per the ordering choice above; safe to retry.</td></tr>
+        <tr><td>Two jobs target the same <code>pageName</code></td><td>ID allocation is atomic and centrally counted (§1, §2.1); a read-modify-write counter would issue duplicates — the pre-submit gate checks for exactly that.</td></tr>
+        <tr><td>PATCH on a nested card ID</td><td>Must resolve to the parent element and update that position in <code>loop</code>, returning the parent's full document — not <code>404</code> (§13.2).</td></tr>
+        <tr><td>ZIP containing something that must never leave the repo</td><td>Real keys, hosts, ObjectIds, absolute local paths, or model weights (§14) — the export is built from the same source the pre-submit gate scans.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">Endpoints this stage owns (§13)</p>
+      <table>
+        <tr><td><code>POST /api/generate</code></td><td>write + respond</td></tr>
+        <tr><td><code>PATCH /api/elements/:fieldId</code></td><td>incl. nested card IDs (§13.2)</td></tr>
+        <tr><td><code>POST .../regenerate</code></td><td>forced <code>preserve</code> (§13.3)</td></tr>
+        <tr><td><code>GET .../artifacts/:name</code></td><td>artifact retrieval (§11.2)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§13</b> — every endpoint's wire shape, including the envelope convention: actions return <code>{ ok, ... }</code>, collections return a bare array, single documents return the bare document or <code>404</code>.</li>
+      <li><b>§13.2</b> — a PATCH on a nested (<code>3…</code>-range) field ID resolves to its parent element and returns the parent's full document; it does not <code>404</code>.</li>
+      <li><b>§13.3</b> — regeneration keeps the <code>sectionId</code>, forces <code>idPolicy.mode: preserve</code>, and content follows <code>contentPolicy: keep</code>.</li>
+      <li><b>§11.2</b> — artifacts are owned by Node, retrieved by <code>GET /api/jobs/:jobId/artifacts/:name</code>; the Python service never writes them.</li>
+      <li><b>§14</b> — nothing in the ZIP or the response may contain a real key, host, ObjectId, absolute local path, or model weight.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§13 · §13.2 · §13.3 · §11.2 · §14</b></span>
+    <span>Owner: api-glassbox track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="12-validation-qa.html">&larr; Validation & QA</a></span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Judge Cards — Framewright</title>
+<link rel="stylesheet" href="stages/_card.css">
+<style>
+  /* Supplements _card.css for this page's role-card layout. Does not
+     redefine anything _card.css already owns. */
+  .track{break-inside:avoid;page-break-inside:avoid}
+  .track + .track{margin-top:8px}
+  .role-io{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px}
+  .role-io b{font-family:var(--hand);font-size:12.5px}
+  .fail-card{background:var(--red);border:2.4px solid var(--ink);border-radius:10px;
+             padding:9px 13px;margin-top:8px}
+  .num-card{background:var(--yellow);border:2.4px solid var(--ink);border-radius:10px;
+            padding:9px 13px;margin-top:8px}
+  @media print{
+    .track{page-break-before:always}
+    .track:first-of-type{page-break-before:auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="stages/index.html">← pipeline stages</a> &nbsp;·&nbsp;
+     <a href="TEAM-RULES.html">team rules</a> &nbsp;·&nbsp;
+     <a href="GPU-BENCHMARK.html">GPU benchmark</a></p>
+  <span class="stage">Judge Cards</span>
+  <h1>Judge Cards</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">One card per track. Every teammate should be able to answer
+  these cold, with the demo laptop closed. Print it.</p>
+
+  <h2>Everyone knows this cold, whichever track you own</h2>
+  <div class="card gr">
+    <div class="row">
+      <div>
+        <p class="lbl">The one-sentence pitch for the whole system</p>
+        <p style="margin:0 0 10px">We do not ask a model for a webpage. We convert a wireframe, a prompt, or
+        pasted code into a validated intermediate representation, then generate a React component and its
+        CMS metadata from that representation, and validate both independently.
+        <span style="color:var(--ink2);font-size:11px">(<code>docs/ROADMAP.md</code>, the demo script's opening line)</span></p>
+
+        <p class="lbl">Why an IR exists at all, rather than asking a model for a webpage directly</p>
+        <p style="margin:0">"The IR is the bridge. Perception writes it, generation reads it, validation
+        compares against it, and the Glass Box replays from it." <span style="color:var(--ink2);font-size:11px">(§6)</span>
+        A model asked for a webpage directly gives you one opaque answer with no seam to test, replay, or
+        recover from. An IR gives every stage a persisted input and a persisted output — which is what makes
+        each stage independently testable, and what makes a bad stage-3 guess correctable by replaying from
+        stage 5 without repeating perception. <span style="color:var(--ink2);font-size:11px">(§11, <code>docs/VERIFICATION.md</code>)</span></p>
+      </div>
+      <div>
+        <p class="lbl">What "CMS-bindable" means, and why it is 25 of 100 points</p>
+        <p style="margin:0 0 10px">Every editable node in the generated component carries an <code>id</code> that
+        is a real, persisted <code>fieldId</code>, wired to <code>state.cms.allSections[pageName]</code> in Redux
+        (§5, §7 rules R1/R3/R4/R5). "CMS-bindable" means a judge can open the DOM inspector, find that id, then
+        <code>PATCH</code> it, and watch the exact text they typed appear in the preview with no refresh. It is
+        the single largest line item in the scoring rubric — <b>CMS contract compliance is worth 25 of 100
+        points</b>, more than any other criterion. <span style="color:var(--ink2);font-size:11px">(<code>docs/ROADMAP.md</code>
+        scoring table)</span></p>
+
+        <p class="lbl">The honest limitation we volunteer before being asked</p>
+        <p style="margin:0">Every text node renders as <code>data?.[id] || "DEFAULT"</code>. That fallback is
+        also a mask: a completely dead store renders pixel-identical to a live one — right copy, right layout,
+        right responsive behaviour. It compiles, lints, and passes schema checks. <b>It only fails when someone
+        changes a value and the preview does not move</b> — which is exactly what we ask a judge to do at the
+        demo's central moment. <span style="color:var(--ink2);font-size:11px">(§9, verbatim reasoning)</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== STUDIO & PREVIEW ===================== -->
+  <section class="track">
+  <h2>Studio &amp; Preview</h2>
+  <div class="card b">
+    <div class="role-io"><b>Takes in →</b><span>the operator's chosen mode (wireframe upload, pasted code,
+      or a typed prompt), plus display preferences (accent colour, layout mode, responsive toggle).</span></div>
+    <div class="role-io"><b>Emits →</b><span>a live, editable preview of the generated section, a read-only
+      view of the actual generated JSX, and a job history — all wired to the same store a judge can edit
+      directly.</span></div>
+
+    <table>
+      <tr><th style="width:38%">A judge will ask</th><th>The honest answer</th></tr>
+      <tr><td>"What happens if I upload a file that's too big or the wrong type?"</td>
+          <td>A plain-language error in the form, not a stack trace. Over 8&nbsp;MB is <code>413</code>;
+          anything other than PNG/JPEG/WebP is <code>400</code> (§13.1) — the form surfaces both as text a
+          non-engineer can read, which is one of the studio's own nine numbered requirements.</td></tr>
+      <tr><td>"Can I actually see the code you generated, not just the rendered result?"</td>
+          <td>Yes — a read-only JSX view, backed by <code>GET /api/jobs/:jobId/component</code> (§11.2), which
+          exists specifically because the generate response only returns a path, and a judge is entitled to
+          see the source, not a static mount someone invented later.</td></tr>
+      <tr><td>"What happens if the hosted model call fails or you have no API key?"</td>
+          <td>The studio keeps working. A keyless prompt path extracts section type, card count, accent
+          colour and CTA label straight from the typed text into the same IR and the same deterministic
+          emitter — no model call at all (<code>docs/ROADMAP.md</code> Phase 2's keyless gate).</td></tr>
+    </table>
+
+    <div class="num-card">
+      <p class="lbl" style="margin:0">The number I should have ready</p>
+      <p style="margin:0">How many of the nine numbered Generator Studio requirements (FR-G01–FR-G09) are
+      actually implemented, out of 9 — the studio is scored as its own 10-point line item, not folded into
+      "the app works." <span style="color:var(--ink2);font-size:11px">(<code>docs/ROADMAP.md</code> Phase 3)</span></p>
+    </div>
+    <div class="fail-card">
+      <p class="lbl" style="margin:0">What to say when something fails live</p>
+      <p style="margin:0">Name the deterministic fallback and let it run in front of them — "that's the
+      keyless path, watch it produce the same shape without the key" — rather than apologising or quietly
+      retrying the same failing call. If the form itself is unresponsive, switch to the recorded backup run
+      (<code>docs/ROADMAP.md</code> Phase 5) and say so plainly.</p>
+    </div>
+  </div>
+  </section>
+
+  <!-- ===================== API & GLASS BOX ===================== -->
+  <section class="track">
+  <h2>API &amp; Glass Box</h2>
+  <div class="card g">
+    <div class="role-io"><b>Takes in →</b><span>a generation request, a replay request, or a regenerate
+      request.</span></div>
+    <div class="role-io"><b>Emits →</b><span>a persisted job record with an append-only trace of all seven
+      pipeline stages (§11), queryable by stage, replayable from any point, and exportable as a zip.</span></div>
+
+    <table>
+      <tr><th style="width:38%">A judge will ask</th><th>The honest answer</th></tr>
+      <tr><td>"How do I know the store is actually alive, not just rendering hard-coded defaults?"</td>
+          <td>Type a value into a top-level field and watch it change, then do the same to one nested card
+          field. Both have to move — a DOM-presence check alone would pass on a completely dead store, because
+          the default constants put the right ids in the DOM with no data behind them (§9, steps 4–5).</td></tr>
+      <tr><td>"What happens if the GPU laptop or the perception service is down right now?"</td>
+          <td>The affected stage is recorded as <code>degraded</code>, a warning is attached, and the job still
+          succeeds down the deterministic path — <code>degraded</code> is "a success for the job and a warning
+          for the stage" (§11.1). Prompt and code mode never depend on it (§12).</td></tr>
+      <tr><td>"If I regenerate with a different design, do I lose the headline I just typed?"</td>
+          <td>No. Regeneration forces <code>idPolicy.mode: preserve</code> — every element whose name is
+          unchanged keeps its existing <code>fieldId</code>, and therefore its content (§13.3, rule 2: "the
+          whole demo").</td></tr>
+    </table>
+
+    <div class="num-card">
+      <p class="lbl" style="margin:0">The number I should have ready</p>
+      <p style="margin:0">End-to-end contract pass rate — of N generated sections, how many produce a fully
+      compliant component against every §-numbered rule in one pass, not just "it rendered."
+      <span style="color:var(--ink2);font-size:11px">(<code>docs/VERIFICATION.md</code>, metrics table)</span></p>
+    </div>
+    <div class="fail-card">
+      <p class="lbl" style="margin:0">What to say when something fails live</p>
+      <p style="margin:0">Open the Job Timeline and point at the failed or degraded stage — it is visible, not
+      hidden, by design. Then replay from stage 5 with the corrected input. This is the rehearsed recovery
+      beat, not an improvisation: "a pipeline that recovers visibly from a failure is more convincing than one
+      that never fails in front of you." <span style="color:var(--ink2);font-size:11px">(<code>docs/ROADMAP.md</code>,
+      the demo script's own words)</span></p>
+    </div>
+  </div>
+  </section>
+
+  <!-- ===================== PERCEPTION ===================== -->
+  <section class="track">
+  <h2>Perception</h2>
+  <div class="card y">
+    <div class="role-io"><b>Takes in →</b><span>a normalised wireframe image and the label set we are looking
+      for.</span></div>
+    <div class="role-io"><b>Emits →</b><span>labelled regions — role, position, text, and a confidence score
+      per region — with zero training and no <code>fieldId</code> ever allocated (§1, §12).</span></div>
+
+    <table>
+      <tr><th style="width:38%">A judge will ask</th><th>The honest answer</th></tr>
+      <tr><td>"Why Florence-2 and not YOLO or a general vision model?"</td>
+          <td>Open-vocabulary grounding needs zero training for a label set nobody trained a model on — hand
+          it the phrase "call to action button" and it returns a box. YOLOv8 has no UI classes at all and its
+          AGPL licence has a network clause our architecture triggers; LayoutLMv3's published weights are
+          non-commercial. Neither can even attempt our label set without retraining.</td></tr>
+      <tr><td>"Have you actually tested this on hand-drawn wireframes, or just clean screenshots?"</td>
+          <td>Stated plainly: unverified until the Phase 0.8 benchmark ran. Every published Florence-2 result
+          is on rendered screenshots or photographs; hand-drawn boxes are our real input, and nobody had
+          published a number for that before we measured it ourselves.</td></tr>
+      <tr><td>"What happens when the model gets it wrong?"</td>
+          <td>Confidence bands decide the behaviour, not a guess: <code>≥0.85</code> accept and use directly,
+          <code>0.60–0.85</code> verify with a recorded warning, <code>&lt;0.60</code> escalate to a human or
+          fall through to the deterministic template (§10).</td></tr>
+    </table>
+
+    <div class="num-card">
+      <p class="lbl" style="margin:0">The number I should have ready</p>
+      <p style="margin:0">Element recall against the hand-labelled fixture set — of the regions that are
+      really in the wireframe, how many did we find. Fifteen labelled wireframes beat a thousand unlabelled
+      ones. <span style="color:var(--ink2);font-size:11px">(<code>docs/VERIFICATION.md</code>, "the honest
+      answer to 'does perception work?'")</span></p>
+    </div>
+    <div class="fail-card">
+      <p class="lbl" style="margin:0">What to say when something fails live</p>
+      <p style="margin:0">Call it <code>degraded</code>, not broken — that is the actual status the trace
+      records, and it is a deliberate part of the contract, not a euphemism. Show the low-confidence question
+      in the human-in-the-loop prompt, answer it live, and replay from stage 5. A visible recovery from a real
+      perception miss is a stronger demo than a perfect run nobody can trust.</p>
+    </div>
+  </div>
+  </section>
+
+  <!-- ===================== EVERYONE ===================== -->
+  <section class="track">
+  <h2>Everyone</h2>
+  <div class="card r">
+    <div class="role-io"><b>Takes in →</b><span>every change any track makes to this repository, regardless of
+      who wrote it or which track they own.</span></div>
+    <div class="role-io"><b>Emits →</b><span>either a clean, secret-free, contract-compliant commit — or a
+      blocked one. There is no third option.</span></div>
+
+    <table>
+      <tr><th style="width:38%">A judge will ask</th><th>The honest answer</th></tr>
+      <tr><td>"What actually stops a real API key from reaching your public repo?"</td>
+          <td>Two write-time hooks, a commit-time secret scan, and a push-time scan over <b>full git
+          history</b> — because a key deleted in a later commit is still a leak the moment the repo goes
+          public. All five checks are named in <code>docs/THREAT-MODEL.md</code>, item 7 (Secrets).</td></tr>
+      <tr><td>"You used an AI coding tool to help build this. What stops it from disabling your own
+          safety checks?"</td>
+          <td>A SHA-256 manifest (<code>LAW-MANIFEST.sha256</code>) covers every hook, <code>.gitignore</code>,
+          and the git hooks themselves, verified on every commit. Stated honestly: this is a commit-boundary
+          control, not a sandbox around the tool itself — see <code>docs/THREAT-MODEL.md</code>, item 9 (the
+          orchestrated-executor surface).</td></tr>
+      <tr><td>"Why doesn't your 'works with no key, no GPU' claim just mean the demo is worse?"</td>
+          <td>Because the deterministic path is not a degraded mode — it is a separate, equally real code
+          path: keyword extraction into the same IR schema, through the same emitter, producing a compiling,
+          CMS-bound component. It is exercised on every commit, the same as the model-backed path.</td></tr>
+    </table>
+
+    <div class="num-card">
+      <p class="lbl" style="margin:0">The number I should have ready</p>
+      <p style="margin:0">Zero secrets in full git history, zero field IDs outside the sanctioned ranges, zero
+      duplicate IDs — the pre-submit gate's own pass/fail line, run against every commit before it counts as
+      done. <span style="color:var(--ink2);font-size:11px">(§14, and <code>.githooks/pre-push</code>)</span></p>
+    </div>
+    <div class="fail-card">
+      <p class="lbl" style="margin:0">What to say when something fails live</p>
+      <p style="margin:0">Nothing about the hook floor is exercised live in front of a judge — it runs at
+      commit and push time, before the demo starts. If a build-time gate genuinely blocks legitimate work
+      during prep, the rule is: fix the gate and log why, never weaken it to get past it — say that plainly if
+      asked, rather than pretending it never happened.</p>
+    </div>
+  </div>
+  </section>
+
+  <div class="foot">
+    <span>Source: <b>CONTRACT.md §1 §5 §6 §7 §8 §9 §10 §11 §12 §13 §14</b> · ROADMAP.md · VERIFICATION.md · README.md · THREAT-MODEL.md</span>
+    <span><a href="stages/index.html">all stages</a> · <a href="TEAM-RULES.html">team rules</a></span>
+  </div>
+
+</div>
+</body>
+</html>

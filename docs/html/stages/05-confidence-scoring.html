@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Confidence Scoring — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 5 of 13 &nbsp;·&nbsp; pipeline stage 3 &nbsp;·&nbsp; runs in Node + Python</p>
+  <span class="stage">Multi-Modal Understanding</span>
+  <h1>Confidence Scoring</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Every element carries a number, or an honest <code>null</code> — never a guess dressed up as one.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>An element from any source, with its raw model score if it has one.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>The same element, banded — accept, verify, or escalate — and surfaced in the API and the Glass Box.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 230" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="66" width="140" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="78" y="90">element</text><text x="78" y="107" font-size="11">+ raw score</text>
+
+        <rect x="190" y="66" width="150" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="265" y="90" font-weight="bold">band check</text><text x="265" y="107" font-size="11">§10 thresholds</text>
+
+        <rect x="390" y="8" width="140" height="56" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="460" y="30" font-weight="bold">accept</text><text x="460" y="47" font-size="11">≥ 0.85</text>
+
+        <rect x="390" y="84" width="140" height="56" rx="8" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="460" y="106" font-weight="bold">verify + warn</text><text x="460" y="123" font-size="11">0.60 – 0.85</text>
+
+        <rect x="390" y="160" width="150" height="56" rx="8" fill="#ffc9c9" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="465" y="182" font-weight="bold">escalate</text><text x="465" y="199" font-size="11">&lt; 0.60</text>
+
+        <rect x="600" y="84" width="170" height="56" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="685" y="106" font-weight="bold">surfaced</text><text x="685" y="123" font-size="11">API + Glass Box</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M148 97 L186 97"/>
+          <path d="M340 97 L386 36"/>
+          <path d="M340 97 L386 112"/>
+          <path d="M340 97 L386 188"/>
+          <path d="M530 36 L596 100"/>
+          <path d="M530 112 L596 112"/>
+          <path d="M540 188 L596 124"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">The band is the same three-way split whatever produced the score — a vision
+    model's box, a code parse, or a prompt extraction. Only vision output ever has a real number; code and
+    prompt sources carry <code>null</code>, because nothing scored them. The band, the score and the
+    triggering warning are all written into the job's stage trace, so a judge can see exactly why an
+    element was accepted, flagged, or held for a human.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// the only field this stage adds is "confidence" (§6) — same shape whatever produced the element,</span>
+<span class="c">// null when it never came from an image. "band" and "action" below are not IR fields; they show</span>
+<span class="c">// what the number means, not what gets stored.</span>
+{
+  <span class="k">"elementName"</span>: <span class="s">"headlineSub"</span>,
+  <span class="k">"confidence"</span>:  <span class="n">0.43</span>
+}
+<span class="c">// 0.43 falls under 0.60 → band: escalate (§10)</span>
+<span class="c">// review opted in → job.status: "awaiting-input" (§11.3); otherwise falls through to the template</span></pre>
+  </div>
+
+  <h2>Which bands, and why that split</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Three explicit bands</b><br><span style="font-size:11px">§10: ≥0.85 / 0.60–0.85 / &lt;0.60</span></td><td><b>chosen</b></td>
+          <td>Keeps a "verify but don't block" middle case distinct from both a clean accept and a hard escalation.</td></tr>
+      <tr><td>Single threshold</td><td>rejected</td><td>Too blunt — collapses "almost certain" and "borderline" into the same accept/reject line, throwing away the middle case entirely.</td></tr>
+      <tr><td>Fabricated number for non-image sources</td><td>rejected</td><td>Code and prompt elements were never scored by anything. <code>null</code> is honest; a made-up <code>1.0</code> is not.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn">The dangerous failure isn't a low score — a low score gets caught by design. It's
+  <b>confident and wrong</b>: a high number attached to the wrong role or the wrong text. A band can only
+  reduce blast radius; it can't detect its own miscalibration. Only a golden-file diff, or a human, catches
+  that one.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Confident and wrong</td><td>Accepted at ≥0.85, no warning raised. Only the golden-file diff catches it.</td></tr>
+        <tr><td>All elements cluster mid-band</td><td><b>Unverified.</b> Nothing in the contract caps how many elements can sit in "verify" at once; whether that overloads a human reviewer at demo scale is untested here.</td></tr>
+        <tr><td>Model exposes no calibrated confidence</td><td>Fabricating a number is forbidden — the element carries <code>null</code>, same as any non-image source. Honest, but loses the accept/verify/escalate split entirely for that element.</td></tr>
+        <tr><td>Perception service down</td><td>Vision-based scores are unavailable; that stage is marked <code>degraded</code> (§11.1). Code- and prompt-sourced elements still carry their own <code>null</code> as normal.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">The bands, exactly (§10)</p>
+      <table>
+        <tr><td><code>≥ 0.85</code></td><td>accept — use directly</td></tr>
+        <tr><td><code>0.60–0.85</code></td><td>verify — second-pass check, record a warning</td></tr>
+        <tr><td><code>&lt; 0.60</code></td><td>escalate — ask a human, or fall through to the template</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§10</b> — the three bands and their exact thresholds and behaviours; nothing rounds or collapses them.</li>
+      <li><b>§6</b> — every element carries a <code>confidence</code> field, <code>0.0</code>–<code>1.0</code> or <code>null</code>, never fabricated for a non-image source.</li>
+      <li><b>§11.3</b> — an element below <code>0.60</code> pauses the job at <code>awaiting-input</code> only if the studio opted into review; otherwise it falls through to the deterministic template with a warning. A headless run never blocks on a human who isn't there.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§6 · §10 · §11.3</b></span>
+    <span>Owner: perception + generation</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="04-cross-modal-alignment.html">&larr; Cross-Modal Alignment</a> &middot; <a href="06-component-planning-engine.html">next: Component Planning Engine &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

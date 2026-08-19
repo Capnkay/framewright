@@ -1,0 +1,20 @@
+{
+  "_note": "Fail-closed hook floor for this repository. protect-secrets guards Write/Edit calls: it denies writing real-looking credentials and denies writing to secret-by-convention paths (.env, secrets/, *.pem, *.key), with a narrow carve-out for the tracked .env.example/.env.sample/.env.template templates once their content passes a full secret-content scan AND every KEY=value line's value is placeholder-shaped. block-dangerous-shell and guard-secret-shell both guard Bash calls: block-dangerous-shell denies destructive commands and pipe-to-shell patterns; guard-secret-shell denies shell redirects/heredocs/tee writing into a secret-by-convention path, credential-shaped literals typed directly into a command, and git plumbing (add -f, update-index --skip-worktree/--assume-unchanged) used to smuggle a secret past .gitignore. Any internal error inside any of these hooks denies the call rather than allowing it. Setup: after cloning, run `git config core.hooksPath .githooks` once so this repository's own pre-commit and pre-push checks (secret scan, LAW-MANIFEST.sha256 verification, full-history pre-submit gate) are active — see SETUP.md.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-secrets.mjs\"" }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-shell.mjs\"" },
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-secret-shell.mjs\"" }
+        ]
+      }
+    ]
+  }
+}

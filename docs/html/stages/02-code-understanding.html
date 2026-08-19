@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code Understanding — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 2 of 13 &nbsp;·&nbsp; pipeline stage 3 &nbsp;·&nbsp; runs in Node</p>
+  <span class="stage">Multi-Modal Understanding</span>
+  <h1>Code Understanding</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Turn pasted React/JSX into the same element shape the other two inputs produce.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>Pasted React/JSX source, plus an existing <code>ids</code> map when this is a regeneration.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>IR elements — tag, order, content — with any repeating children folded into a Cards loop.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 150" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="40" width="132" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="74" y="64">pasted</text><text x="74" y="81">JSX</text>
+
+        <rect x="164" y="40" width="158" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="243" y="64" font-weight="bold">@babel/parser</text><text x="243" y="81" font-size="11">jsx+ts, errorRecovery</text>
+
+        <rect x="346" y="40" width="166" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="429" y="64" font-weight="bold">walk &amp; classify</text><text x="429" y="81" font-size="11">text · image · button</text>
+
+        <rect x="536" y="40" width="156" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="614" y="64" font-weight="bold">repeat detector</text><text x="614" y="81" font-size="11">→ Cards loop</text>
+
+        <rect x="716" y="40" width="132" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="782" y="64" font-weight="bold">elements</text><text x="782" y="81" font-size="11">→ stage 4</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M140 71 L160 71"/>
+          <path d="M322 71 L342 71"/>
+          <path d="M512 71 L532 71"/>
+          <path d="M692 71 L712 71"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">The AST is walked once. Text, image and button nodes become elements directly.
+    Siblings that repeat the same tag and prop shape — three <code>&lt;div&gt;</code>s each holding a
+    number and a label — become one <code>Cards</code> element with a <code>loop</code>, per §4. If an
+    <code>ids</code> map came in with the request, matching element names keep their existing field IDs
+    instead of getting new ones (§6, <code>idPolicy.mode: preserve</code>). The source is never run —
+    only parsed.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// one IR element from a parsed component — confidence is null: this never came from an image (§6)</span>
+{
+  <span class="k">"elementName"</span>: <span class="s">"ctaButton"</span>,
+  <span class="k">"contentType"</span>: <span class="s">"Button"</span>,
+  <span class="k">"tag"</span>:         <span class="s">"Button"</span>,
+  <span class="k">"order"</span>:       <span class="n">5</span>,
+  <span class="k">"default"</span>:     <span class="s">"FIND A WORKOUT"</span>,
+  <span class="k">"classes"</span>:     <span class="s">"bg-red-500 text-white"</span>,
+  <span class="k">"css"</span>:         <span class="k">null</span>,
+  <span class="k">"confidence"</span>:  <span class="k">null</span>,
+  <span class="k">"sourceOf"</span>:    <span class="s">"code"</span>,
+  <span class="k">"bbox"</span>:        <span class="k">null</span>   <span class="c">// no image, no coordinates</span>
+}</pre>
+  </div>
+
+  <h2>Which parser, and why that one</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>@babel/parser</b><br><span style="font-size:11px">jsx + typescript plugins, errorRecovery</span></td><td><b>chosen</b></td>
+          <td>Produces a real AST for JSX, tolerates a pasted fragment that doesn't fully compile, and never runs a single line of the input.</td></tr>
+      <tr><td>Regex extraction</td><td>rejected</td><td>Cannot handle nesting — a button inside a card inside a map. Breaks on the first component more complex than the reference one.</td></tr>
+      <tr><td><code>eval</code> / <code>new Function</code></td><td>rejected</td><td>Executes attacker-controlled code in the API process. Forbidden outright by §8.</td></tr>
+      <tr><td>Node's <code>vm</code> module</td><td>rejected</td><td>Looks like a sandbox and isn't one — §8 states plainly that <code>vm.runInNewContext</code> is not a security boundary. Same for a spawned child process running the pasted file.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn">Pasted code is <b>parsed, never executed</b> — no exceptions, no "just this once" for
+  a trusted-looking snippet. §8 names <code>eval</code>, <code>new Function</code>, <code>require()</code>
+  of a written temp file, <code>vm.runInNewContext</code> and a child process as forbidden by name, because
+  each one has been proposed as a shortcut before.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Malformed JSX</td><td><code>errorRecovery</code> parses what it can; unparseable nodes are dropped and recorded as a warning, not a crash.</td></tr>
+        <tr><td>Ambiguous repeat</td><td>Two siblings look alike but aren't a loop (e.g. differing child counts). The heuristic guesses and logs a warning rather than silently choosing.</td></tr>
+        <tr><td>Unknown IDs in an incoming map</td><td>An <code>ids</code> entry outside the sanctioned <code>2000…</code>/<code>3000…</code> ranges is rejected; that field is treated as new and gets a freshly allocated ID.</td></tr>
+        <tr><td>Fragment, not a component</td><td>No <code>export default</code>, no wrapping element — the walk still extracts what it finds, but the card is escalated for human review rather than assumed complete.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">Repeat-detection heuristic</p>
+      <ul style="font-size:12px;margin:0 0 0 -3px">
+        <li>Consecutive JSX siblings, same tag, same prop shape</li>
+        <li>Needs <b>two or more</b> to count as a loop</li>
+        <li>Field count per item must be uniform — recorded as <code>cards.fieldsPerItem</code></li>
+        <li>Loop length becomes <code>cards.count</code>, never hard-coded to 3</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§8</b> — pasted code is <b>parsed, never executed</b>. No <code>eval</code>, no <code>vm</code>, no child process, whatever the input looks like.</li>
+      <li><b>§6</b> — when an <code>ids</code> map is supplied, <code>idPolicy.mode</code> is <code>preserve</code>: matching element names keep their field IDs, and card slots preserve positionally by index.</li>
+      <li><b>§4</b> — a detected repeat becomes a <code>Cards</code> element with a uniform <code>fieldsPerItem</code> and a count taken from what was actually found, never assumed to be three.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§4 · §6 · §8</b></span>
+    <span>Owner: generation track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="01-vision-understanding.html">&larr; Vision Understanding</a> &middot; <a href="03-prompt-understanding.html">next: Prompt Understanding &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

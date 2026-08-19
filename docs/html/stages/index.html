@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipeline Stages — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  /* Supplements _card.css for this index page only. */
+  .stagegroup{break-inside:avoid;page-break-inside:avoid;margin-bottom:16px}
+  .stagegroup h3{font-family:var(--hand);font-size:14.5px;margin:0 0 4px}
+  .missing{font-style:italic;color:var(--ink2);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="../JUDGE-CARDS.html">judge cards</a> &nbsp;·&nbsp;
+     <a href="../TEAM-RULES.html">team rules</a> &nbsp;·&nbsp;
+     <a href="../GPU-BENCHMARK.html">GPU benchmark</a></p>
+  <span class="stage">Pipeline Map</span>
+  <h1>The 13 Stage Cards</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Every subsystem, one card each, grouped by which of the seven
+  canonical pipeline stages it belongs to.</p>
+
+  <h2>The seven-stage pipeline</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 900 240" width="900">
+      <defs><marker id="pa" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" text-anchor="middle">
+
+        <!-- boxes -->
+        <g font-size="12" font-weight="bold">
+          <rect x="10"  y="70" width="112" height="78" rx="9" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+          <rect x="138" y="70" width="112" height="78" rx="9" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+          <rect x="266" y="70" width="112" height="78" rx="9" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+          <rect x="394" y="70" width="112" height="78" rx="9" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+          <rect x="522" y="70" width="112" height="78" rx="9" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
+          <rect x="650" y="70" width="112" height="78" rx="9" fill="#ffd8a8" stroke="#1a1a1a" stroke-width="2.2"/>
+          <rect x="778" y="70" width="112" height="78" rx="9" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+
+          <text x="66"  y="100">Input</text><text x="66"  y="115">Acquisition</text>
+          <text x="194" y="100">Preprocess</text><text x="194" y="115">&amp; Normalise</text>
+          <text x="322" y="100">Multi-Modal</text><text x="322" y="115">Understanding</text>
+          <text x="450" y="100">Semantic</text><text x="450" y="115">Planning + IR</text>
+          <text x="578" y="100">Code Gen</text><text x="578" y="115">&amp; Assembly</text>
+          <text x="706" y="100">Validation</text><text x="706" y="115">&amp; QA</text>
+          <text x="834" y="100">Output</text><text x="834" y="115">Delivery</text>
+        </g>
+
+        <g font-size="9.5" font-weight="normal" fill="#5a5a5a">
+          <text x="66"  y="134">Node</text>
+          <text x="194" y="134">Python · GPU</text>
+          <text x="322" y="134">Python · GPU</text>
+          <text x="450" y="134">Python &#8594; Node</text>
+          <text x="578" y="134">Node + model</text>
+          <text x="706" y="134">Node</text>
+          <text x="834" y="134">Node</text>
+        </g>
+
+        <!-- number badges -->
+        <g font-size="12" font-weight="bold">
+          <circle cx="66"  cy="44" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="2"/><text x="66"  y="48">1</text>
+          <circle cx="194" cy="44" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="2"/><text x="194" y="48">2</text>
+          <circle cx="322" cy="44" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="2"/><text x="322" y="48">3</text>
+          <circle cx="450" cy="44" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="2"/><text x="450" y="48">4</text>
+          <circle cx="578" cy="44" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="2"/><text x="578" y="48">5</text>
+          <circle cx="706" cy="44" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="2"/><text x="706" y="48">6</text>
+          <circle cx="834" cy="44" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="2"/><text x="834" y="48">7</text>
+        </g>
+
+        <!-- arrows between boxes -->
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#pa)">
+          <path d="M124 109 L136 109"/>
+          <path d="M252 109 L264 109"/>
+          <path d="M380 109 L392 109"/>
+          <path d="M508 109 L520 109"/>
+          <path d="M636 109 L648 109"/>
+          <path d="M764 109 L776 109"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0;font-size:12px">Canonical names, owners, and where each stage runs come from
+    <code>docs/CONTRACT.md</code> §11.0 — the numbering every card and every job trace record uses. Stages
+    5–7 replay without the perception machine; stages 2–4 require it (§11.0).</p>
+  </div>
+
+  <div class="note">All thirteen cards exist and each declares its own pipeline stage in its breadcrumb. This index was reconciled against those declarations &mdash; three placements were guesses and have been corrected.</div>
+
+  <!-- STAGE 1 -->
+  <div class="stagegroup">
+    <h3>Stage 1 — Input Acquisition <span style="font-weight:normal;color:var(--ink2)">(Node)</span></h3>
+    <div class="card">
+      <table>
+        <tr><th style="width:26%">Card</th><th style="width:52%">What it does</th><th>Track</th></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- STAGE 2 -->
+  <div class="stagegroup">
+    <h3>Stage 2 — Preprocessing &amp; Normalisation <span style="font-weight:normal;color:var(--ink2)">(Python)</span></h3>
+    <div class="card gr">
+      <p class="missing" style="margin:0">No dedicated card among the 13 covers this stage on its own — it is
+      documented inline, as the first box of Card 1's own diagram ("normalised image"), and its output-shape
+      requirement is fixed by <code>docs/CONTRACT.md</code> §6: the normaliser's transform
+      (<code>scale</code>, <code>offsetX</code>, <code>offsetY</code>, <code>width</code>, <code>height</code>)
+      must be recorded in the stage-2 trace, or a <code>bbox</code> downstream is unusable by anyone who did
+      not write the normaliser.</p>
+    </div>
+  </div>
+
+  <!-- STAGE 3 -->
+  <div class="stagegroup">
+    <h3>Stage 3 — Multi-Modal Understanding <span style="font-weight:normal;color:var(--ink2)">(Python)</span></h3>
+    <div class="card">
+      <table>
+        <tr><th style="width:26%">Card</th><th style="width:52%">What it does</th><th>Track</th></tr>
+        <tr><td><a href="01-vision-understanding.html">01 — Vision Understanding</a></td>
+            <td>Turn a picture of a layout into labelled regions with roles.</td>
+            <td>Perception</td></tr>
+        <tr><td><a href="02-code-understanding.html">02 — Code Understanding</a></td>
+            <td>Parse pasted JSX/TSX to an AST and extract only text, image and button nodes — never execute it.</td>
+            <td>Floating — whichever track clears first (<code>ROADMAP.md</code> Phase 3)</td></tr>
+        <tr><td><a href="03-prompt-understanding.html">03 — Prompt Understanding</a></td>
+            <td>Turn a typed prompt into section type, card count, colour and CTA — with a hosted model, or
+                keyword extraction with none.</td>
+            <td>Everyone — built pre-split in Phase 2</td></tr>
+        <tr><td><a href="04-cross-modal-alignment.html">04 — Cross-Modal Alignment</a></td>
+            <td>When wireframe, code and prompt disagree, apply the documented conflict-resolution order and
+                record why (§6).</td>
+            <td>API &amp; Glass Box</td></tr>
+        <tr><td><a href="05-confidence-scoring.html">05 — Confidence Scoring</a></td>
+            <td>Score every region 0.0–1.0, or <code>null</code> when it did not come from an image — and
+                decide accept, verify, or escalate.</td>
+            <td>Perception</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- STAGE 4 -->
+  <div class="stagegroup">
+    <h3>Stage 4 — Semantic Planning &amp; IR <span style="font-weight:normal;color:var(--ink2)">(Python emits, Node finalises)</span></h3>
+    <div class="card">
+      <table>
+        <tr><th style="width:26%">Card</th><th style="width:52%">What it does</th><th>Track</th></tr>
+        <tr><td><a href="06-component-planning-engine.html">06 — Component Planning Engine</a></td>
+            <td>Decide which elements a section actually needs — headline, image, cards, button — before
+                anything is positioned.</td>
+            <td>API &amp; Glass Box</td></tr>
+        <tr><td><a href="07-layout-planner.html">07 — Layout Planner</a></td>
+            <td>Turn regions into the IR's <code>layout</code> object — direction, regions, container, accents.</td>
+            <td>API &amp; Glass Box</td></tr>
+        <tr><td><a href="08-content-binding-planner.html">08 — Content Binding Planner</a></td>
+            <td>Decide how each element will bind to a CMS field, ahead of any ID actually being allocated.</td>
+            <td>API &amp; Glass Box</td></tr>
+        <tr><td><a href="09-ir-finalization.html">09 — IR Finalization</a></td>
+            <td>Assemble the complete IR — layout, theme, cards, elements, <code>idPolicy</code> — from every
+                source stage.</td>
+            <td>API &amp; Glass Box</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- STAGE 5 -->
+  <div class="stagegroup">
+    <h3>Stage 5 — Code Generation &amp; Assembly <span style="font-weight:normal;color:var(--ink2)">(Node + hosted model)</span></h3>
+    <div class="card">
+      <table>
+        <tr><th style="width:26%">Card</th><th style="width:52%">What it does</th><th>Track</th></tr>
+        <tr><td><a href="10-model-orchestrator.html">10 — Model Orchestrator</a></td>
+            <td>Choose and call the hosted model that turns the finished IR into a React component.</td>
+            <td>API &amp; Glass Box</td></tr>
+        <tr><td><a href="11-code-generation-assembly.html">11 — Code Generation &amp; Assembly</a></td>
+            <td>Generate the component, wire it to the <code>ids</code> map, and write it to
+                <code>client/src/sections/generated/</code>.</td>
+            <td>API &amp; Glass Box</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- STAGE 6 -->
+  <div class="stagegroup">
+    <h3>Stage 6 — Validation &amp; QA <span style="font-weight:normal;color:var(--ink2)">(Node)</span></h3>
+    <div class="card">
+      <table>
+        <tr><th style="width:26%">Card</th><th style="width:52%">What it does</th><th>Track</th></tr>
+        <tr><td><a href="12-validation-qa.html">12 — Validation &amp; QA</a></td>
+            <td>Ajv-validate every document, lint the generated code, and run the store-liveness assertion (§9).</td>
+            <td>API &amp; Glass Box</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- STAGE 7 -->
+  <div class="stagegroup">
+    <h3>Stage 7 — Output Delivery <span style="font-weight:normal;color:var(--ink2)">(Node)</span></h3>
+    <div class="card">
+      <table>
+        <tr><th style="width:26%">Card</th><th style="width:52%">What it does</th><th>Track</th></tr>
+        <tr><td><a href="13-output-delivery.html">13 — Output Delivery</a></td>
+            <td>Persist the job's artifacts, expose them over the API, and mount the component in the live
+                preview.</td>
+            <td>API &amp; Glass Box</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>Stage numbering: <b>CONTRACT.md §11.0</b></span>
+    <span>Owner tracks: <b>ROADMAP.md</b> Phase 3</span>
+    <span><a href="../JUDGE-CARDS.html">judge cards</a> · <a href="../TEAM-RULES.html">team rules</a> · <a href="../GPU-BENCHMARK.html">GPU benchmark</a></span>
+  </div>
+
+</div>
+</body>
+</html>

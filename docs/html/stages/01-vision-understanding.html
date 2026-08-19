@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vision Understanding — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 1 of 13 &nbsp;·&nbsp; pipeline stage 3 &nbsp;·&nbsp; runs in Python, on the GPU</p>
+  <span class="stage">Multi-Modal Understanding</span>
+  <h1>Vision Understanding</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Turn a picture of a layout into labelled regions with roles.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>A normalised wireframe image, plus the label set we are looking for.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>Boxes, roles, text, and a confidence per region.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 220" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="66" width="126" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="71" y="90">normalised</text><text x="71" y="107">image</text>
+
+        <rect x="176" y="18" width="158" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="255" y="41" font-weight="bold">grounding model</text><text x="255" y="58" font-size="11">"where is the CTA?"</text>
+
+        <rect x="176" y="116" width="158" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="255" y="139" font-weight="bold">OCR</text><text x="255" y="156" font-size="11">text + boxes</text>
+
+        <rect x="382" y="66" width="132" height="62" rx="8" fill="#96f2d7" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="448" y="90" font-weight="bold">fusion</text><text x="448" y="107" font-size="11">box ∩ text</text>
+
+        <rect x="560" y="66" width="132" height="62" rx="8" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="626" y="90" font-weight="bold">confidence</text><text x="626" y="107" font-size="11">per region</text>
+
+        <rect x="738" y="66" width="112" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="794" y="90" font-weight="bold">regions</text><text x="794" y="107" font-size="11">→ stage 4</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M134 88 L172 49"/><path d="M134 106 L172 145"/>
+          <path d="M334 49 L378 88"/><path d="M334 145 L378 106"/>
+          <path d="M514 97 L556 97"/><path d="M692 97 L734 97"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">Two models look at the same picture and answer different questions.
+    One finds <b>where things are and what they are</b>; the other finds <b>what they say</b>.
+    Fusion overlaps the two: a box the grounding model called a button, containing the text
+    "FIND A WORKOUT", becomes one region with a role, a position, and its words.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// one entry per detected region — no fieldId, ever (§1)</span>
+{
+  <span class="k">"elementName"</span>: <span class="s">"ctaButton"</span>,
+  <span class="k">"role"</span>:        <span class="s">"action"</span>,
+  <span class="k">"text"</span>:        <span class="s">"FIND A WORKOUT"</span>,
+  <span class="k">"bbox"</span>:        [<span class="n">500</span>, <span class="n">400</span>, <span class="n">200</span>, <span class="n">60</span>],   <span class="c">// normalised space (§6)</span>
+  <span class="k">"confidence"</span>:  <span class="n">0.91</span>
+}</pre>
+  </div>
+
+  <h2>Which model, and why that one</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Open-vocabulary grounding</b><br><span style="font-size:11px">Florence-2, MIT</span></td><td><b>chosen</b></td>
+          <td>You hand it the words you are looking for — "call to action button" — and it returns a box. <b>Zero training.</b> ~1–2.5&nbsp;GB, fits the card with room for OCR.</td></tr>
+      <tr><td>YOLOv8</td><td>rejected</td><td>Pretrained on COCO — person, car, chair. <b>No UI classes at all.</b> And AGPL with a network clause, which our architecture triggers.</td></tr>
+      <tr><td>LayoutLMv3</td><td>rejected</td><td>A forms-and-receipts model. Cannot emit web-section roles without retraining. Its <i>weights</i> are non-commercial even though the code repo is MIT.</td></tr>
+      <tr><td>Donut</td><td>rejected</td><td>Emits structured text, not boxes. We need coordinates.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn">The approved architecture diagram names three models for this box.
+  <b>None of them can produce our label set without being retrained</b> — verified against
+  primary sources. The only thing that does it with no training is a model you can hand a
+  text phrase to. That is why this stage is one grounding model, not a cascade.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Sketch-fidelity input</td><td><b>Unverified.</b> Every published result is on rendered screenshots. Hand-drawn boxes are our real input and nobody has measured it.</td></tr>
+        <tr><td>Two regions overlap</td><td>Fusion assigns the text to the wrong one. Both drop below 0.60 and escalate.</td></tr>
+        <tr><td>Model unreachable</td><td>Stage marked <code>degraded</code>. The pipeline continues on the prompt path. <b>Never a crash.</b></td></tr>
+        <tr><td>Confident and wrong</td><td>The dangerous one. High confidence, wrong role. Only the golden-file diff catches it.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">What confidence means here</p>
+      <table>
+        <tr><td><code>≥ 0.85</code></td><td>accept</td></tr>
+        <tr><td><code>0.60–0.85</code></td><td>verify, record a warning</td></tr>
+        <tr><td><code>&lt; 0.60</code></td><td>ask a human, or fall through to the template</td></tr>
+      </table>
+      <p style="margin:7px 0 0;font-size:12px">A region that did not come from an image carries
+      <code>null</code>, never a made-up number.</p>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§1</b> — this stage <b>never allocates a <code>fieldId</code></b>. Regions come back identified by name and position only. IDs belong to the Node API.</li>
+      <li><b>§6</b> — <code>bbox</code> is in <i>normalised</i> image space, and the normaliser's transform must be recorded in the stage-2 trace. Without it, nobody but its author can map a box back onto the upload — and they are on a different machine.</li>
+      <li><b>§12</b> — output goes back inline in the HTTP response. This service <b>writes no files</b>; artifacts are owned by Node.</li>
+      <li><b>§11</b> — one immutable trace record, with the model name and the device.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§1 · §6 · §11 · §12</b></span>
+    <span>Owner: perception track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="02-code-understanding.html">next: Code Understanding &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

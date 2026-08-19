@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Uploads and pipeline-generated artifacts — never committed
+uploads/
+artifacts/
+dist/
+build/
+coverage/
+.vite/
+
+# Environment files — every variant is ignored EXCEPT the tracked templates.
+# Known failure mode this negation exists to prevent: a bare ".env.*" rule
+# with no negation silently swallows ".env.example" too, and ".env.example"
+# is a required, scored, tracked deliverable (docs/CONTRACT.md section 14).
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Model weights — licence-bearing binaries never belong in this repository
+# (docs/CONTRACT.md section 14; see README.md "Forbidden dependencies").
+*.pt
+*.onnx
+*.safetensors
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Baton identity — per-machine, never shared (docs/BATON.md).
+_build/.me
+
+# Baton sync markers — per-machine last-synced commit, one per identity
+# (docs/BATON.md, docs/GIT-PROTOCOL.md "Staying in sync").
+_build/.sync-*

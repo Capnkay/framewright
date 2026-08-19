@@ -1,0 +1,1537 @@
+{
+  "version": "1.0",
+  "generatedFrom": [
+    "docs/ROADMAP.md phases 1-5",
+    "docs/CONTRACT.md"
+  ],
+  "tasks": [
+    {
+      "id": "T-000",
+      "phase": 0,
+      "title": "Founding scaffold \u2014 contract, roadmap, harness, baton, golden component",
+      "track": "any",
+      "size": "done",
+      "contract": [
+        "\u00a71",
+        "\u00a75.0",
+        "\u00a77",
+        "\u00a79"
+      ],
+      "deps": [],
+      "files": [
+        "docs/",
+        "tools/",
+        "client/",
+        "seed/",
+        "tests/",
+        ".claude/",
+        ".githooks/"
+      ],
+      "verify": "npm test",
+      "doneWhen": "The contract is frozen and twice-verified, the hook floor is test-fired both ways, the baton board resolves dependencies, and the golden component's tests pass against a mocked store."
+    },
+    {
+      "id": "T-001",
+      "phase": 1,
+      "title": "Scaffold the client app shell (Vite, React, Tailwind, Redux Toolkit, react-router) with /generate and /preview/:pageName routes",
+      "track": "any",
+      "size": "45m",
+      "contract": [
+        "\u00a75.2"
+      ],
+      "deps": [],
+      "files": [
+        "client/package.json",
+        "client/vite.config.js",
+        "client/tailwind.config.js",
+        "client/src/main.jsx",
+        "client/src/App.jsx",
+        "client/src/routes/GeneratePage.jsx",
+        "client/src/routes/PreviewPage.jsx"
+      ],
+      "verify": "npm test -- app-shell",
+      "doneWhen": "npm run dev serves both routes; the Redux store is attached at the app root and the cms slice namespace exists even if empty."
+    },
+    {
+      "id": "T-002",
+      "phase": 1,
+      "title": "Scaffold the Express API skeleton with route stubs for every endpoint in \u00a713",
+      "track": "any",
+      "size": "40m",
+      "contract": [
+        "\u00a713",
+        "\u00a713.4"
+      ],
+      "deps": [],
+      "files": [
+        "server/package.json",
+        "server/src/app.js",
+        "server/src/routes/index.js"
+      ],
+      "verify": "npm test -- api-skeleton",
+      "doneWhen": "Every path in the \u00a713 table responds (even as a stub) and GET /api/health returns the \u00a713.4 shape."
+    },
+    {
+      "id": "T-003",
+      "phase": 1,
+      "title": "Define the store adapter interface (\u00a72.1) and a store factory selecting Mongo or the JSON store from environment",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a72.1"
+      ],
+      "deps": [
+        "T-002"
+      ],
+      "files": [
+        "server/src/store/adapter.js",
+        "server/src/store/index.js"
+      ],
+      "verify": "npm test -- store-adapter-interface",
+      "doneWhen": "The factory exports exactly the seven functions named in \u00a72.1, with no _id or $oid ever crossing the interface."
+    },
+    {
+      "id": "T-004",
+      "phase": 1,
+      "title": "Implement the JSON file store with an atomic allocateId (single-writer queue, not read-modify-write)",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "\u00a71",
+        "\u00a72.1"
+      ],
+      "deps": [
+        "T-003"
+      ],
+      "files": [
+        "server/src/store/jsonStore.js",
+        "server/data/store.json"
+      ],
+      "verify": "npm test -- json-store",
+      "doneWhen": "50 concurrent allocateId('element') calls return 50 unique, strictly increasing, 10-digit string IDs."
+    },
+    {
+      "id": "T-005",
+      "phase": 1,
+      "title": "Implement the Mongo store with an atomic allocateId via findOneAndUpdate",
+      "track": "any",
+      "size": "45m",
+      "contract": [
+        "\u00a72.1"
+      ],
+      "deps": [
+        "T-003"
+      ],
+      "files": [
+        "server/src/store/mongoStore.js"
+      ],
+      "verify": "npm test -- mongo-store",
+      "doneWhen": "allocateId is atomic under concurrent calls against a real or in-memory Mongo instance; _id and $oid never appear in a returned document."
+    },
+    {
+      "id": "T-006",
+      "phase": 1,
+      "title": "Implement the ID allocator's three sanctioned ranges (\u00a71) on top of the store adapter",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a71"
+      ],
+      "deps": [
+        "T-004",
+        "T-005"
+      ],
+      "files": [
+        "server/src/ids/allocateId.js"
+      ],
+      "verify": "npm test -- allocate-id",
+      "doneWhen": "allocateId('section'|'element'|'cardField') returns a 10-digit string starting 1/2/3 respectively; Math.random, Date.now, uuid and nanoid appear nowhere in the file."
+    },
+    {
+      "id": "T-007",
+      "phase": 1,
+      "title": "Write the Section and Element document models matching \u00a72 and \u00a73 exactly, tolerant of the source appendix's extra ignored fields",
+      "track": "any",
+      "size": "40m",
+      "contract": [
+        "\u00a72",
+        "\u00a73"
+      ],
+      "deps": [
+        "T-003"
+      ],
+      "files": [
+        "server/src/models/sectionDoc.js",
+        "server/src/models/elementDoc.js"
+      ],
+      "verify": "npm test -- doc-models",
+      "doneWhen": "A document carrying _id, pageId, layoutPlacementId and the other appendix-only fields loads without error and round-trips the required fields unchanged."
+    },
+    {
+      "id": "T-008",
+      "phase": 1,
+      "title": "Write the cms Redux slice matching \u00a75.2's slice state exactly",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a75.2"
+      ],
+      "deps": [
+        "T-001"
+      ],
+      "files": [
+        "client/src/store/cmsSlice.js"
+      ],
+      "verify": "npm test -- cms-slice",
+      "doneWhen": "state.cms has exactly allSections, allSectionsCss, sectionNames, status, error, missing, with the initial values \u00a75.2 implies."
+    },
+    {
+      "id": "T-009",
+      "phase": 1,
+      "title": "Write fetchElementsByIds by hand, including the \u00a75.0 flattening rule and the \u00a75.1 missing-ID assertion",
+      "track": "any",
+      "size": "50m",
+      "contract": [
+        "\u00a75.0",
+        "\u00a75.1"
+      ],
+      "deps": [
+        "T-008"
+      ],
+      "files": [
+        "client/src/store/fetchElementsByIds.js"
+      ],
+      "verify": "npm test -- fetch-elements-by-ids",
+      "doneWhen": "Given a mocked GET /api/elements response containing a Cards element, both the whole-loop key and every nested fieldIdN key land in allSections[pageName]; any elementId absent from the response is recorded in state.cms.missing[pageName]."
+    },
+    {
+      "id": "T-010",
+      "phase": 1,
+      "title": "Write getSectionTextContrastClass by hand per \u00a72's sectionTextMode and \u00a77's accessibility note",
+      "track": "any",
+      "size": "25m",
+      "contract": [
+        "\u00a72",
+        "\u00a77"
+      ],
+      "deps": [
+        "T-001"
+      ],
+      "files": [
+        "client/src/utils/getSectionTextContrastClass.js"
+      ],
+      "verify": "npm test -- text-contrast",
+      "doneWhen": "auto/light/dark each resolve to a class of gray-500 or darker on a white surface, never gray-400, for body copy."
+    },
+    {
+      "id": "T-011",
+      "phase": 1,
+      "title": "Mount the golden HeroSection at /preview/Home, satisfying R1-R5 and R11-R12",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "\u00a77 R1-R5",
+        "\u00a77 R11-R12"
+      ],
+      "deps": [
+        "T-009",
+        "T-010"
+      ],
+      "files": [
+        "client/src/sections/HeroSection.jsx",
+        "client/src/routes/PreviewPage.jsx"
+      ],
+      "verify": "npm test -- hero-section-mount",
+      "doneWhen": "The component declares const ids, accepts pageName defaulting to Home, dispatches fetchElementsByIds on mount with every field ID including nested card IDs, reads from state.cms.allSections, and every editable node carries id={ids.x}."
+    },
+    {
+      "id": "T-012",
+      "phase": 1,
+      "title": "Implement R6 \u2014 text nodes via a getHtml(value, fallback) helper, sanitised read-side per \u00a78",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a77 R6",
+        "\u00a78"
+      ],
+      "deps": [
+        "T-011"
+      ],
+      "files": [
+        "client/src/utils/getHtml.js",
+        "client/src/sections/HeroSection.jsx"
+      ],
+      "verify": "npm test -- get-html-r6",
+      "doneWhen": "Every text node renders via getHtml with dangerouslySetInnerHTML and a hard-coded default fallback; a script tag in the CMS value never survives to the DOM."
+    },
+    {
+      "id": "T-013",
+      "phase": 1,
+      "title": "Implement R7 \u2014 getImage and errorImage helpers",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a77 R7"
+      ],
+      "deps": [
+        "T-011"
+      ],
+      "files": [
+        "client/src/utils/image.js"
+      ],
+      "verify": "npm test -- image",
+      "doneWhen": "Empty input returns the placeholder; a blob: URL passes through untouched; anything else is prefixed with VITE_STORAGE_URL; onError swaps in the placeholder."
+    },
+    {
+      "id": "T-014",
+      "phase": 1,
+      "title": "Implement R8-R10, R13-R14 in HeroSection, including R9's length>0 guard",
+      "track": "any",
+      "size": "55m",
+      "contract": [
+        "\u00a77 R8-R10",
+        "\u00a77 R13-R14"
+      ],
+      "deps": [
+        "T-012",
+        "T-013"
+      ],
+      "files": [
+        "client/src/sections/HeroSection.jsx"
+      ],
+      "verify": "npm test -- hero-section-r8-r14",
+      "doneWhen": "A mocked CMS array of 4 stat cards renders 4 cards, not 3; a css value keyed to a nested card id is applied via getElementById after cssData changes; no fixed-count comparison appears anywhere in the file."
+    },
+    {
+      "id": "T-015",
+      "phase": 1,
+      "title": "Implement GET /api/elements per \u00a713 and \u00a713.4",
+      "track": "any",
+      "size": "35m",
+      "contract": [
+        "\u00a713",
+        "\u00a713.4"
+      ],
+      "deps": [
+        "T-006",
+        "T-007"
+      ],
+      "files": [
+        "server/src/routes/elements.js"
+      ],
+      "verify": "npm test -- get-elements",
+      "doneWhen": "pageName, sectionId, and fieldIds filters each work; an unfiltered request is 400; the response is always a bare array."
+    },
+    {
+      "id": "T-016",
+      "phase": 1,
+      "title": "Implement PATCH /api/elements/:fieldId per \u00a713.2",
+      "track": "any",
+      "size": "55m",
+      "contract": [
+        "\u00a713.2",
+        "\u00a78"
+      ],
+      "deps": [
+        "T-015"
+      ],
+      "files": [
+        "server/src/routes/elements.js"
+      ],
+      "verify": "npm test -- patch-elements",
+      "doneWhen": "content and/or css update correctly, sanitised write-side; a Cards element's content is ignored and loop is patched instead; a 3xxx-range fieldId resolves to its parent and returns the parent's full document; a 404 fires only for a truly unknown fieldId."
+    },
+    {
+      "id": "T-017",
+      "phase": 1,
+      "title": "Seed the Pulse Fit sample-brand section and element documents into the active store on server start",
+      "track": "any",
+      "size": "35m",
+      "contract": [
+        "\u00a72",
+        "\u00a73",
+        "\u00a74"
+      ],
+      "deps": [
+        "T-007"
+      ],
+      "files": [
+        "server/data/seed/sections.json",
+        "server/data/seed/elements.json",
+        "server/src/store/seed.js"
+      ],
+      "verify": "npm test -- seed-data",
+      "doneWhen": "Restarting the server does not duplicate the seed rows; the seeded statBadges Cards element carries fieldId1/fieldId2 per \u00a74."
+    },
+    {
+      "id": "T-018",
+      "phase": 1,
+      "title": "Automate the \u00a79 store-liveness assertion, including step 5's nested-card-field PATCH",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "\u00a79"
+      ],
+      "deps": [
+        "T-014",
+        "T-016",
+        "T-017"
+      ],
+      "files": [
+        "tools/check-store-liveness.mjs",
+        "package.json"
+      ],
+      "verify": "node tools/check-store-liveness.mjs",
+      "doneWhen": "All five steps run and pass: non-empty + zero-missing hydration, every ID present in the DOM including nested card IDs, a top-level PATCH moves rendered text, and a nested card-field PATCH also moves rendered text. The check runs on every commit."
+    },
+    {
+      "id": "T-019",
+      "phase": 2,
+      "title": "Write the IR v1.0 Ajv schema and validator per \u00a76",
+      "track": "any",
+      "size": "55m",
+      "contract": [
+        "\u00a76"
+      ],
+      "deps": [
+        "T-007"
+      ],
+      "files": [
+        "server/src/schemas/ir.schema.json",
+        "server/src/validate/irValidator.js"
+      ],
+      "verify": "npm test -- ir-schema",
+      "doneWhen": "The example IR document in \u00a76 validates clean; an IR missing idPolicy.contentPolicy or carrying a numeric variations fails validation."
+    },
+    {
+      "id": "T-020",
+      "phase": 2,
+      "title": "Write the Section document Ajv schema and validator per \u00a72",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a72"
+      ],
+      "deps": [
+        "T-007"
+      ],
+      "files": [
+        "server/src/schemas/section.schema.json",
+        "server/src/validate/sectionValidator.js"
+      ],
+      "verify": "npm test -- section-schema",
+      "doneWhen": "sectionStatus, cardLayoutMode, and sectionTextMode reject any value outside their enumerations; variations rejects a numeric value."
+    },
+    {
+      "id": "T-021",
+      "phase": 2,
+      "title": "Write the Element document and Cards loop item Ajv schemas per \u00a73 and \u00a74",
+      "track": "any",
+      "size": "35m",
+      "contract": [
+        "\u00a73",
+        "\u00a74"
+      ],
+      "deps": [
+        "T-007"
+      ],
+      "files": [
+        "server/src/schemas/element.schema.json",
+        "server/src/validate/elementValidator.js"
+      ],
+      "verify": "npm test -- element-schema",
+      "doneWhen": "loop is required and non-null only when contentType is Cards; a contentType of Text carrying a non-null loop is rejected."
+    },
+    {
+      "id": "T-022",
+      "phase": 2,
+      "title": "Build the job record schema and job store \u2014 the Glass Box's foundation",
+      "track": "any",
+      "size": "40m",
+      "contract": [
+        "\u00a711.1",
+        "\u00a711"
+      ],
+      "deps": [
+        "T-004"
+      ],
+      "files": [
+        "server/src/jobs/jobStore.js",
+        "server/src/schemas/job.schema.json"
+      ],
+      "verify": "npm test -- job-store",
+      "doneWhen": "A job's status only ever takes one of the five \u00a711.1 values; sectionId defaults to null until assigned."
+    },
+    {
+      "id": "T-023",
+      "phase": 2,
+      "title": "Implement the append-only stage-trace writer per \u00a711.0 and \u00a711's three rules",
+      "track": "any",
+      "size": "45m",
+      "contract": [
+        "\u00a711.0",
+        "\u00a711"
+      ],
+      "deps": [
+        "T-022"
+      ],
+      "files": [
+        "server/src/jobs/stageTrace.js"
+      ],
+      "verify": "npm test -- stage-trace",
+      "doneWhen": "A retried stage appends a new record rather than overwriting the old one; every record carries inputRef and outputRef paths."
+    },
+    {
+      "id": "T-024",
+      "phase": 2,
+      "title": "Implement stage 1, input-acquisition \u2014 writes uploads to uploads/ per \u00a713.1's format and size rules",
+      "track": "any",
+      "size": "35m",
+      "contract": [
+        "\u00a711.0",
+        "\u00a713.1"
+      ],
+      "deps": [
+        "T-023"
+      ],
+      "files": [
+        "server/src/pipeline/stage1InputAcquisition.js"
+      ],
+      "verify": "npm test -- stage1",
+      "doneWhen": "PNG, JPEG and WebP are accepted; any other type is 400; a file over 8 MB is 413; the stored path is uploads/<jobId>.<ext>."
+    },
+    {
+      "id": "T-025",
+      "phase": 2,
+      "title": "Implement the deterministic IR-to-component emitter",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "\u00a76",
+        "\u00a77"
+      ],
+      "deps": [
+        "T-019",
+        "T-014"
+      ],
+      "files": [
+        "server/src/generate/emitComponent.js"
+      ],
+      "verify": "npm test -- emit-component",
+      "doneWhen": "Given any valid IR, the emitter writes a .jsx source string satisfying R1-R14, using no network call and no model key."
+    },
+    {
+      "id": "T-026",
+      "phase": 2,
+      "title": "Implement the keyless prompt-to-IR path \u2014 keyword and template extraction, no model call",
+      "track": "any",
+      "size": "55m",
+      "contract": [
+        "\u00a76"
+      ],
+      "deps": [
+        "T-019"
+      ],
+      "files": [
+        "server/src/generate/promptToIrKeyless.js"
+      ],
+      "verify": "npm test -- prompt-to-ir-keyless",
+      "doneWhen": "With LLM_API_KEY unset, a prompt naming four stats and a green accent produces a schema-valid IR with cards.count = 4 and theme.accent reflecting green, with zero network calls made."
+    },
+    {
+      "id": "T-027",
+      "phase": 2,
+      "title": "Implement the hosted-model prompt-to-IR path, falling back to the keyless path on any failure",
+      "track": "any",
+      "size": "45m",
+      "contract": [
+        "\u00a76"
+      ],
+      "deps": [
+        "T-019",
+        "T-026"
+      ],
+      "files": [
+        "server/src/generate/promptToIrHosted.js"
+      ],
+      "verify": "npm test -- prompt-to-ir-hosted",
+      "doneWhen": "A structured-output call against the IR schema succeeds when LLM_API_KEY is set; any failure (timeout, malformed output) falls through to the keyless path rather than erroring the request."
+    },
+    {
+      "id": "T-028",
+      "phase": 2,
+      "title": "Implement the component-file write path per \u00a77's mounting seam",
+      "track": "any",
+      "size": "25m",
+      "contract": [
+        "\u00a77"
+      ],
+      "deps": [
+        "T-025"
+      ],
+      "files": [
+        "server/src/generate/writeComponentFile.js"
+      ],
+      "verify": "npm test -- write-component-file",
+      "doneWhen": "The file lands at client/src/sections/generated/<SectionName>-<sectionId>-v<variation>.jsx; generating variation 2 never overwrites variation 1's file."
+    },
+    {
+      "id": "T-029",
+      "phase": 2,
+      "title": "Wire Vite eager-glob discovery of generated sections into the preview app",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a77"
+      ],
+      "deps": [
+        "T-028"
+      ],
+      "files": [
+        "client/src/routes/PreviewPage.jsx"
+      ],
+      "verify": "npm test -- generated-glob-discovery",
+      "doneWhen": "A newly generated file is picked up by import.meta.glob without a restart or a manifest; the preview selects the module matching the section document's sectionId and variation."
+    },
+    {
+      "id": "T-030",
+      "phase": 2,
+      "title": "Implement \u00a78\u2019s write-side sanitisation chokepoint on POST /api/generate and PATCH /api/elements/:fieldId",
+      "track": "any",
+      "size": "40m",
+      "contract": [
+        "\u00a78"
+      ],
+      "deps": [
+        "T-016"
+      ],
+      "files": [
+        "server/src/sanitise/sanitiseWrite.js"
+      ],
+      "verify": "npm test -- sanitise-write",
+      "doneWhen": "A content string carrying a script tag or an onerror attribute is stripped before persisting, at both call sites, using the \u00a78 tag and attribute allow-lists."
+    },
+    {
+      "id": "T-031",
+      "phase": 2,
+      "title": "Enforce \u00a78's read-side chokepoint as the single call site \u2014 extend getHtml and assert no other component bypasses it",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a78"
+      ],
+      "deps": [
+        "T-012",
+        "T-030"
+      ],
+      "files": [
+        "client/src/utils/getHtml.js",
+        "tools/check-sanitise-chokepoints.mjs"
+      ],
+      "verify": "node tools/check-sanitise-chokepoints.mjs",
+      "doneWhen": "A repo-wide scan finds exactly one read-side call site for the raw data?.[id] || DEFAULT pattern, and it lives inside getHtml."
+    },
+    {
+      "id": "T-032",
+      "phase": 2,
+      "title": "Implement the \u00a78 CSS declaration allow-list validator",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a78"
+      ],
+      "deps": [
+        "T-030"
+      ],
+      "files": [
+        "server/src/sanitise/cssAllowList.js"
+      ],
+      "verify": "npm test -- css-allow-list",
+      "doneWhen": "font-weight: bold; text-align: left; passes; any string containing url(, expression(, @import, behavior:, or -moz-binding is rejected."
+    },
+    {
+      "id": "T-033",
+      "phase": 2,
+      "title": "Implement POST /api/generate for mode=prompt end to end",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "\u00a713",
+        "\u00a713.1"
+      ],
+      "deps": [
+        "T-024",
+        "T-025",
+        "T-026",
+        "T-028",
+        "T-006",
+        "T-030"
+      ],
+      "files": [
+        "server/src/routes/generate.js"
+      ],
+      "verify": "npm test -- generate-prompt-mode",
+      "doneWhen": "A prompt request persists a section and its elements, writes a component file, and returns the \u00a713 success envelope; a failure partway through never leaves persisted element IDs without a parent section row."
+    },
+    {
+      "id": "T-034",
+      "phase": 2,
+      "title": "Run ESLint against every emitted component with a fixed hermetic inline config",
+      "track": "any",
+      "size": "35m",
+      "contract": [
+        "\u00a77"
+      ],
+      "deps": [
+        "T-025"
+      ],
+      "files": [
+        "tools/lint-generated.mjs",
+        ".eslintrc.generated.json"
+      ],
+      "verify": "node tools/lint-generated.mjs",
+      "doneWhen": "The two hand-written helpers resolve cleanly on import; no generated file imports a path that does not exist in this repo."
+    },
+    {
+      "id": "T-035",
+      "phase": 3,
+      "title": "Implement GET /api/sections and GET /api/sections/:sectionId per \u00a713.4",
+      "track": "api-glassbox",
+      "size": "30m",
+      "contract": [
+        "\u00a713.4"
+      ],
+      "deps": [
+        "T-007",
+        "T-006"
+      ],
+      "files": [
+        "server/src/routes/sections.js"
+      ],
+      "verify": "npm test -- get-sections",
+      "doneWhen": "The list endpoint returns a bare array, empty when there are no sections; the single-doc endpoint returns a bare document or 404."
+    },
+    {
+      "id": "T-036",
+      "phase": 3,
+      "title": "Implement GET /api/jobs/:jobId per \u00a713.4 and \u00a711",
+      "track": "api-glassbox",
+      "size": "30m",
+      "contract": [
+        "\u00a713.4",
+        "\u00a711"
+      ],
+      "deps": [
+        "T-022",
+        "T-023"
+      ],
+      "files": [
+        "server/src/routes/jobs.js"
+      ],
+      "verify": "npm test -- get-job",
+      "doneWhen": "The response is the bare job document with its full stages array, or 404 if the jobId is unknown."
+    },
+    {
+      "id": "T-037",
+      "phase": 3,
+      "title": "Implement the artifact and component-source endpoints per \u00a711.2",
+      "track": "api-glassbox",
+      "size": "35m",
+      "contract": [
+        "\u00a711.2"
+      ],
+      "deps": [
+        "T-023",
+        "T-028"
+      ],
+      "files": [
+        "server/src/routes/artifacts.js"
+      ],
+      "verify": "npm test -- artifact-endpoints",
+      "doneWhen": "GET /api/jobs/:jobId/artifacts/:name returns the artifact with its own content type; GET /api/jobs/:jobId/component returns the generated JSX as text/plain."
+    },
+    {
+      "id": "T-038",
+      "phase": 3,
+      "title": "Build the Job Timeline UI \u2014 seven stages, real timings, per-stage status per \u00a711.1",
+      "track": "api-glassbox",
+      "size": "55m",
+      "contract": [
+        "\u00a711.0",
+        "\u00a711.1"
+      ],
+      "deps": [
+        "T-036"
+      ],
+      "files": [
+        "client/src/studio/JobTimeline.jsx"
+      ],
+      "verify": "npm test -- job-timeline-ui",
+      "doneWhen": "All seven stages render in canonical order; a degraded stage is visually distinct from ok/failed/skipped."
+    },
+    {
+      "id": "T-039",
+      "phase": 3,
+      "title": "Build stage inspection \u2014 clicking a stage shows its artifact content via \u00a711.2's endpoint",
+      "track": "api-glassbox",
+      "size": "40m",
+      "contract": [
+        "\u00a711.2"
+      ],
+      "deps": [
+        "T-037",
+        "T-038"
+      ],
+      "files": [
+        "client/src/studio/StageInspector.jsx"
+      ],
+      "verify": "npm test -- stage-inspector",
+      "doneWhen": "Clicking stage 3 fetches and displays its recorded artifact, including confidence and warnings from the stage record."
+    },
+    {
+      "id": "T-040",
+      "phase": 3,
+      "title": "Implement POST /api/jobs/:jobId/replay per \u00a711's Replay section",
+      "track": "api-glassbox",
+      "size": "50m",
+      "contract": [
+        "\u00a711"
+      ],
+      "deps": [
+        "T-023",
+        "T-025"
+      ],
+      "files": [
+        "server/src/routes/replay.js"
+      ],
+      "verify": "npm test -- replay-endpoint",
+      "doneWhen": "Replaying from stage 5 with an edited IR re-runs only stages 5 onward; a replay targeting stage 4 or earlier while the perception service is down returns 422 rather than hanging."
+    },
+    {
+      "id": "T-041",
+      "phase": 3,
+      "title": "Implement POST /api/sections/:sectionId/regenerate per \u00a713.3 (base semantics)",
+      "track": "api-glassbox",
+      "size": "55m",
+      "contract": [
+        "\u00a713.3"
+      ],
+      "deps": [
+        "T-006",
+        "T-025",
+        "T-035"
+      ],
+      "files": [
+        "server/src/routes/regenerate.js"
+      ],
+      "verify": "npm test -- regenerate-base",
+      "doneWhen": "The sectionId does not change; variations is updated in place; idPolicy.mode is forced to preserve for this call."
+    },
+    {
+      "id": "T-042",
+      "phase": 3,
+      "title": "Implement zip export of a generated section",
+      "track": "api-glassbox",
+      "size": "30m",
+      "contract": [
+        "\u00a77",
+        "\u00a713"
+      ],
+      "deps": [
+        "T-028",
+        "T-035"
+      ],
+      "files": [
+        "server/src/routes/exportZip.js"
+      ],
+      "verify": "npm test -- export-zip",
+      "doneWhen": "The downloaded archive contains the component .jsx file plus the section and element JSON documents, and opens cleanly."
+    },
+    {
+      "id": "T-043",
+      "phase": 3,
+      "title": "Build the Generator Studio\u2019s wireframe upload form (FR-G01)",
+      "track": "studio-preview",
+      "size": "35m",
+      "contract": [
+        "\u00a713.1"
+      ],
+      "deps": [
+        "T-001",
+        "T-033"
+      ],
+      "files": [
+        "client/src/studio/UploadForm.jsx"
+      ],
+      "verify": "npm test -- upload-form",
+      "doneWhen": "PNG, JPEG and WebP are accepted client-side with the same rules as \u00a713.1; a rejected file shows a plain-language reason before any request is sent."
+    },
+    {
+      "id": "T-044",
+      "phase": 3,
+      "title": "Build the Generator Studio\u2019s code and prompt textareas (FR-G02, FR-G03)",
+      "track": "studio-preview",
+      "size": "30m",
+      "contract": [
+        "\u00a713.1"
+      ],
+      "deps": [
+        "T-001",
+        "T-033"
+      ],
+      "files": [
+        "client/src/studio/CodePromptInputs.jsx"
+      ],
+      "verify": "npm test -- code-prompt-inputs",
+      "doneWhen": "The code textarea and prompt textarea each post their value under the code and prompt multipart fields exactly as \u00a713.1 names them."
+    },
+    {
+      "id": "T-045",
+      "phase": 3,
+      "title": "Build the Generator Studio\u2019s mode selector (FR-G04)",
+      "track": "studio-preview",
+      "size": "25m",
+      "contract": [
+        "\u00a713"
+      ],
+      "deps": [
+        "T-043",
+        "T-044"
+      ],
+      "files": [
+        "client/src/studio/ModeSelector.jsx"
+      ],
+      "verify": "npm test -- mode-selector",
+      "doneWhen": "Selecting wireframe, code, prompt, or combined shows exactly the matching input controls and sets the mode field to one of \u00a713's four values."
+    },
+    {
+      "id": "T-046",
+      "phase": 3,
+      "title": "Build the Generator Studio\u2019s pageName/sectionName fields and accent colour picker (FR-G09, FR-G05)",
+      "track": "studio-preview",
+      "size": "30m",
+      "contract": [
+        "\u00a713.1",
+        "\u00a76"
+      ],
+      "deps": [
+        "T-043"
+      ],
+      "files": [
+        "client/src/studio/SectionFields.jsx"
+      ],
+      "verify": "npm test -- section-fields",
+      "doneWhen": "pageName defaults to Home and is case-sensitive; the chosen accent colour reaches the request and is reflected in the IR's theme.accent."
+    },
+    {
+      "id": "T-047",
+      "phase": 3,
+      "title": "Build the Generator Studio\u2019s plain-language error surfacing (FR-G06)",
+      "track": "studio-preview",
+      "size": "30m",
+      "contract": [
+        "\u00a713"
+      ],
+      "deps": [
+        "T-033"
+      ],
+      "files": [
+        "client/src/studio/ErrorBanner.jsx"
+      ],
+      "verify": "npm test -- error-banner",
+      "doneWhen": "Each of \u00a713's status codes (400, 413, 422, 500) maps to a distinct, non-technical message; the raw error.code is never shown to the user as the primary text."
+    },
+    {
+      "id": "T-048",
+      "phase": 3,
+      "title": "Build the Generator Studio\u2019s job history (FR-G07)",
+      "track": "studio-preview",
+      "size": "35m",
+      "contract": [
+        "\u00a711",
+        "\u00a713.4"
+      ],
+      "deps": [
+        "T-036",
+        "T-022"
+      ],
+      "files": [
+        "client/src/studio/JobHistory.jsx"
+      ],
+      "verify": "npm test -- job-history",
+      "doneWhen": "Every jobId returned from a generate or regenerate call is retained client-side and each row is hydrated via GET /api/jobs/:jobId."
+    },
+    {
+      "id": "T-049",
+      "phase": 3,
+      "title": "Build the Generator Studio\u2019s read-only generated JSX view (FR-G08)",
+      "track": "studio-preview",
+      "size": "25m",
+      "contract": [
+        "\u00a711.2"
+      ],
+      "deps": [
+        "T-037"
+      ],
+      "files": [
+        "client/src/studio/GeneratedSourceView.jsx"
+      ],
+      "verify": "npm test -- generated-source-view",
+      "doneWhen": "The view fetches from GET /api/jobs/:jobId/component and renders it read-only; there is no path that mounts a static file directly."
+    },
+    {
+      "id": "T-050",
+      "phase": 3,
+      "title": "Build the preview shell hosting the generated section at /preview/:pageName",
+      "track": "studio-preview",
+      "size": "40m",
+      "contract": [
+        "\u00a77"
+      ],
+      "deps": [
+        "T-011",
+        "T-029"
+      ],
+      "files": [
+        "client/src/routes/PreviewPage.jsx"
+      ],
+      "verify": "npm test -- preview-shell",
+      "doneWhen": "Switching pageName re-hydrates the correct section; the shell renders whichever generated module matches the current section's sectionId and variation."
+    },
+    {
+      "id": "T-051",
+      "phase": 3,
+      "title": "Build the CMS side-editor \u2014 click an element, edit content and css, PATCH per \u00a713.2",
+      "track": "studio-preview",
+      "size": "50m",
+      "contract": [
+        "\u00a713.2"
+      ],
+      "deps": [
+        "T-016",
+        "T-050"
+      ],
+      "files": [
+        "client/src/studio/SideEditor.jsx"
+      ],
+      "verify": "npm test -- side-editor",
+      "doneWhen": "Editing a top-level element and editing a nested card field both PATCH successfully and the preview updates without a full refetch."
+    },
+    {
+      "id": "T-052",
+      "phase": 3,
+      "title": "Build the responsive toggle in the preview shell per R11",
+      "track": "studio-preview",
+      "size": "25m",
+      "contract": [
+        "\u00a77 R11"
+      ],
+      "deps": [
+        "T-050"
+      ],
+      "files": [
+        "client/src/studio/ResponsiveToggle.jsx"
+      ],
+      "verify": "npm test -- responsive-toggle",
+      "doneWhen": "Desktop view shows two columns inside the max-width container; mobile view stacks them, matching R11."
+    },
+    {
+      "id": "T-053",
+      "phase": 3,
+      "title": "Build the css overlay editing hook in the side-editor, validated client-side against \u00a78",
+      "track": "studio-preview",
+      "size": "30m",
+      "contract": [
+        "\u00a78",
+        "\u00a713.2"
+      ],
+      "deps": [
+        "T-032",
+        "T-051"
+      ],
+      "files": [
+        "client/src/studio/SideEditor.jsx"
+      ],
+      "verify": "npm test -- css-overlay-editor",
+      "doneWhen": "A css value that fails the \u00a78 declaration allow-list is rejected client-side before the PATCH request is sent, with the same rule the server enforces."
+    },
+    {
+      "id": "T-054",
+      "phase": 3,
+      "title": "Scaffold the Python perception service exposing POST /perceive and GET /health per \u00a712",
+      "track": "perception",
+      "size": "45m",
+      "contract": [
+        "\u00a712"
+      ],
+      "deps": [],
+      "files": [
+        "perception/server.py",
+        "perception/app.py"
+      ],
+      "verify": "python -m pytest perception/tests/test_health.py",
+      "doneWhen": "GET /health returns { ok, models, device } and POST /perceive returns the exact \u00a712 response shape on a stub payload."
+    },
+    {
+      "id": "T-055",
+      "phase": 3,
+      "title": "Implement stage 2, preprocessing-normalization (OpenCV), recording the normalisation transform",
+      "track": "perception",
+      "size": "40m",
+      "contract": [
+        "\u00a76",
+        "\u00a711.0"
+      ],
+      "deps": [
+        "T-054"
+      ],
+      "files": [
+        "perception/stages/normalise.py"
+      ],
+      "verify": "python -m pytest perception/tests/test_normalise.py",
+      "doneWhen": "The recorded transform {scale, offsetX, offsetY, width, height} correctly maps a normalised-image bbox back onto the original upload."
+    },
+    {
+      "id": "T-056",
+      "phase": 3,
+      "title": "Implement stage 3, multimodal-understanding (Florence-2 grounding + PaddleOCR)",
+      "track": "perception",
+      "size": "60m",
+      "contract": [
+        "\u00a76"
+      ],
+      "deps": [
+        "T-055"
+      ],
+      "files": [
+        "perception/stages/understand.py"
+      ],
+      "verify": "python -m pytest perception/tests/test_understand.py",
+      "doneWhen": "Each detected region produces an IR element entry (without fieldId) carrying confidence, sourceOf: wireframe, and a bbox in the normalised image\u2019s coordinate space."
+    },
+    {
+      "id": "T-057",
+      "phase": 3,
+      "title": "Implement fusion and hierarchy \u2014 assemble the IR's layout/theme/cards sub-objects for the /perceive response",
+      "track": "perception",
+      "size": "55m",
+      "contract": [
+        "\u00a76",
+        "\u00a712"
+      ],
+      "deps": [
+        "T-056"
+      ],
+      "files": [
+        "perception/stages/fuse.py"
+      ],
+      "verify": "python -m pytest perception/tests/test_fuse.py",
+      "doneWhen": "Fed the organiser's sample wireframe, the response's elements cover the reference set \u2014 heroImage, brandBadge, headlineMain, headlineSub, description, statBadges, ctaButton."
+    },
+    {
+      "id": "T-058",
+      "phase": 3,
+      "title": "Wire Node\u2019s call to POST /perceive and assemble the full IR per \u00a712",
+      "track": "perception",
+      "size": "45m",
+      "contract": [
+        "\u00a712",
+        "\u00a76"
+      ],
+      "deps": [
+        "T-057",
+        "T-033"
+      ],
+      "files": [
+        "server/src/generate/perceiveAndAssembleIr.js"
+      ],
+      "verify": "npm test -- perceive-assemble-ir",
+      "doneWhen": "Node takes irVersion, pageName, sectionName, source and idPolicy from the request and everything else from the /perceive response, producing a schema-valid full IR."
+    },
+    {
+      "id": "T-059",
+      "phase": 3,
+      "title": "Implement the perception degradation path per \u00a712 and \u00a711.1",
+      "track": "perception",
+      "size": "35m",
+      "contract": [
+        "\u00a711.1",
+        "\u00a712"
+      ],
+      "deps": [
+        "T-058"
+      ],
+      "files": [
+        "server/src/generate/perceiveAndAssembleIr.js"
+      ],
+      "verify": "npm test -- perception-degradation",
+      "doneWhen": "With the perception service stopped, unreachable, or returning non-200, the stage is recorded as degraded, a warning is emitted, and generation continues down the deterministic path \u2014 prompt mode and the CMS contract stay fully demonstrable."
+    },
+    {
+      "id": "T-060",
+      "phase": 3,
+      "title": "Implement code-input mode \u2014 AST to elements to IR, IDs preserved, code parsed and never executed",
+      "track": "any",
+      "size": "55m",
+      "contract": [
+        "\u00a78",
+        "\u00a76"
+      ],
+      "deps": [
+        "T-019",
+        "T-033"
+      ],
+      "files": [
+        "server/src/generate/codeToIr.js"
+      ],
+      "verify": "npm test -- code-to-ir",
+      "doneWhen": "Pasted JSX is parsed with @babel/parser in jsx+typescript mode with errorRecovery; the string never reaches eval, new Function, require of a written temp file, vm, or a child process; user strings land only in element content fields."
+    },
+    {
+      "id": "T-061",
+      "phase": 4,
+      "title": "Implement combined-mode conflict resolution across prompt, wireframe and code inputs",
+      "track": "generation",
+      "size": "50m",
+      "contract": [
+        "\u00a76"
+      ],
+      "deps": [
+        "T-033",
+        "T-058",
+        "T-060"
+      ],
+      "files": [
+        "server/src/generate/resolveConflicts.js"
+      ],
+      "verify": "npm test -- combined-mode-conflicts",
+      "doneWhen": "Prompt wins copy/colour/CTA/card count, wireframe wins spatial layout, code wins technical patterns; every time the rule fires, a warning is recorded in the IR."
+    },
+    {
+      "id": "T-062",
+      "phase": 4,
+      "title": "Implement idPolicy.preserve and contentPolicy (overwrite|keep) semantics",
+      "track": "generation",
+      "size": "55m",
+      "contract": [
+        "\u00a76"
+      ],
+      "deps": [
+        "T-041"
+      ],
+      "files": [
+        "server/src/generate/applyIdPolicy.js"
+      ],
+      "verify": "npm test -- id-policy-content-policy",
+      "doneWhen": "Regeneration forces contentPolicy: keep \u2014 a preserved fieldId's existing stored content survives even when the IR's default differs \u2014 except when the prompt explicitly changes that field's copy, which is recorded in warnings."
+    },
+    {
+      "id": "T-063",
+      "phase": 4,
+      "title": "Extend regenerate with card-slot growth/shrink by index and the preservedIds/newIds response",
+      "track": "api-glassbox",
+      "size": "50m",
+      "contract": [
+        "\u00a713.3"
+      ],
+      "deps": [
+        "T-062"
+      ],
+      "files": [
+        "server/src/routes/regenerate.js"
+      ],
+      "verify": "npm test -- regenerate-card-slots",
+      "doneWhen": "Growing three stats to four preserves items 0-2's nested IDs and allocates one new pair; shrinking leaves the orphaned pair stored, not deleted; the response matches \u00a713.3's preservedIds/newIds shape."
+    },
+    {
+      "id": "T-064",
+      "phase": 4,
+      "title": "Wire replay-from-stage into the Timeline UI, including the 422 case",
+      "track": "api-glassbox",
+      "size": "35m",
+      "contract": [
+        "\u00a711"
+      ],
+      "deps": [
+        "T-040",
+        "T-038"
+      ],
+      "files": [
+        "client/src/studio/JobTimeline.jsx"
+      ],
+      "verify": "npm test -- replay-ui",
+      "doneWhen": "Choosing stage 5 in the timeline and clicking replay calls the replay endpoint and refreshes the stage list; a stage-4 replay attempt with the perception service down surfaces the 422 as a plain-language message."
+    },
+    {
+      "id": "T-065",
+      "phase": 4,
+      "title": "Implement the human-in-the-loop questions and answers endpoints per \u00a711.3",
+      "track": "api-glassbox",
+      "size": "45m",
+      "contract": [
+        "\u00a711.3"
+      ],
+      "deps": [
+        "T-022",
+        "T-057"
+      ],
+      "files": [
+        "server/src/routes/questions.js",
+        "server/src/routes/answers.js"
+      ],
+      "verify": "npm test -- hitl-endpoints",
+      "doneWhen": "Below 0.60 confidence with the studio opted in, the job halts at awaiting-input; answers write into the IR and resume from stage 4; a headless run with no opt-in never pauses."
+    },
+    {
+      "id": "T-066",
+      "phase": 4,
+      "title": "Build the human-in-the-loop UI \u2014 question, bbox overlay, options, submit",
+      "track": "studio-preview",
+      "size": "45m",
+      "contract": [
+        "\u00a711.3"
+      ],
+      "deps": [
+        "T-065",
+        "T-050"
+      ],
+      "files": [
+        "client/src/studio/QuestionPrompt.jsx"
+      ],
+      "verify": "npm test -- hitl-ui",
+      "doneWhen": "A rendered question shows its bbox over the source image and its options; submitting an answer resumes the job and the timeline reflects resumedFrom."
+    },
+    {
+      "id": "T-067",
+      "phase": 4,
+      "title": "Surface confidence bands per \u00a710 in the API response and the Glass Box timeline",
+      "track": "api-glassbox",
+      "size": "30m",
+      "contract": [
+        "\u00a710"
+      ],
+      "deps": [
+        "T-056",
+        "T-036"
+      ],
+      "files": [
+        "server/src/routes/jobs.js"
+      ],
+      "verify": "npm test -- confidence-surfaced-api",
+      "doneWhen": "Elements at or above 0.85, between 0.60 and 0.85, and below 0.60 are each visible with their band; an element that did not come from an image carries null, never a fabricated number."
+    },
+    {
+      "id": "T-068",
+      "phase": 4,
+      "title": "Surface confidence per element in the Studio and preview",
+      "track": "studio-preview",
+      "size": "30m",
+      "contract": [
+        "\u00a710"
+      ],
+      "deps": [
+        "T-067",
+        "T-050"
+      ],
+      "files": [
+        "client/src/studio/ConfidenceBadge.jsx"
+      ],
+      "verify": "npm test -- confidence-surfaced-studio",
+      "doneWhen": "Each element carries a visible, colour-coded badge matching its \u00a710 band."
+    },
+    {
+      "id": "T-069",
+      "phase": 4,
+      "title": "Ship variation 2, selectable in the preview without disturbing variation 1",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a77",
+        "\u00a713.3"
+      ],
+      "deps": [
+        "T-063",
+        "T-029"
+      ],
+      "files": [
+        "client/src/routes/PreviewPage.jsx"
+      ],
+      "verify": "npm test -- variation-2",
+      "doneWhen": "Regenerating a section writes a second, distinctly-named component file; the preview can select either variation and neither overwrites the other."
+    },
+    {
+      "id": "T-070",
+      "phase": 4,
+      "title": "Rehearse Gate 4 \u2014 the judge's headline survives redesign and regeneration",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a713.3",
+        "\u00a79"
+      ],
+      "deps": [
+        "T-069",
+        "T-018"
+      ],
+      "files": [],
+      "verify": null,
+      "doneWhen": "A judge types a headline, the design changes (four stats, green accent), the section is regenerated, and the typed headline is still present afterward."
+    },
+    {
+      "id": "T-071",
+      "phase": 5,
+      "title": "Close the \u00a714 duplicate-ID gap in the pre-submit gate",
+      "track": "any",
+      "size": "40m",
+      "contract": [
+        "\u00a714",
+        "\u00a72.1"
+      ],
+      "deps": [
+        "T-006"
+      ],
+      "files": [
+        ".githooks/pre-push"
+      ],
+      "verify": "sh .githooks/pre-push",
+      "doneWhen": "The gate fails when two fieldIds collide, or when two nested fieldIdN values collide across any loop of any element, even though both are individually in range."
+    },
+    {
+      "id": "T-072",
+      "phase": 5,
+      "title": "Write docs/THREAT-MODEL.md, the judge-facing security artifact",
+      "track": "any",
+      "size": "40m",
+      "contract": [
+        "\u00a78",
+        "\u00a713.1",
+        "\u00a714"
+      ],
+      "deps": [
+        "T-030",
+        "T-060"
+      ],
+      "files": [
+        "docs/THREAT-MODEL.md"
+      ],
+      "verify": null,
+      "doneWhen": "The document names both sanitisation chokepoints, the upload format/size limits, the AST-only handling of pasted code, and the \u00a714 forbidden-content list, each with where it is enforced in the codebase."
+    },
+    {
+      "id": "T-073",
+      "phase": 5,
+      "title": "Complete README's run-command table and licence cross-check",
+      "track": "any",
+      "size": "25m",
+      "contract": [
+        "\u00a714"
+      ],
+      "deps": [
+        "T-071"
+      ],
+      "files": [
+        "README.md"
+      ],
+      "verify": null,
+      "doneWhen": "Every command in the table actually runs as written against the built repository; the licence table's forbidden-dependency list is cross-checked against package.json and requirements.txt."
+    },
+    {
+      "id": "T-074",
+      "phase": 5,
+      "title": "Verify seed data completeness against the Ajv schemas",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a72",
+        "\u00a73",
+        "\u00a74"
+      ],
+      "deps": [
+        "T-020",
+        "T-021",
+        "T-017"
+      ],
+      "files": [
+        "server/data/seed/sections.json",
+        "server/data/seed/elements.json"
+      ],
+      "verify": "node tools/check-contract.mjs seed",
+      "doneWhen": "The tracked seed JSON validates with zero errors and includes at least one element of every contentType \u2014 Image, Text, Textfield, Button, Cards."
+    },
+    {
+      "id": "T-075",
+      "phase": 5,
+      "title": "Commit the checked-in reference generated component and diff it against the golden component",
+      "track": "any",
+      "size": "30m",
+      "contract": [
+        "\u00a77"
+      ],
+      "deps": [
+        "T-025",
+        "T-014"
+      ],
+      "files": [
+        "client/src/sections/generated/reference/HeroSection-reference.jsx"
+      ],
+      "verify": "npm test -- reference-component-diff",
+      "doneWhen": "The deterministic emitter's output for the reference IR matches the hand-written golden component on every R1-R14 property; a future contract drift breaks this test first."
+    },
+    {
+      "id": "T-076",
+      "phase": 5,
+      "title": "Run the full pre-submit gate clean and rehearse the 8-minute demo five times",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "\u00a714",
+        "\u00a79"
+      ],
+      "deps": [
+        "T-071",
+        "T-070"
+      ],
+      "files": [
+        "docs/DEMO-REHEARSAL-LOG.md"
+      ],
+      "verify": null,
+      "doneWhen": "sh .githooks/pre-push exits 0 on the final state; five rehearsals are logged with any break point found and how it was fixed."
+    },
+    {
+      "id": "T-077",
+      "phase": 5,
+      "title": "Record a backup demo run",
+      "track": "any",
+      "size": "40m",
+      "contract": [
+        "\u00a712"
+      ],
+      "deps": [
+        "T-076"
+      ],
+      "files": [
+        "docs/DEMO-REHEARSAL-LOG.md"
+      ],
+      "verify": null,
+      "doneWhen": "A full recording of the 8-minute script exists and is stored outside git (per \u00a714\u2019s binary-artifact rule), ready to play if the live machine fails."
+    },
+    {
+      "id": "T-078",
+      "phase": 5,
+      "title": "Rehearse on a non-GPU machine with the perception service stopped",
+      "track": "any",
+      "size": "35m",
+      "contract": [
+        "\u00a712",
+        "\u00a79"
+      ],
+      "deps": [
+        "T-059",
+        "T-018"
+      ],
+      "files": [],
+      "verify": null,
+      "doneWhen": "Prompt mode, code mode, and the CMS contract \u2014 including the \u00a79 assertion \u2014 all pass on a machine that never ran the Python service."
+    }
+  ]
+}

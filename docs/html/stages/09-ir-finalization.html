@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IR Finalization — Framewright</title>
+<link rel="stylesheet" href="_card.css">
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="index.html">← all stages</a> &nbsp;·&nbsp; Card 9 of 13 &nbsp;·&nbsp; pipeline stage 4 &nbsp;·&nbsp; Python emits, Node finalises</p>
+  <span class="stage">Semantic Planning &amp; IR Generation</span>
+  <h1>IR Finalization</h1>
+  <p style="margin:0 0 4px;color:var(--ink2)">Assemble the complete IR, validate it against the schema, and only then hand it on.</p>
+
+  <div class="io">
+    <div class="card b" style="margin:0"><p class="lbl">IN</p>Layout, cards and elements from Cards 6-8, plus <code>irVersion</code>, <code>pageName</code>, <code>source</code>, <code>idPolicy</code> from the request.</div>
+    <div class="arrow">→</div>
+    <div class="card g" style="margin:0"><p class="lbl">OUT</p>One Ajv-validated IR document, handed to the Node API for ID allocation.</div>
+  </div>
+
+  <h2>What it actually does</h2>
+  <div class="card">
+    <div class="scroll">
+    <svg viewBox="0 0 860 250" width="860">
+      <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
+      <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
+        <rect x="8" y="79" width="150" height="62" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="83" y="103" font-weight="bold">layout, theme,</text><text x="83" y="120" font-size="11">cards, elements</text>
+
+        <rect x="194" y="79" width="160" height="62" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="274" y="103" font-weight="bold">assemble</text><text x="274" y="120" font-size="11">irVersion, source…</text>
+
+        <rect x="390" y="79" width="150" height="62" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="465" y="103" font-weight="bold">validate</text><text x="465" y="120" font-size="11">Ajv vs schema</text>
+
+        <rect x="576" y="79" width="130" height="62" rx="8" fill="#b2f2bb" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="641" y="103" font-weight="bold">IR</text><text x="641" y="120" font-size="11">→ Node API</text>
+
+        <rect x="370" y="170" width="190" height="55" rx="8" fill="#ffc9c9" stroke="#1a1a1a" stroke-width="2.2"/>
+        <text x="465" y="194" font-weight="bold" font-size="11.5">invalid</text><text x="465" y="211" font-size="10.5">reject, 0 IDs allocated</text>
+
+        <g stroke="#1a1a1a" stroke-width="1.8" fill="none" marker-end="url(#a)">
+          <path d="M158 110 L190 110"/>
+          <path d="M354 110 L386 110"/>
+          <path d="M540 110 L572 110"/>
+          <path d="M465 141 L465 166"/>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <p style="margin:8px 0 0">This is the last stop before anything gets an ID. Layout, theme, cards and
+    elements from the three prior cards are assembled into one object, together with the fields Node
+    already knows — <code>irVersion</code>, <code>pageName</code>, <code>sectionName</code>,
+    <code>source</code>, <code>idPolicy</code> (§12: "there is no <code>irFragment</code>"). The whole
+    thing is checked against the IR's Ajv schema before it goes anywhere else. Only a valid IR is handed
+    to the Node API, which is the only place a <code>fieldId</code> is ever minted.</p>
+  </div>
+
+  <h2>Out</h2>
+  <div class="card">
+<pre><span class="c">// the complete IR, Ajv-validated — no fieldId anywhere (§1, §6)</span>
+{
+  <span class="k">"irVersion"</span>:   <span class="s">"1.0"</span>,
+  <span class="k">"sectionType"</span>: <span class="s">"split-hero"</span>,
+  <span class="k">"pageName"</span>:    <span class="s">"Home"</span>,
+  <span class="k">"layout"</span>:      { <span class="c">...from Card 7...</span> },
+  <span class="k">"theme"</span>:       { <span class="c">...accent, surface, text, textMode...</span> },
+  <span class="k">"cards"</span>:       { <span class="c">...from Card 8, or null...</span> },
+  <span class="k">"elements"</span>:    [ <span class="c">...from Card 6, order from Card 7...</span> ],
+  <span class="k">"idPolicy"</span>:    { <span class="k">"mode"</span>: <span class="s">"allocate"</span>, <span class="k">"contentPolicy"</span>: <span class="s">"overwrite"</span> },
+  <span class="k">"variations"</span>:  <span class="s">"1"</span>,
+  <span class="k">"warnings"</span>:    []
+}</pre>
+  </div>
+
+  <h2>Why validate before allocating IDs</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:30%">Approach</th><th style="width:16%">Verdict</th><th>Reason</th></tr>
+      <tr><td><b>Validate-before-allocate</b></td><td><b>chosen</b></td>
+          <td>Allocating IDs for an IR that later fails validation leaves orphaned <code>sectionId</code> / <code>fieldId</code> counter values — burnt numbers that never map to a real element, and §1's atomic-counter guarantee makes them unrecoverable.</td></tr>
+      <tr><td>Allocate first, validate after</td><td>rejected</td>
+          <td>Ties validity to a side effect that already happened. A caught error still leaves IDs allocated and unused.</td></tr>
+      <tr><td>No finalization step — Python's raw response is the IR</td><td>rejected</td>
+          <td>§12: "there is no <code>irFragment</code>." Node must assemble the whole IR from the response's named sub-objects plus request-supplied fields — skip that and a partial object ships as if it were complete.</td></tr>
+    </table>
+  </div>
+
+  <div class="note warn"><b>No fieldId appears anywhere in the IR.</b> A model that emits one is producing
+  invalid IR, and the validator rejects it — IDs are allocated by the API, after this stage, never before it.</div>
+
+  <h2>How it fails</h2>
+  <div class="row">
+    <div class="card r">
+      <table>
+        <tr><th>Failure</th><th>What happens</th></tr>
+        <tr><td>Missing CTA or heading</td><td>Never a silent drop. Recorded in <code>warnings</code>, matching §6's <code>warnings: []</code> array and the API response's <code>warnings</code> field (§13).</td></tr>
+        <tr><td>An IR that validates but is nonsense<br><span style="font-size:11px">e.g. zero elements</span></td><td><b>Unverified.</b> Ajv checks shape, not sense — whether the schema enforces a minimum element count is a real gap between "valid JSON" and "usable section."</td></tr>
+        <tr><td>Version drift</td><td>The contract is frozen at <code>"1.0"</code> (top of file: Status FROZEN, Version 1.3). A mismatched <code>irVersion</code> means a stage is running stale code; §6 states no automatic migration.</td></tr>
+        <tr><td>Node's assembly disagrees with Python's response</td><td>§12: Node takes <code>irVersion</code>, <code>pageName</code>, <code>sectionName</code>, <code>source</code>, <code>idPolicy</code> from the request and everything else from the response. Miss one and the IR ships a stale request-side value instead of the fresh perceived one.</td></tr>
+      </table>
+    </div>
+    <div class="card gr">
+      <p class="lbl">Who supplies which field (§12)</p>
+      <table>
+        <tr><td>Request</td><td>irVersion, pageName, sectionName, source, idPolicy</td></tr>
+        <tr><td>Perceive response</td><td>layout, theme, cards, elements</td></tr>
+      </table>
+      <p style="margin:7px 0 0;font-size:12px">No opaque "fragment" — the named sub-objects, assembled here.</p>
+    </div>
+  </div>
+
+  <h2>What it must not break</h2>
+  <div class="card g">
+    <ul>
+      <li><b>§6</b> — the IR is the bridge; every field named there must be present and correctly typed, or nothing downstream can read it.</li>
+      <li><b>§1</b> — no <code>fieldId</code> anywhere in the IR; only the API allocates IDs, and only after this stage.</li>
+      <li><b>§11</b> — the IR is the artifact stage 4 persists; the trace's <code>outputRef</code> points at it, and replay reads it back.</li>
+      <li><b>§12</b> — there is no <code>irFragment</code>. Node assembles the IR from the response's named sub-objects, never a single opaque blob.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§1 · §6 · §11 · §12</b></span>
+    <span>Owner: generation track</span>
+    <span><a href="index.html">all stages</a> &middot; <a href="08-content-binding-planner.html">&larr; Content Binding Planner</a> &middot; <a href="10-model-orchestrator.html">next: Model Orchestrator &rarr;</a></span>
+  </div>
+
+</div>
+</body>
+</html>

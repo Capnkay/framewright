@@ -1,0 +1,19 @@
+# Line endings are normalised to LF everywhere, on every platform.
+#
+# This is not a style preference. LAW-MANIFEST.sha256 hashes the hook files and
+# the manifest is verified at commit time. If Git rewrites line endings on
+# checkout, every hash changes and the integrity check fails on a fresh clone --
+# which blocks the new person's first commit before they have written a line.
+# Verified: without this file, all 8 manifest entries fail on a fresh clone.
+* text=auto eol=lf
+
+# Never touch binaries.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.pt   binary
+*.onnx binary
+*.safetensors binary
