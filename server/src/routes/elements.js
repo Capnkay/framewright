@@ -1,5 +1,6 @@
 import { STATUS, collection, document, badRequest, ok } from '../http/envelope.js';
 import { createStore } from '../store/index.js';
+import { sanitiseElementPatch } from '../sanitise/sanitiseWrite.js';
 
 export async function getElements(ctx = {}) {
   const query = ctx.query || {};
@@ -30,52 +31,9 @@ export async function getElements(ctx = {}) {
   }
 }
 
-const ALLOWED_TAGS = new Set(['b', 'i', 'br', 'span', 'strong', 'em']);
-const VOID_TAGS = new Set(['br']);
-const CONTENT_STRIP_TAGS = ['script', 'style'];
-const TAG_PATTERN = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?\/?>/g;
-const COMMENT_PATTERN = /<!--[\s\S]*?-->/g;
-
-function stripContentTags(input) {
-  let out = input;
-  for (const tag of CONTENT_STRIP_TAGS) {
-    out = out.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, 'gi'), '');
-    out = out.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*$`, 'gi'), '');
-  }
-  return out;
-}
-
-function sanitizeHtml(input) {
-  let out = input.replace(COMMENT_PATTERN, '');
-  out = stripContentTags(out);
-
-  out = out.replace(TAG_PATTERN, (match, rawTag) => {
-    const tag = rawTag.toLowerCase();
-    if (!ALLOWED_TAGS.has(tag)) {
-      return '';
-    }
-    const isClosing = match.startsWith('</');
-    if (VOID_TAGS.has(tag)) {
-      return isClosing ? '' : '<br />';
-    }
-    return isClosing ? `</${tag}>` : `<${tag}>`;
-  });
-  return out;
-}
-
-const CSS_PATTERN = /^(\s*[a-z-]+\s*:\s*[^;{}()<>"']+;?\s*)+$/i;
-const CSS_FORBIDDEN = ['url(', 'expression(', '@import', 'behavior:', '-moz-binding'];
-
-function validateCss(css) {
-  if (css === null) return true;
-  if (typeof css !== 'string') return false;
-  if (!CSS_PATTERN.test(css)) return false;
-  const lower = css.toLowerCase();
-  for (const forbidden of CSS_FORBIDDEN) {
-    if (lower.includes(forbidden)) return false;
-  }
-  return true;
-}
+// §8's tag/attribute allow-list and CSS rules are NOT re-implemented here.
+// They live in one place — server/src/sanitise/sanitiseWrite.js — because a
+// security rule with two copies has two behaviours the moment one is edited.
 
 function isFieldId(id) {
   if (typeof id !== 'string') return false;
@@ -95,29 +53,12 @@ export async function patchElement(ctx = {}) {
     return badRequest('At least one of content, css, or loop is required (§13.2).');
   }
 
-  const patch = {};
-
-  if ('content' in body) {
-    if (typeof body.content === 'string') {
-      patch.content = sanitizeHtml(body.content);
-    } else {
-      patch.content = body.content;
-    }
-  }
-
-  if ('css' in body) {
-    if (!validateCss(body.css)) {
-      return badRequest('Invalid css format or forbidden rule (§8).');
-    }
-    patch.css = body.css;
-  }
-
-  if ('loop' in body) {
-    if (!Array.isArray(body.loop)) {
-      return badRequest('loop must be an array.');
-    }
-    patch.loop = body.loop;
-  }
+  // §8's write-side chokepoint. content, css and the §4 card loop are all
+  // cleaned in one call, so no field can be added to this route later without
+  // passing through the allow-lists.
+  const cleaned = sanitiseElementPatch(body);
+  if (!cleaned.ok) return badRequest(cleaned.reason);
+  const { patch } = cleaned;
 
   const store = createStore(ctx.env);
   try {

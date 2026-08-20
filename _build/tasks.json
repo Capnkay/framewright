@@ -224,7 +224,7 @@
     {
       "id": "T-010",
       "phase": 1,
-      "title": "Pin getSectionTextContrastClass' \u00a72 modes and \u00a77 accessibility floor with a dedicated suite",
+      "title": "Pin getSectionTextContrastClass' §2 modes and §7 accessibility floor with a dedicated suite",
       "track": "any",
       "size": "25m",
       "contract": [
@@ -650,6 +650,8 @@
       ],
       "files": [
         "server/src/sanitise/sanitiseWrite.js",
+        "server/src/routes/elements.js",
+        "server/src/routes/index.js",
         "tests/sanitise-write.test.mjs"
       ],
       "verify": "npm test -- sanitise-write",

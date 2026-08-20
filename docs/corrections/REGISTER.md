@@ -1260,3 +1260,43 @@ T-017's `files` list was also missing the store adapter files and the `server/sr
 **Fixed:** 
 1. Added `insertElement(doc) -> ElementDoc` to §2.1 of `CONTRACT.md`.
 2. Expanded T-017's `files` list to include `server/src/server.js`, `server/src/store/index.js`, `server/src/store/adapter.js`, `server/src/store/jsonStore.js`, `server/src/store/mongoStore.js`, and `docs/CONTRACT.md`.
+
+---
+
+## 2026-08-21 · T-030 scope correction, and two findings
+
+**Scope.** T-030's `files` list named only `server/src/sanitise/sanitiseWrite.js` and its
+test. But its `doneWhen` requires the stripping to happen "at both call sites", and the two
+call sites §8 names live in `server/src/routes/elements.js` (PATCH) and
+`server/src/routes/index.js` (POST /api/generate). A sanitiser nobody calls satisfies the
+files list and fails the `doneWhen`, so the list was wrong rather than the requirement.
+
+**Fixed:** T-030's `files` list expanded to include `server/src/routes/elements.js` and
+`server/src/routes/index.js`.
+
+**Finding 1 — the chokepoint was not one.** T-016 implemented §8's tag scanner and CSS test
+a second time, privately, inside `routes/elements.js`; a third variant lives in
+`client/src/utils/getHtml.js`. §8 calls this a *chokepoint*, singular. Three copies of one
+security rule is three behaviours the moment one is edited, and the copy that drifts is the
+one an attacker finds. The duplicate in `routes/elements.js` has been deleted and the route
+now imports the chokepoint. The client copy is deliberately left alone — it is the read-side
+half, it belongs to another lane, and removing it is not this task's call. It should be made
+to share this module, and that is worth a task.
+
+**Finding 2 — patched card loops were persisted unsanitised.** `routes/elements.js` did
+`patch.loop = body.loop` after validating only that it was an array. §4 loop items carry
+display copy in `field1`/`field2`, so `PATCH /api/elements/2000000006` with
+`<img src=x onerror=…>` in a loop field wrote that string to disk verbatim. The read-side
+helper caught it at render, which is exactly the case §8 opens by rejecting: "read-side
+alone is insufficient because stored content should never be dirty in the first place."
+`sanitiseLoop` now cleans display fields and validates `fieldIdN` values without rewriting
+them — sanitising an ID would silently repoint a card field at nothing.
+
+**Not fixed, reported.** `server/data/store.json` is UTF-16LE-encoded (`ff fe` BOM) holding
+`{}` — almost certainly a PowerShell `>` redirect. `readData` does `JSON.parse` on a utf8
+read and throws on it. This is why T-015's tests mock `fs.readFile` and why these tests do
+too: `createStore()` hard-codes `./server/data/store.json` with no injection seam, so any
+test touching the real path dies on a parse error before reaching its subject. Two separate
+issues — a corrupt file, and a store factory that cannot be pointed elsewhere. Neither is
+T-030's to fix; both are worth a task.
+

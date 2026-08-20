@@ -31,6 +31,7 @@ import {
   ERROR_CODE,
   error,
 } from '../http/envelope.js';
+import { sanitiseGenerateBody } from '../sanitise/sanitiseWrite.js';
 
 // --- validation helpers ----------------------------------------------------
 
@@ -103,6 +104,17 @@ export function postGenerate(ctx = {}) {
   if (!hasInput) {
     return badRequest('At least one of wireframe, code, or prompt is required.');
   }
+
+  // §8's write-side chokepoint, second of the two call sites it names. It runs
+  // HERE, in front of T-033's implementation, rather than inside it — a prompt
+  // that reaches the IR builder dirty has already been persisted dirty by the
+  // time anyone notices, and §8 exists to stop content being stored dirty in
+  // the first place. `code` is passed through untouched on purpose: §8 routes
+  // pasted JSX to @babel/parser, and pre-stripping tags would corrupt the input
+  // to the parser that is itself the safe boundary.
+  const cleaned = sanitiseGenerateBody(body);
+  if (!cleaned.ok) return badRequest(cleaned.reason);
+  ctx.body = cleaned.body;
 
   return notImplemented('T-033', 'POST /api/generate');
 }

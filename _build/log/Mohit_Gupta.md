@@ -43,3 +43,10 @@
 - Device: Mohits_Victus
 - Files: server/data/seed/sections.json, server/data/seed/elements.json, server/src/store/seed.js, tests/seed-data.test.mjs, server/src/server.js, server/src/store/index.js, server/src/store/adapter.js, server/src/store/jsonStore.js, server/src/store/mongoStore.js, docs/CONTRACT.md, docs/corrections/REGISTER.md
 
+## T-030 — Implement §8’s write-side sanitisation chokepoint on POST /api/generate and PATCH /api/elements/:fieldId
+- Started: 2026-08-20T19:28:57.842Z
+- Finished: 2026-08-20T19:37:01.093Z
+- Duration: 8m
+- Device: Mohits_Victus
+- Files: server/src/sanitise/sanitiseWrite.js, server/src/routes/elements.js, server/src/routes/index.js, tests/sanitise-write.test.mjs
+
