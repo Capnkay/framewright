@@ -1,0 +1,12 @@
+{
+  "taskId": "T-092",
+  "who": "Khushi Singh",
+  "device": "LAPTOP-PUPG5T28",
+  "claimedAt": "2026-08-20T16:02:29.706Z",
+  "status": "done",
+  "takenFrom": null,
+  "takenAt": null,
+  "finishedAt": "2026-08-20T16:03:11.609Z",
+  "durationMs": 41903,
+  "note": "Filed F-002 (board client paths), F-003 (nested-card css has no storage slot in §4), F-004 (sectionNames written by nothing); all repro commands run, no frozen document changed."
+}

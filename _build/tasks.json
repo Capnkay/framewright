@@ -1813,6 +1813,26 @@
       ],
       "verify": "npm test -- quality-score",
       "doneWhen": "§18.1’s formula is implemented literally and the number appears in the API response and on the Glass Box timeline. A prompt-mode job scores visualSimilarity as 1.0, not 0 — asserted, because penalising prompt mode for having no image is the obvious way to get this wrong. Nothing in the system branches on the score."
+    },
+    {
+      "id": "T-092",
+      "phase": 0,
+      "title": "Phase 0 review pass — audit the board and the contract against the committed code, file findings",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "§4",
+        "§5.0",
+        "§5.2",
+        "§7"
+      ],
+      "deps": [],
+      "files": [
+        "_build/findings/",
+        "docs/corrections/REGISTER.md"
+      ],
+      "verify": null,
+      "doneWhen": "Every defect found is written to _build/findings/F-nnn.md in the docs/REVIEW-PROTOCOL.md format, with a reproduce command that has actually been run rather than assumed, and is logged in docs/corrections/REGISTER.md. A finding that proposes changing a frozen document or the board says explicitly that the decision is the team lead's, per the precedent set by F-001."
     }
   ]
 }
