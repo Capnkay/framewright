@@ -87,10 +87,25 @@ fi
 # numbers) that appear throughout a unified diff.
 
 URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?://##i' | sed -E 's#[:/].*$##' | sort -u)
+# Allowed, and why each one is here. The point of this check is to catch a REAL
+# production hostname leaking into the repository -- not to ban citing a URL in
+# documentation. Anything not on this list still fails, loudly.
+#
+#   localhost / 127.0.0.1   local development
+#   example.com/.org/.net   RFC 2606, reserved for documentation
+#   *.example               RFC 6761 reserved TLD -- our XSS test fixtures use it
+#   *.local                 mDNS
+#   agents.md               the AGENTS.md standard, cited as a source in AGENTS.md
+#   download.pytorch.org    the official PyTorch wheel index, in the GPU brief
+#
+# Adding a host here is a deliberate act: say what it is and why a reader should
+# not be alarmed by it. If you cannot write that sentence, do not add it.
+ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org)$'
+
 if [ -n "$URL_HOSTS" ]; then
-  FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv '^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.com|([a-z0-9-]+\.)*[a-z0-9-]+\.local)$')
+  FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv "$ALLOWED_HOST_RE")
   if [ -n "$FORBIDDEN_HOSTS" ]; then
-    fail "forbidden hostname(s) found in git history (only localhost/127.0.0.1/example.com/.local are allowed): $FORBIDDEN_HOSTS"
+    fail "forbidden hostname(s) in git history: $FORBIDDEN_HOSTS -- only local hosts, RFC-reserved documentation domains, and hosts explicitly declared in this hook are allowed. If it is a legitimate documentation reference, add it to ALLOWED_HOST_RE with a comment. If it is a real host, remove it from history."
   fi
 fi
 

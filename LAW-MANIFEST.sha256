@@ -4,5 +4,5 @@ f14e4bedf1e5a9c610c1fd79135faa603e64d35dec5e3693450651668da40b58 *.claude/hooks/
 157ee8ba544313eb25d75cfd7dd2067c50014b475bf3ee0662a06efa4a4b4a96 *.claude/hooks/block-dangerous-shell.mjs
 fdfc413c1745aa700e0f1192c740bb88852261cad150e4953ce580689b659d6d *.claude/hooks/guard-secret-shell.mjs
 82bcb4b9d8cb9ae948cd3be8b54d9f6729cfcbe2a6496d2a57dbb6493f77aef1 *.githooks/pre-commit
-b13c5ee18e74ce07619758219ae01f633c10bab7fb445e6ff01f493345c95f17 *.githooks/pre-push
+78ab254e8ab2692a2c656a20ce1fc7451c091646e236f7191c1c1439eeb1d957 *.githooks/pre-push
 e608a56276238561d56cb7b42cac81ebb0740d736616df749a38444c1b10e3ee *.githooks/commit-msg
