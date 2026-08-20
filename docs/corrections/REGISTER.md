@@ -1300,3 +1300,58 @@ test touching the real path dies on a parse error before reaching its subject. T
 issues — a corrupt file, and a store factory that cannot be pointed elsewhere. Neither is
 T-030's to fix; both are worth a task.
 
+
+---
+
+## 2026-08-21 · T-056 was silently reverted by a bad rebase, and restored
+
+Commit `bb49d81` ("T-015: Implement GET /api/elements per §13 and §13.4", Khushi Singh),
+landing five minutes after T-056 closed, deleted three of T-056's four deliverables:
+
+| File | Effect |
+|---|---|
+| `perception/tests/test_detect_regions.py` | deleted entirely — 413 lines |
+| `docs/BENCHMARK-RESULTS.md` | B-003's results reverted — 100 lines |
+| `docs/corrections/REGISTER.md` | T-056's correction entry reverted — 23 lines |
+
+The same commit added a 2894-line `client/package-lock.json`. Nothing about implementing a
+GET endpoint touches a perception test, so this is a rebase resolution that took one whole
+side of a conflict rather than a deliberate revert. No blame attaches to it; it is the
+failure mode `git checkout --ours` produces when the conflict looks like noise.
+
+**Why it mattered enough to stop for.** T-056 stayed marked `done`, and `baton done` had
+genuinely passed at the time — but every check on the detector was gone, so the board was
+asserting a verified state that nothing in the tree could verify. T-098 declares T-056 as a
+dependency and builds region-bound OCR directly on `detect_regions.py`. Building on it
+while its 7/7 benchmark and its §11-rule-3 purity assertions existed only in git history
+would have compounded one unverified claim into two.
+
+**Fixed:** all three restored from `4b06632`. `test_detect_regions.py` and
+`BENCHMARK-RESULTS.md` were restored wholesale — neither had changed since T-056, so there
+was nothing to merge. This register had moved on, so T-056's entry was re-inserted rather
+than the file being reverted, which would have destroyed the T-017 and T-030 entries
+written after it.
+
+**Worth checking, not checked here:** whether `bb49d81` is the only commit that did this.
+This one was found by accident, while looking for a test file that should have existed.
+
+## 2026-08-20 · T-056's `files` list did not match its own `doneWhen`
+
+T-056 declared two files:
+
+```json
+["perception/stages/detect_regions.py", "perception/tests/test_detect_regions.py"]
+```
+
+Its `doneWhen` reads: "scored against the same 7 reference targets … and the number
+recorded in docs/BENCHMARK-RESULTS.md as B-003." The benchmark harness
+(`perception/benchmarks/contours_wireframe.py`) and the results document
+(`docs/BENCHMARK-RESULTS.md`) are both load-bearing deliverables of the task — the first
+produces the score, the second records it — but neither appeared in the `files` list.
+
+An executor obeying `AGENTS.md`'s scope rule ("build only what its `files` list covers")
+would have been unable to write either file without stopping to fix the record first.
+`AGENTS.md` says: "either the task is wrong (fix `tasks.json` and log it) or you are doing
+someone else's task." The task was wrong.
+
+**Fixed:** `files` now carries all four paths. No other field changed.
