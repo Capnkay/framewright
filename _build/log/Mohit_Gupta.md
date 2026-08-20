@@ -93,3 +93,11 @@
 - Files: docs/THREAT-MODEL.md
 - Note: Merged implementation status, defects-found-during-build, and judge-runnable checks into the existing threat model; all 10 original sections preserved; every cited file and test verified present.
 
+## T-073 — Complete README's run-command table and licence cross-check
+- Started: 2026-08-20T21:01:28.566Z
+- Finished: 2026-08-20T21:06:13.208Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: README.md
+- Note: Rewrote the run-command table against commands actually executed, documented three that never worked as written (npm run dev, npm run lint, python -m perception.server), and cross-checked the licence tables against package.json, client/package.json and requirements.txt - finding multer and @babel/parser imported but undeclared, and Ajv/dompurify/ESLint/pixelmatch listed but not installed.
+

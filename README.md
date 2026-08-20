@@ -36,18 +36,58 @@ mount does, and its tests run today.
 
 ## Run commands
 
-`npm test` works **right now**, on a fresh clone, with no `npm install` — the golden
-component's checks are zero-dependency by design. Everything else arrives with the phase
-marked against it, so this table describes what exists rather than what is planned.
+`npm test` works **right now**, on a fresh clone, with no `npm install` — the store, the
+envelope, the schemas, the sanitiser and the quality gates are all zero-dependency by
+design, and `tools/test.mjs` runs them on the system Node.
 
-| Command | Purpose | Introduced |
+**Every command below was run as written against this repository before being listed.**
+Where a command needs a prefix or a different interpreter to work, that is shown, because
+a run-command table whose commands do not run is worse than no table.
+
+| Command | Purpose | State |
 |---|---|---|
-| `npm install` | install frontend and API dependencies | Phase 1 |
-| `npm run dev` | start the Vite frontend, `http://localhost:5173` | Phase 1 |
-| `npm run server` | start the Node/Express API, `http://localhost:5000` | Phase 1 |
-| `npm test` | run the automated checks, including the store-liveness assertion (`docs/CONTRACT.md` section 9) | **works now — 13/13, no install needed** |
-| `npm run lint` | run ESLint against generated and hand-written code | Phase 2 |
-| `python -m perception.server` | start the local Python perception service | Phase 3 |
+| `npm test` | the full Node suite | **runs — 410/413 pass**, no install needed |
+| `npm test -- <name>` | one suite, e.g. `npm test -- sanitise-write` | runs |
+| `npm run server` | Node/Express API on `http://localhost:5000` (`PORT` overrides) | runs |
+| `npm run build` | copy `docs/html/` into `public/` for the docs site | runs (POSIX shell) |
+| `node tools/baton.mjs status` | the build board — who holds what, what is blocked | runs |
+| `node tools/baton.mjs next` | the next task whose dependencies are met | runs |
+| `node tools/pytest.mjs <path>` | perception tests, **on the perception interpreter** | runs — 113/113 |
+| `cd client && npm run dev` | Vite frontend on `http://localhost:5173` | needs `npm install` in `client/` first |
+| `perception/.venv/Scripts/python -m perception.server` | perception service on `http://localhost:8000` | runs (Windows path; `bin/` on POSIX) |
+
+### Commands that do NOT work as previously documented
+
+Recorded rather than quietly deleted, because they were in this table and someone may
+have them in a terminal history.
+
+- **`npm run dev` at the repository root does not exist.** The Vite app is a separate
+  package; use `cd client && npm run dev`.
+- **`npm run lint` does not exist.** ESLint runs against *emitted* components through
+  `tools/lint-generated.mjs` with a hermetic inline config — §8 notes that a config path
+  derived from user input is code execution at lint time — not as a repository-wide
+  script.
+- **`python -m perception.server` fails as written.** Bare `python` resolves to whichever
+  interpreter is first on `PATH` (3.14 on the build machine), which has no OpenCV, and the
+  failure reads as `ModuleNotFoundError: No module named 'cv2'` rather than as "wrong
+  interpreter". The perception dependencies live in `perception/.venv` and must, because
+  the CUDA torch build is cp310 (`docs/EDGE-CASES.md` EC-012). This is the same trap
+  `tools/pytest.mjs` exists to close for the tests.
+
+### Three suites currently fail, and why
+
+`npm test` reports 410/413. The three are named here rather than left for a judge to
+discover:
+
+| Suite | Cause |
+|---|---|
+| `tests/stage1.test.mjs` | imports `multer`, which is **not declared in `package.json`** |
+| `tests/code-to-ir.test.mjs` | imports `@babel/parser`, likewise **not declared** |
+| `tests/element-schema.test.mjs` | schema assertion failure, owner's to fix |
+
+The first two are the same defect: `server/src/pipeline/stage1InputAcquisition.js` and
+`server/src/generate/codeToIr.js` import packages that no manifest lists, so they resolve
+only on a machine where something else installed them. Both belong in `dependencies`.
 
 ## Environment setup
 
@@ -64,35 +104,53 @@ marked against it, so this table describes what exists rather than what is plann
 
 ## Third-party licences
 
-Every component below is approved for use as of the date this table was last
-reviewed. `docs/CONTRACT.md` is the source of truth if this table and the code ever
-disagree.
+Cross-checked against `package.json`, `client/package.json` and
+`perception/requirements.txt` as they exist today. `docs/CONTRACT.md` is the source of
+truth if this table and the code ever disagree.
 
-| Component | Licence | Status |
+**Declared and in use:**
+
+| Component | Licence | Where |
 |---|---|---|
-| DETR | Apache-2.0 | Approved |
-| PaddleOCR | Apache-2.0 | Approved |
-| Florence-2 | MIT | Approved |
-| PrimeReact | MIT | Approved |
-| Tailwind CSS | MIT | Approved |
-| Ajv | MIT | Approved |
-| ESLint | MIT | Approved |
-| multer | MIT | Approved |
-| @babel/parser | MIT | Approved |
-| isomorphic-dompurify | MIT | Approved |
+| React, React-DOM | MIT | `client/package.json` |
+| Redux Toolkit, React-Redux | MIT | `client/package.json` |
+| React Router | MIT | `client/package.json` |
+| PrimeReact | MIT | `client/package.json` |
+| Vite, `@vitejs/plugin-react` | MIT | `client/package.json` |
+| Tailwind CSS, PostCSS, Autoprefixer | MIT | `client/package.json` |
+| MongoDB Node driver | Apache-2.0 | root `devDependencies` |
+| `mongodb-memory-server` | MIT | root `devDependencies` |
+| FastAPI, `python-multipart` | MIT | `perception/requirements.txt` |
+| Uvicorn | BSD-3-Clause | `perception/requirements.txt` |
+| httpx | BSD-3-Clause | `perception/requirements.txt` |
+| pytest | MIT | `perception/requirements.txt` |
+| OpenCV (`opencv-python-headless`) | Apache-2.0 | `perception/requirements.txt` |
+| NumPy | BSD-3-Clause | `perception/requirements.txt` |
+| Pillow | MIT-CMU (HPND) | `perception/requirements.txt` |
+| PaddleOCR | Apache-2.0 | installed for T-098; see EC-014 |
+| PaddlePaddle | Apache-2.0 | installed for T-098 |
+| PyTorch, TorchVision | BSD-3-Clause | `perception/constraints.txt` |
+| DETR (`facebook/detr-resnet-50`) | Apache-2.0 | benchmark B-002 only |
+| Florence-2 | MIT | benchmark B-001 only |
 
-## Forbidden dependencies
+**Undeclared but imported — a defect, not an approval:**
 
-Each of these is named explicitly because it is a real licence trap for a project
-with this shape, not a hypothetical one. Do not add any of them, and check before
-adding a dependency that might vendor one of them in transitively.
-
-| Component | Licence issue | Why it is forbidden |
+| Component | Licence | Problem |
 |---|---|---|
-| YOLOv8 / Ultralytics | AGPL-3.0 | AGPL's network-use clause requires source disclosure for any networked use of the software, including a hosted API. That is incompatible with a project deliverable that runs as a service under evaluation. |
-| LayoutLMv3 (the published pretrained weights) | CC-BY-NC-SA-4.0 on the weights | The LayoutLMv3 **code** repository is MIT, but the published pretrained **weights** are released under a non-commercial, share-alike licence. Using the code is fine; loading the published weights is not — they would need to be trained from scratch under a compatible licence to be usable here. |
-| Qwen2.5-Coder-3B | `qwen-research` licence — non-commercial only | The 3B checkpoint's licence restricts use to research. The 7B checkpoint of the same model family is released under Apache-2.0 and is the approved substitute — use the 7B size instead of the 3B. |
-| OmniParser | Conflicting licence signals across its own repository and its dependencies | Not verified clean as of this writing. Treat as forbidden until a licence audit clears it explicitly — do not use it in the meantime. |
+| multer | MIT | imported by `stage1InputAcquisition.js`, absent from `package.json` |
+| `@babel/parser` | MIT | imported by `codeToIr.js`, absent from `package.json` |
+
+Both licences are fine; the packaging is not. They resolve only where something else
+happened to install them, which is why their suites fail on a clean checkout.
+
+**Listed previously but NOT actually dependencies:**
+
+| Component | Reality |
+|---|---|
+| Ajv | Not installed. `server/src/validate/irValidator.js` is a hand-written schema evaluator, so `npm test` runs with no `node_modules`. The contract's "Ajv" means "JSON Schema validation", and that is what is implemented. |
+| `isomorphic-dompurify` | Not installed. Both §8 chokepoints are hand-written for the same reason, and both files say a vetted library is the right production answer. See `docs/THREAT-MODEL.md`. |
+| ESLint | Not a root dependency. Invoked against emitted components via `tools/lint-generated.mjs`. |
+| pixelmatch | Not installed. `server/src/quality/visual.js` implements pixelmatch's own YIQ metric and its 0.1 default threshold directly. |
 
 ## What must never appear in this repository
 

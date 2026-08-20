@@ -3,7 +3,10 @@
   "who": "Mohit Gupta",
   "device": "Mohits_Victus",
   "claimedAt": "2026-08-20T21:01:28.566Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-20T21:06:13.208Z",
+  "durationMs": 284642,
+  "note": "Rewrote the run-command table against commands actually executed, documented three that never worked as written (npm run dev, npm run lint, python -m perception.server), and cross-checked the licence tables against package.json, client/package.json and requirements.txt - finding multer and @babel/parser imported but undeclared, and Ajv/dompurify/ESLint/pixelmatch listed but not installed."
 }
