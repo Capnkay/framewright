@@ -63,3 +63,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: client/src/sections/HeroSection.jsx, tests/hero-section-r8-r14.test.mjs
 
+## T-025 — Implement the deterministic IR-to-component emitter
+- Started: 2026-08-20T19:10:55.675Z
+- Finished: 2026-08-20T19:15:17.070Z
+- Duration: 4m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/emitComponent.js, tests/emit-component.test.mjs
+
