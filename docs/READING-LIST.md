@@ -11,6 +11,8 @@ with honest timings.
 
 | Read | Time | Why it is here |
 |---|---|---|
+| `AGENTS.md` | 4 min | **The canonical instruction file.** The ritual, the rules, where everything lives. Every other instruction file points here |
+| `docs/html/HARNESS-BRIEF.html` | 6 min | What the harness is and what is in it. Read once, for orientation |
 | `docs/html/TEAM-RULES.html` | 5 min | One page. Print it. The ritual, the eight rules, the trap that decides our score, and where files go |
 | `SETUP.md` | 3 min | Get your machine working. Hooks path, your name, first run |
 | `docs/BATON.md` | 7 min | How the build is handed between people. Read the failure cases — you will hit one |
