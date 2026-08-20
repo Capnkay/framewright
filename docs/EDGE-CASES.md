@@ -185,7 +185,7 @@ locally; this class of fault is invisible until it is served.
 ---
 
 ## EC-012 · /health says `cpu` on the machine with the GPU in it
-**Date:** 2026-08-20 · **Status:** open — environment work outstanding
+**Date:** 2026-08-20 · **Status:** RESOLVED same day — `/health` reports `cuda:0`
 
 Roadmap gate 0.7 is "`GET /health` returns `cuda:0`". On this machine it returns `cpu`, and
 nothing is broken.
@@ -210,13 +210,18 @@ The CUDA wheels live on a separate index and must be asked for explicitly. Nothi
 you — the install succeeds, the import succeeds, and only `torch.cuda.is_available()` tells
 the truth.
 
-**Do:** build one venv that has both, GPU wheel first:
+**Do:** build one venv that has both, GPU wheel first — **and build it on Python 3.10**:
 
 ```
-python -m venv perception/.venv
-perception/.venv/Scripts/pip install torch --index-url https://download.pytorch.org/whl/cu124
-perception/.venv/Scripts/pip install -r perception/requirements.txt
+"C:/Users/<you>/AppData/Local/Programs/Python/Python310/python.exe" -m venv perception/.venv
+perception/.venv/Scripts/python -m pip install torch --index-url https://download.pytorch.org/whl/cu124
+perception/.venv/Scripts/python -m pip install -r perception/requirements.txt
 ```
+
+**The interpreter version is the part that bites, and the first version of this entry got
+it wrong.** `python -m venv` picks whatever `python` is first on PATH — here that is 3.14 —
+and there is no `cu124` wheel for it. The cached wheel is `cp310`, meaning CPython 3.10 and
+nothing else. Use the `py` launcher to see what you actually have: `py -0p`.
 
 Then check `/health` before writing any perception code. `perception/requirements.txt`
 deliberately does **not** list torch, with a comment saying why, so nobody installs the CPU
@@ -226,3 +231,30 @@ build by accident.
 honestly is what makes gate 0.7 mean anything — a hardcoded answer passes on a machine with
 no GPU at all and sends the next person hunting a fault that does not exist. T-054's test
 asserts the function agrees with `torch.cuda.is_available()` in both directions.
+
+**Resolved, 2026-08-20.** `perception/.venv` built on Python 3.10.11 from the wheel already
+cached at `gpu-test/torch-2.6.0+cu124-cp310-cp310-win_amd64.whl`, which skipped a 2.5 GB
+download — check for that file before pulling from the index again.
+
+```
+$ curl -s http://127.0.0.1:8100/health
+{"ok":true,"models":["opencv-contours"],"device":"cuda:0"}
+```
+
+**Half of roadmap gate 0.7 is closed.** The gate is two claims — "`GET /health`
+returns `cuda:0`; one wireframe survives the perception path" — and only the first is
+true today. The second needs T-055 and T-056; nothing has read a wireframe yet. Do not
+record 0.7 as passed until it has. `pytest perception/tests` is 15/15 on the CUDA interpreter as
+well as the CPU one, which matters more than it looks: until now, only the `cpu` branch of
+`detect_device()` had ever run. Both branches are now exercised, and the test that asserts
+the function agrees with `torch.cuda.is_available()` has been checked against a machine
+where that value is `True`.
+
+`models` reports `["opencv-contours"]` and not PaddleOCR, because `requirements.txt` leaves
+PaddleOCR commented out until T-056 claims it — it is heavy and nothing needs it yet. That
+is `/health` telling the truth about the machine, which is the whole point of building it
+that way.
+
+**One loose thread:** `fastapi.testclient` emits a `StarletteDeprecationWarning` asking for
+`httpx2`. Harmless today, one warning, tests pass. Worth pinning if it ever becomes an
+error rather than a warning.

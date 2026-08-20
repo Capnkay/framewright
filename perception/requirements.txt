@@ -1,20 +1,33 @@
 # Framewright perception service — CONTRACT.md section 12.
 #
-# Install into a dedicated virtual environment, NOT the system interpreter:
+# Install into a dedicated virtual environment, NOT the system interpreter, and
+# build that environment on PYTHON 3.10 -- see the version note below.
 #
-#     python -m venv perception/.venv
-#     perception/.venv/Scripts/pip install -r perception/requirements.txt   # Windows
-#     perception/.venv/bin/pip install -r perception/requirements.txt       # POSIX
+#     py -0p                      # list the interpreters you actually have
+#     <path-to-python3.10> -m venv perception/.venv
+#     perception/.venv/Scripts/python -m pip install -r perception/requirements.txt   # Windows
+#     perception/.venv/bin/python  -m pip install -r perception/requirements.txt      # POSIX
+#
+# WHY 3.10 AND NOT WHATEVER `python` RESOLVES TO. torch's cu124 wheels are built
+# per CPython version. The wheel this project uses is cp310 -- CPython 3.10 and
+# nothing else. `python -m venv` picks the first `python` on PATH, which on the
+# build machine is 3.14, and there is no cu124 wheel for it. Verified on
+# 3.10.11.
 #
 # THE GPU BUILD IS NOT LISTED HERE, DELIBERATELY. torch's CUDA wheels do not come
 # from PyPI, so `pip install torch` silently installs the CPU build and /health
 # then reports "cpu" on a machine that has a perfectly good GPU. Install it
 # explicitly first, from the index in docs/GPU-BENCHMARK.md:
 #
-#     pip install torch --index-url https://download.pytorch.org/whl/cu124
+#     perception/.venv/Scripts/python -m pip install torch --index-url https://download.pytorch.org/whl/cu124
+#
+# Check for a cached wheel first -- gpu-test/ already holds
+# torch-2.6.0+cu124-cp310-cp310-win_amd64.whl, and installing from that file
+# skips a 2.5 GB download.
 #
 # Then verify before anything else: GET /health must report cuda:0 (roadmap gate
-# 0.7). If it says cpu, you are on the wrong interpreter or the wrong wheel.
+# 0.7). If it says cpu, you are on the wrong interpreter or the wrong wheel. See
+# docs/EDGE-CASES.md EC-012, which is the full account of getting this wrong.
 
 # T-054 — the service itself. Everything below is required today.
 fastapi>=0.115
