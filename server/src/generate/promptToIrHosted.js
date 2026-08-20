@@ -38,6 +38,7 @@
 
 import { promptToIrKeyless } from './promptToIrKeyless.js';
 import { validateIr, irSchema } from '../validate/irValidator.js';
+import { callModel as orchestratorCallModel } from '../models/orchestrator.js';
 
 // §16.2 — default 30 s, hard ceiling 60 s, inherited from NFR-02's budget.
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -46,21 +47,18 @@ export const MAX_TIMEOUT_MS = 60_000;
 export const PURPOSE = 'prompt-to-ir';
 
 /**
- * The §16.2-compliant default orchestrator, used until T-085 supplies the
- * real one. With no key configured it returns { ok: false } immediately and
- * makes no network attempt — which is exactly what §16.2's "Keys" row
- * requires, and is why the deterministic demo needs no special-casing.
+ * The default orchestrator — the real one, from T-085.
  *
- * It deliberately does NOT grow into a provider client. T-085 owns that.
+ * This was a local stub until T-085 landed; it now delegates to the single
+ * §16.2 call site. That matters for more than tidiness: the stub read
+ * LLM_API_KEY itself, and §16.2 permits exactly one module to do that. With
+ * this import in place, "every hosted-model call goes through callModel" is
+ * true of the whole repository, which is what T-085's grep test asserts.
+ *
+ * Still injectable via options.callModel — every test in this suite drives
+ * the fallback logic without a network.
  */
-function defaultCallModel() {
-  return {
-    ok: false,
-    error: process.env.LLM_API_KEY
-      ? 'no model orchestrator is wired yet (T-085); falling back to the keyless path'
-      : 'LLM_API_KEY is unset',
-  };
-}
+const defaultCallModel = orchestratorCallModel;
 
 /** §6 — a model never supplies a field ID. Detect one anywhere in the IR. */
 function findFieldIdKey(value, path = '$') {

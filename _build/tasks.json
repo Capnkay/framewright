@@ -1765,6 +1765,8 @@
       ],
       "files": [
         "server/src/models/orchestrator.js",
+        "server/src/generate/promptToIrHosted.js",
+        "server/src/validate/irValidator.js",
         "tests/model-orchestrator.test.mjs"
       ],
       "verify": "npm test -- model-orchestrator",

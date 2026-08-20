@@ -35,3 +35,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/designTokens.js, server/src/schemas/ir.schema.json, tests/design-tokens.test.mjs
 
+## T-085 — Implement the model orchestrator — one call site, one retry, schema-validated (§16.2)
+- Started: 2026-08-20T17:06:15.665Z
+- Finished: 2026-08-20T17:14:02.884Z
+- Duration: 8m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/models/orchestrator.js, server/src/generate/promptToIrHosted.js, server/src/validate/irValidator.js, tests/model-orchestrator.test.mjs
+

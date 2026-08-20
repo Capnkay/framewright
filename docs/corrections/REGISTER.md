@@ -979,3 +979,44 @@ points them at the contract rather than at a debugger.
 applied about — before any deskew is implemented. Wireframes arriving as PNG exports or
 screenshots, which is the case the brief describes, are not skewed. A photograph of a
 whiteboard is, and that is the case that would need it.
+
+---
+
+## 2026-08-20 · T-085 — "one call site" required touching two files it did not declare
+
+T-085's `doneWhen` is unusually strict: *"Every hosted-model call in the repo goes through
+callModel — asserted by a grep test."* That assertion cannot pass while any other module
+reads the credentials, and two did.
+
+| File | Why it had to change | Declared? |
+|---|---|---|
+| `server/src/generate/promptToIrHosted.js` | Its `defaultCallModel` was a stub written at T-027, when no orchestrator existed. It read `LLM_API_KEY` itself to return `{ ok: false }`. Now a one-line delegation to the real `callModel`. | Added to T-085's `files` |
+| `server/src/validate/irValidator.js` | §16.2 validates against *the caller's* schema, not the IR's. The generic evaluator already lived here, unexported. Exporting it beat writing a second one. | Added to T-085's `files` |
+
+Both are files I wrote (T-027, T-019), and the alternative to the second change was a
+duplicate schema evaluator — the same two-sources-of-truth defect recorded for the schema
+itself in T-092's entry. Declared rather than done quietly.
+
+**A real defect the grep test caught in its own first draft.** The naive version greps
+sources for `LLM_API_KEY` and flagged both prompt-to-IR modules — which mention the variable
+only in comments explaining that they must not read it. A grep that cannot tell a comment
+from code punishes precisely the files that documented the rule best. It now strips comments
+first.
+
+**A real defect the timeout test caught in the orchestrator.** `AbortController.abort()`
+dispatches synchronously, so a transport that rejects on its abort signal settles
+`Promise.race` *before* the timer's own rejection runs. The surfacing error is then the
+transport's generic AbortError, not the timeout — so a genuine timeout was classified
+`transport`, which §16.2 does not retry, and **"exactly one retry on timeout" would silently
+never have fired.** Fixed with a `timedOut` flag consulted in the catch: whatever wins the
+race, if the timer fired, it was a timeout. This is the kind of bug that only appears under a
+real provider stall, i.e. on stage, so it is worth the four extra lines.
+
+**One ambiguity resolved, and recorded because it is arguable.** §16.2 says *"Exactly one,
+on timeout or a schema-validation failure. Never on a 4xx."* The positive clause names two
+retryable conditions; the "never on a 4xx" emphasis could be read as implying everything
+else retries. Implemented literally: **only** timeout and schema failure retry, so a 5xx and
+a transport error fail straight to the deterministic fallback. That reading is also the
+better trade — the keyless path is instant and always works, so spending a second
+30-second window to maybe avoid it is a poor use of NFR-02's 60-second total budget. If the
+intent was broader, this is the line to change.

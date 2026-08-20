@@ -108,4 +108,20 @@ export function validateIr(doc) {
   return { valid: errors.length === 0, errors };
 }
 
+/**
+ * validateAgainstSchema(value, schema) -> { valid, errors: [{ path, message }] }
+ *
+ * The same evaluator, against an arbitrary schema rather than the IR's.
+ * §16.2 requires the model orchestrator to validate a response against "the
+ * caller's Ajv schema" — a caller that is not always the IR — and the
+ * alternative to exporting this was a second schema evaluator living beside
+ * the first. Two evaluators would disagree the moment either changed, which
+ * is the same defect T-092's register entry recorded for the schema itself.
+ */
+export function validateAgainstSchema(value, schema) {
+  const errors = [];
+  validateSchema(value, schema, '$', errors);
+  return { valid: errors.length === 0, errors };
+}
+
 export { irSchema };
