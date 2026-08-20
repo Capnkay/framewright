@@ -121,7 +121,14 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #
 # Adding a host here is a deliberate act: say what it is and why a reader should
 # not be alarmed by it. If you cannot write that sentence, do not add it.
-ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org)$'
+#
+#   json-schema.org         the JSON Schema meta-schema namespace, cited as the
+#                           $schema keyword's value in server/src/schemas/ir.schema.json
+#                           (added at T-019). It is a spec identifier, never fetched
+#                           over the network by anything in this repository -- the
+#                           same "documentation reference, not a real host" case this
+#                           list already carves out for agents.md.
+ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|json-schema\.org)$'
 
 if [ -n "$URL_HOSTS" ]; then
   FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv "$ALLOWED_HOST_RE")

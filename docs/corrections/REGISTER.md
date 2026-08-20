@@ -699,3 +699,22 @@ the entire generation 60 seconds.
 **Board:** T-092, T-093, T-094 added, all Phase 2 and `generation` track, because both
 changes are spine work that must land before the Phase 3 split. T-076's dependencies extended.
 Total 92 → 95.
+
+---
+
+## 2026-08-20 · `.githooks/pre-push` blocked a legitimate JSON Schema reference
+
+T-019 (the IR v1.0 Ajv schema, `server/src/schemas/ir.schema.json`) uses the standard
+`"$schema": "http://json-schema.org/draft-07/schema#"` keyword — the JSON Schema
+specification's own meta-schema URI, not a real host. Pushing tripped pre-push's
+forbidden-hostname check (§14): `json-schema.org` wasn't on `ALLOWED_HOST_RE`, so the full
+pre-submit gate failed closed exactly as designed.
+
+This is the case pre-push already documents as legitimate — a documentation/spec reference,
+same category as `agents.md` — and the hook's own error message names the correct response:
+add it to `ALLOWED_HOST_RE` with a comment, don't weaken the check. Done: `json-schema.org`
+added, with a comment stating what it is and that nothing in this repository ever fetches it
+over the network. `LAW-MANIFEST.sha256`'s `.githooks/pre-push` entry regenerated to match.
+
+No contract change — `.githooks/pre-push` isn't a frozen document, but it is hook-floor law
+(CLAUDE.md), so the same append-only, state-the-why discipline applies.
