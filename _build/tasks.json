@@ -464,7 +464,8 @@
       ],
       "files": [
         "server/src/jobs/jobStore.js",
-        "server/src/schemas/job.schema.json"
+        "server/src/schemas/job.schema.json",
+        "tests/job-store.test.mjs"
       ],
       "verify": "npm test -- job-store",
       "doneWhen": "A job's status only ever takes one of the five §11.1 values; sectionId defaults to null until assigned."

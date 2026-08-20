@@ -1,0 +1,117 @@
+{
+  "$id": "framewright/job.schema.json",
+  "title": "Job record",
+  "schemaDraft": "draft-07",
+  "description": "The Glass Box job record, CONTRACT.md §11 and §11.1. NOTE ON THE MISSING $schema KEY: this document is draft-07 (see schemaDraft above), but the conventional $schema declaration is deliberately absent, because its value is an absolute URL on the json-schema spec host and the §14 pre-push gate scans full git history for non-local hostnames. docs/corrections/REGISTER.md records the identical case — the $schema field in .claude/settings.json — and the ruling was to drop the field rather than widen the gate's allow-list. Ajv's default export validates draft-07 without the declaration, so nothing is lost. T-019, T-020 and T-021 add three more schema files and will each hit this. One job per generation. Every stage appends one immutable trace record (§11 rule 1). additionalProperties is deliberately left open: §15–§18 were added to the contract additively and attach further fields to this record (§18.1's quality score, §11.3's questions), so a closed record would have to be reopened by every one of them. The closed sets that matter — job status, stage status, and the seven canonical stage numbers and names — are enumerated strictly below.",
+  "type": "object",
+  "required": ["jobId", "status", "mode", "pageName", "sectionId", "createdAt", "stages"],
+  "properties": {
+    "jobId": {
+      "type": "string",
+      "pattern": "^job-[0-9]{10}$",
+      "description": "Allocated from a persisted counter. NOT a §1 identifier — §1 governs sectionId, fieldId and fieldIdN only, and the job-  prefix keeps this out of the §14 gate's 10-digit range check."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "awaiting-input", "succeeded", "failed"],
+      "description": "§11.1, closed set. awaiting-input is the human-in-the-loop pause (§11.3)."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["wireframe", "code", "prompt", "combined"],
+      "description": "§13's four input modes."
+    },
+    "pageName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "§1: case-sensitive, defaults to Home."
+    },
+    "sectionId": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^1[0-9]{9}$" }
+      ],
+      "description": "§11.1: defaults to null until a section is assigned. When set, a §1 section-range id."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stages": {
+      "type": "array",
+      "description": "Append-only (§11 rule 1). A retried stage appends a second record for the same stage number; it never overwrites the first.",
+      "items": { "$ref": "#/definitions/stageRecord" }
+    }
+  },
+  "definitions": {
+    "stageRecord": {
+      "type": "object",
+      "required": ["stage", "name", "status"],
+      "properties": {
+        "stage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7,
+          "description": "§11.0's canonical numbering. replay.fromStage uses exactly these numbers."
+        },
+        "name": {
+          "type": "string",
+          "enum": [
+            "input-acquisition",
+            "preprocessing-normalization",
+            "multimodal-understanding",
+            "semantic-planning-ir",
+            "code-generation-assembly",
+            "validation-qa",
+            "output-delivery"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "ok", "degraded", "failed", "skipped"],
+          "description": "§11.1, closed set. degraded means the stage did not do its real work but the pipeline continued — a success for the job and a warning for the stage."
+        },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "ms": { "type": "integer", "minimum": 0 },
+        "inputRef": {
+          "oneOf": [{ "type": "null" }, { "type": "string" }],
+          "description": "§11 rule 2: every stage persists its input as an artifact, referenced by path. Node owns artifacts (§11.2)."
+        },
+        "outputRef": {
+          "oneOf": [{ "type": "null" }, { "type": "string" }]
+        },
+        "model": {
+          "oneOf": [{ "type": "null" }, { "type": "string" }],
+          "description": "The exact model string that ran, or null if none did. §10 forbids a fabricated value."
+        },
+        "confidence": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "number", "minimum": 0, "maximum": 1 }
+          ],
+          "description": "§10: null when the stage did not score anything from an image. Never a fabricated number."
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "allOf": [
+        { "if": { "required": ["stage"], "properties": { "stage": { "const": 1 } } },
+          "then": { "properties": { "name": { "const": "input-acquisition" } } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "const": 2 } } },
+          "then": { "properties": { "name": { "const": "preprocessing-normalization" } } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "const": 3 } } },
+          "then": { "properties": { "name": { "const": "multimodal-understanding" } } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "const": 4 } } },
+          "then": { "properties": { "name": { "const": "semantic-planning-ir" } } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "const": 5 } } },
+          "then": { "properties": { "name": { "const": "code-generation-assembly" } } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "const": 6 } } },
+          "then": { "properties": { "name": { "const": "validation-qa" } } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "const": 7 } } },
+          "then": { "properties": { "name": { "const": "output-delivery" } } } }
+      ]
+    }
+  }
+}
