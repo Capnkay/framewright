@@ -64,3 +64,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/fuse.py, perception/tests/test_fuse.py
 
+## T-058 — Wire Node’s call to POST /perceive and assemble the full IR per §12
+- Started: 2026-08-20T20:43:46.684Z
+- Finished: 2026-08-20T20:46:48.416Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: server/src/generate/perceiveAndAssembleIr.js, tests/perceive-assemble-ir.test.mjs
+
