@@ -8,14 +8,14 @@
     {
       "id": "T-000",
       "phase": 0,
-      "title": "Founding scaffold — contract, roadmap, harness, baton, golden component",
+      "title": "Founding scaffold \u2014 contract, roadmap, harness, baton, golden component",
       "track": "any",
       "size": "done",
       "contract": [
-        "§1",
-        "§5.0",
-        "§7",
-        "§9"
+        "\u00a71",
+        "\u00a75.0",
+        "\u00a77",
+        "\u00a79"
       ],
       "deps": [],
       "files": [
@@ -37,7 +37,7 @@
       "track": "any",
       "size": "45m",
       "contract": [
-        "§5.2"
+        "\u00a75.2"
       ],
       "deps": [],
       "files": [
@@ -55,12 +55,12 @@
     {
       "id": "T-002",
       "phase": 1,
-      "title": "Scaffold the Express API skeleton with route stubs for every endpoint in §13",
+      "title": "Scaffold the Express API skeleton with route stubs for every endpoint in \u00a713",
       "track": "any",
       "size": "60m",
       "contract": [
-        "§13",
-        "§13.4"
+        "\u00a713",
+        "\u00a713.4"
       ],
       "deps": [],
       "files": [
@@ -74,16 +74,16 @@
         "package.json"
       ],
       "verify": "npm test -- api-skeleton",
-      "doneWhen": "Every path in the §13 table responds (even as a stub) and GET /api/health returns the §13.4 shape. §13.4's envelope convention is enforced centrally — acting endpoints return { ok, ... }, collection reads a bare array, single-document reads a bare doc or 404, and errors the { ok: false, error } envelope whatever the endpoint. The route table and its handlers import nothing, so the verification runs on a fresh clone with no npm install."
+      "doneWhen": "Every path in the \u00a713 table responds (even as a stub) and GET /api/health returns the \u00a713.4 shape. \u00a713.4's envelope convention is enforced centrally \u2014 acting endpoints return { ok, ... }, collection reads a bare array, single-document reads a bare doc or 404, and errors the { ok: false, error } envelope whatever the endpoint. The route table and its handlers import nothing, so the verification runs on a fresh clone with no npm install."
     },
     {
       "id": "T-003",
       "phase": 1,
-      "title": "Define the store adapter interface (§2.1) and a store factory selecting Mongo or the JSON store from environment",
+      "title": "Define the store adapter interface (\u00a72.1) and a store factory selecting Mongo or the JSON store from environment",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§2.1"
+        "\u00a72.1"
       ],
       "deps": [
         "T-002"
@@ -94,7 +94,7 @@
         "tests/store-adapter-interface.test.mjs"
       ],
       "verify": "npm test -- store-adapter-interface",
-      "doneWhen": "The factory exports exactly the seven functions named in §2.1, with no _id or $oid ever crossing the interface."
+      "doneWhen": "The factory exports exactly the seven functions named in \u00a72.1, with no _id or $oid ever crossing the interface."
     },
     {
       "id": "T-004",
@@ -103,8 +103,8 @@
       "track": "any",
       "size": "60m",
       "contract": [
-        "§1",
-        "§2.1"
+        "\u00a71",
+        "\u00a72.1"
       ],
       "deps": [
         "T-003"
@@ -124,7 +124,7 @@
       "track": "any",
       "size": "45m",
       "contract": [
-        "§2.1"
+        "\u00a72.1"
       ],
       "deps": [
         "T-003"
@@ -139,11 +139,11 @@
     {
       "id": "T-006",
       "phase": 1,
-      "title": "Implement the ID allocator's three sanctioned ranges (§1) on top of the store adapter",
+      "title": "Implement the ID allocator's three sanctioned ranges (\u00a71) on top of the store adapter",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§1"
+        "\u00a71"
       ],
       "deps": [
         "T-004",
@@ -159,12 +159,12 @@
     {
       "id": "T-007",
       "phase": 1,
-      "title": "Write the Section and Element document models matching §2 and §3 exactly, tolerant of the source appendix's extra ignored fields",
+      "title": "Write the Section and Element document models matching \u00a72 and \u00a73 exactly, tolerant of the source appendix's extra ignored fields",
       "track": "any",
       "size": "40m",
       "contract": [
-        "§2",
-        "§3"
+        "\u00a72",
+        "\u00a73"
       ],
       "deps": [
         "T-003"
@@ -179,11 +179,11 @@
     {
       "id": "T-008",
       "phase": 1,
-      "title": "Write the cms Redux slice matching §5.2's slice state exactly",
+      "title": "Write the cms Redux slice matching \u00a75.2's slice state exactly",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§5.2"
+        "\u00a75.2"
       ],
       "deps": [
         "T-001"
@@ -192,17 +192,17 @@
         "client/src/store/cmsSlice.js"
       ],
       "verify": "npm test -- cms-slice",
-      "doneWhen": "state.cms has exactly allSections, allSectionsCss, sectionNames, status, error, missing, with the initial values §5.2 implies."
+      "doneWhen": "state.cms has exactly allSections, allSectionsCss, sectionNames, status, error, missing, with the initial values \u00a75.2 implies."
     },
     {
       "id": "T-009",
       "phase": 1,
-      "title": "Write fetchElementsByIds by hand, including the §5.0 flattening rule and the §5.1 missing-ID assertion",
+      "title": "Write fetchElementsByIds by hand, including the \u00a75.0 flattening rule and the \u00a75.1 missing-ID assertion",
       "track": "any",
       "size": "50m",
       "contract": [
-        "§5.0",
-        "§5.1"
+        "\u00a75.0",
+        "\u00a75.1"
       ],
       "deps": [
         "T-008"
@@ -216,12 +216,12 @@
     {
       "id": "T-010",
       "phase": 1,
-      "title": "Write getSectionTextContrastClass by hand per §2's sectionTextMode and §7's accessibility note",
+      "title": "Write getSectionTextContrastClass by hand per \u00a72's sectionTextMode and \u00a77's accessibility note",
       "track": "any",
       "size": "25m",
       "contract": [
-        "§2",
-        "§7"
+        "\u00a72",
+        "\u00a77"
       ],
       "deps": [
         "T-001"
@@ -239,8 +239,8 @@
       "track": "any",
       "size": "60m",
       "contract": [
-        "§7 R1-R5",
-        "§7 R11-R12"
+        "\u00a77 R1-R5",
+        "\u00a77 R11-R12"
       ],
       "deps": [
         "T-009",
@@ -256,12 +256,12 @@
     {
       "id": "T-012",
       "phase": 1,
-      "title": "Implement R6 — text nodes via a getHtml(value, fallback) helper, sanitised read-side per §8",
+      "title": "Implement R6 \u2014 text nodes via a getHtml(value, fallback) helper, sanitised read-side per \u00a78",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§7 R6",
-        "§8"
+        "\u00a77 R6",
+        "\u00a78"
       ],
       "deps": [
         "T-011"
@@ -276,11 +276,11 @@
     {
       "id": "T-013",
       "phase": 1,
-      "title": "Implement R7 — getImage and errorImage helpers",
+      "title": "Implement R7 \u2014 getImage and errorImage helpers",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§7 R7"
+        "\u00a77 R7"
       ],
       "deps": [
         "T-011"
@@ -298,8 +298,8 @@
       "track": "any",
       "size": "55m",
       "contract": [
-        "§7 R8-R10",
-        "§7 R13-R14"
+        "\u00a77 R8-R10",
+        "\u00a77 R13-R14"
       ],
       "deps": [
         "T-012",
@@ -314,12 +314,12 @@
     {
       "id": "T-015",
       "phase": 1,
-      "title": "Implement GET /api/elements per §13 and §13.4",
+      "title": "Implement GET /api/elements per \u00a713 and \u00a713.4",
       "track": "any",
       "size": "35m",
       "contract": [
-        "§13",
-        "§13.4"
+        "\u00a713",
+        "\u00a713.4"
       ],
       "deps": [
         "T-006",
@@ -334,12 +334,12 @@
     {
       "id": "T-016",
       "phase": 1,
-      "title": "Implement PATCH /api/elements/:fieldId per §13.2",
+      "title": "Implement PATCH /api/elements/:fieldId per \u00a713.2",
       "track": "any",
       "size": "55m",
       "contract": [
-        "§13.2",
-        "§8"
+        "\u00a713.2",
+        "\u00a78"
       ],
       "deps": [
         "T-015"
@@ -357,9 +357,9 @@
       "track": "any",
       "size": "35m",
       "contract": [
-        "§2",
-        "§3",
-        "§4"
+        "\u00a72",
+        "\u00a73",
+        "\u00a74"
       ],
       "deps": [
         "T-007"
@@ -370,16 +370,16 @@
         "server/src/store/seed.js"
       ],
       "verify": "npm test -- seed-data",
-      "doneWhen": "Restarting the server does not duplicate the seed rows; the seeded statBadges Cards element carries fieldId1/fieldId2 per §4."
+      "doneWhen": "Restarting the server does not duplicate the seed rows; the seeded statBadges Cards element carries fieldId1/fieldId2 per \u00a74."
     },
     {
       "id": "T-018",
       "phase": 1,
-      "title": "Automate the §9 store-liveness assertion, including step 5's nested-card-field PATCH",
+      "title": "Automate the \u00a79 store-liveness assertion, including step 5's nested-card-field PATCH",
       "track": "any",
       "size": "60m",
       "contract": [
-        "§9"
+        "\u00a79"
       ],
       "deps": [
         "T-014",
@@ -396,11 +396,11 @@
     {
       "id": "T-019",
       "phase": 2,
-      "title": "Write the IR v1.0 Ajv schema and validator per §6",
+      "title": "Write the IR v1.0 Ajv schema and validator per \u00a76",
       "track": "any",
       "size": "55m",
       "contract": [
-        "§6"
+        "\u00a76"
       ],
       "deps": [
         "T-007"
@@ -410,16 +410,16 @@
         "server/src/validate/irValidator.js"
       ],
       "verify": "npm test -- ir-schema",
-      "doneWhen": "The example IR document in §6 validates clean; an IR missing idPolicy.contentPolicy or carrying a numeric variations fails validation."
+      "doneWhen": "The example IR document in \u00a76 validates clean; an IR missing idPolicy.contentPolicy or carrying a numeric variations fails validation."
     },
     {
       "id": "T-020",
       "phase": 2,
-      "title": "Write the Section document Ajv schema and validator per §2",
+      "title": "Write the Section document Ajv schema and validator per \u00a72",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§2"
+        "\u00a72"
       ],
       "deps": [
         "T-007"
@@ -434,12 +434,12 @@
     {
       "id": "T-021",
       "phase": 2,
-      "title": "Write the Element document and Cards loop item Ajv schemas per §3 and §4",
+      "title": "Write the Element document and Cards loop item Ajv schemas per \u00a73 and \u00a74",
       "track": "any",
       "size": "35m",
       "contract": [
-        "§3",
-        "§4"
+        "\u00a73",
+        "\u00a74"
       ],
       "deps": [
         "T-007"
@@ -454,12 +454,12 @@
     {
       "id": "T-022",
       "phase": 2,
-      "title": "Build the job record schema and job store — the Glass Box's foundation",
+      "title": "Build the job record schema and job store \u2014 the Glass Box's foundation",
       "track": "any",
       "size": "40m",
       "contract": [
-        "§11.1",
-        "§11"
+        "\u00a711.1",
+        "\u00a711"
       ],
       "deps": [
         "T-004"
@@ -469,17 +469,17 @@
         "server/src/schemas/job.schema.json"
       ],
       "verify": "npm test -- job-store",
-      "doneWhen": "A job's status only ever takes one of the five §11.1 values; sectionId defaults to null until assigned."
+      "doneWhen": "A job's status only ever takes one of the five \u00a711.1 values; sectionId defaults to null until assigned."
     },
     {
       "id": "T-023",
       "phase": 2,
-      "title": "Implement the append-only stage-trace writer per §11.0 and §11's three rules",
+      "title": "Implement the append-only stage-trace writer per \u00a711.0 and \u00a711's three rules",
       "track": "any",
       "size": "45m",
       "contract": [
-        "§11.0",
-        "§11"
+        "\u00a711.0",
+        "\u00a711"
       ],
       "deps": [
         "T-022"
@@ -493,12 +493,12 @@
     {
       "id": "T-024",
       "phase": 2,
-      "title": "Implement stage 1, input-acquisition — writes uploads to uploads/ per §13.1's format and size rules",
+      "title": "Implement stage 1, input-acquisition \u2014 writes uploads to uploads/ per \u00a713.1's format and size rules",
       "track": "any",
       "size": "35m",
       "contract": [
-        "§11.0",
-        "§13.1"
+        "\u00a711.0",
+        "\u00a713.1"
       ],
       "deps": [
         "T-023"
@@ -516,8 +516,8 @@
       "track": "any",
       "size": "60m",
       "contract": [
-        "§6",
-        "§7"
+        "\u00a76",
+        "\u00a77"
       ],
       "deps": [
         "T-019",
@@ -532,11 +532,11 @@
     {
       "id": "T-026",
       "phase": 2,
-      "title": "Implement the keyless prompt-to-IR path — keyword and template extraction, no model call",
+      "title": "Implement the keyless prompt-to-IR path \u2014 keyword and template extraction, no model call",
       "track": "any",
       "size": "55m",
       "contract": [
-        "§6"
+        "\u00a76"
       ],
       "deps": [
         "T-019"
@@ -554,7 +554,7 @@
       "track": "any",
       "size": "45m",
       "contract": [
-        "§6"
+        "\u00a76"
       ],
       "deps": [
         "T-019",
@@ -569,11 +569,11 @@
     {
       "id": "T-028",
       "phase": 2,
-      "title": "Implement the component-file write path per §7's mounting seam",
+      "title": "Implement the component-file write path per \u00a77's mounting seam",
       "track": "any",
       "size": "25m",
       "contract": [
-        "§7"
+        "\u00a77"
       ],
       "deps": [
         "T-025"
@@ -591,7 +591,7 @@
       "track": "any",
       "size": "30m",
       "contract": [
-        "§7"
+        "\u00a77"
       ],
       "deps": [
         "T-028"
@@ -605,11 +605,11 @@
     {
       "id": "T-030",
       "phase": 2,
-      "title": "Implement §8’s write-side sanitisation chokepoint on POST /api/generate and PATCH /api/elements/:fieldId",
+      "title": "Implement \u00a78\u2019s write-side sanitisation chokepoint on POST /api/generate and PATCH /api/elements/:fieldId",
       "track": "any",
       "size": "40m",
       "contract": [
-        "§8"
+        "\u00a78"
       ],
       "deps": [
         "T-016"
@@ -618,16 +618,16 @@
         "server/src/sanitise/sanitiseWrite.js"
       ],
       "verify": "npm test -- sanitise-write",
-      "doneWhen": "A content string carrying a script tag or an onerror attribute is stripped before persisting, at both call sites, using the §8 tag and attribute allow-lists."
+      "doneWhen": "A content string carrying a script tag or an onerror attribute is stripped before persisting, at both call sites, using the \u00a78 tag and attribute allow-lists."
     },
     {
       "id": "T-031",
       "phase": 2,
-      "title": "Enforce §8's read-side chokepoint as the single call site — extend getHtml and assert no other component bypasses it",
+      "title": "Enforce \u00a78's read-side chokepoint as the single call site \u2014 extend getHtml and assert no other component bypasses it",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§8"
+        "\u00a78"
       ],
       "deps": [
         "T-012",
@@ -643,11 +643,11 @@
     {
       "id": "T-032",
       "phase": 2,
-      "title": "Implement the §8 CSS declaration allow-list validator",
+      "title": "Implement the \u00a78 CSS declaration allow-list validator",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§8"
+        "\u00a78"
       ],
       "deps": [
         "T-030"
@@ -665,8 +665,8 @@
       "track": "any",
       "size": "60m",
       "contract": [
-        "§13",
-        "§13.1"
+        "\u00a713",
+        "\u00a713.1"
       ],
       "deps": [
         "T-024",
@@ -680,7 +680,7 @@
         "server/src/routes/generate.js"
       ],
       "verify": "npm test -- generate-prompt-mode",
-      "doneWhen": "A prompt request persists a section and its elements, writes a component file, and returns the §13 success envelope; a failure partway through never leaves persisted element IDs without a parent section row."
+      "doneWhen": "A prompt request persists a section and its elements, writes a component file, and returns the \u00a713 success envelope; a failure partway through never leaves persisted element IDs without a parent section row."
     },
     {
       "id": "T-034",
@@ -689,7 +689,7 @@
       "track": "any",
       "size": "35m",
       "contract": [
-        "§7"
+        "\u00a77"
       ],
       "deps": [
         "T-025"
@@ -704,11 +704,11 @@
     {
       "id": "T-035",
       "phase": 3,
-      "title": "Implement GET /api/sections and GET /api/sections/:sectionId per §13.4",
+      "title": "Implement GET /api/sections and GET /api/sections/:sectionId per \u00a713.4",
       "track": "api-glassbox",
       "size": "30m",
       "contract": [
-        "§13.4"
+        "\u00a713.4"
       ],
       "deps": [
         "T-007",
@@ -723,12 +723,12 @@
     {
       "id": "T-036",
       "phase": 3,
-      "title": "Implement GET /api/jobs/:jobId per §13.4 and §11",
+      "title": "Implement GET /api/jobs/:jobId per \u00a713.4 and \u00a711",
       "track": "api-glassbox",
       "size": "30m",
       "contract": [
-        "§13.4",
-        "§11"
+        "\u00a713.4",
+        "\u00a711"
       ],
       "deps": [
         "T-022",
@@ -743,11 +743,11 @@
     {
       "id": "T-037",
       "phase": 3,
-      "title": "Implement the artifact and component-source endpoints per §11.2",
+      "title": "Implement the artifact and component-source endpoints per \u00a711.2",
       "track": "api-glassbox",
       "size": "35m",
       "contract": [
-        "§11.2"
+        "\u00a711.2"
       ],
       "deps": [
         "T-023",
@@ -762,12 +762,12 @@
     {
       "id": "T-038",
       "phase": 3,
-      "title": "Build the Job Timeline UI — seven stages, real timings, per-stage status per §11.1",
+      "title": "Build the Job Timeline UI \u2014 seven stages, real timings, per-stage status per \u00a711.1",
       "track": "api-glassbox",
       "size": "55m",
       "contract": [
-        "§11.0",
-        "§11.1"
+        "\u00a711.0",
+        "\u00a711.1"
       ],
       "deps": [
         "T-036"
@@ -781,11 +781,11 @@
     {
       "id": "T-039",
       "phase": 3,
-      "title": "Build stage inspection — clicking a stage shows its artifact content via §11.2's endpoint",
+      "title": "Build stage inspection \u2014 clicking a stage shows its artifact content via \u00a711.2's endpoint",
       "track": "api-glassbox",
       "size": "40m",
       "contract": [
-        "§11.2"
+        "\u00a711.2"
       ],
       "deps": [
         "T-037",
@@ -800,11 +800,11 @@
     {
       "id": "T-040",
       "phase": 3,
-      "title": "Implement POST /api/jobs/:jobId/replay per §11's Replay section",
+      "title": "Implement POST /api/jobs/:jobId/replay per \u00a711's Replay section",
       "track": "api-glassbox",
       "size": "50m",
       "contract": [
-        "§11"
+        "\u00a711"
       ],
       "deps": [
         "T-023",
@@ -819,11 +819,11 @@
     {
       "id": "T-041",
       "phase": 3,
-      "title": "Implement POST /api/sections/:sectionId/regenerate per §13.3 (base semantics)",
+      "title": "Implement POST /api/sections/:sectionId/regenerate per \u00a713.3 (base semantics)",
       "track": "api-glassbox",
       "size": "55m",
       "contract": [
-        "§13.3"
+        "\u00a713.3"
       ],
       "deps": [
         "T-006",
@@ -843,8 +843,8 @@
       "track": "api-glassbox",
       "size": "30m",
       "contract": [
-        "§7",
-        "§13"
+        "\u00a77",
+        "\u00a713"
       ],
       "deps": [
         "T-028",
@@ -859,11 +859,11 @@
     {
       "id": "T-043",
       "phase": 3,
-      "title": "Build the Generator Studio’s wireframe upload form (FR-G01)",
+      "title": "Build the Generator Studio\u2019s wireframe upload form (FR-G01)",
       "track": "studio-preview",
       "size": "35m",
       "contract": [
-        "§13.1"
+        "\u00a713.1"
       ],
       "deps": [
         "T-001",
@@ -873,16 +873,16 @@
         "client/src/studio/UploadForm.jsx"
       ],
       "verify": "npm test -- upload-form",
-      "doneWhen": "PNG, JPEG and WebP are accepted client-side with the same rules as §13.1; a rejected file shows a plain-language reason before any request is sent."
+      "doneWhen": "PNG, JPEG and WebP are accepted client-side with the same rules as \u00a713.1; a rejected file shows a plain-language reason before any request is sent."
     },
     {
       "id": "T-044",
       "phase": 3,
-      "title": "Build the Generator Studio’s code and prompt textareas (FR-G02, FR-G03)",
+      "title": "Build the Generator Studio\u2019s code and prompt textareas (FR-G02, FR-G03)",
       "track": "studio-preview",
       "size": "30m",
       "contract": [
-        "§13.1"
+        "\u00a713.1"
       ],
       "deps": [
         "T-001",
@@ -892,16 +892,16 @@
         "client/src/studio/CodePromptInputs.jsx"
       ],
       "verify": "npm test -- code-prompt-inputs",
-      "doneWhen": "The code textarea and prompt textarea each post their value under the code and prompt multipart fields exactly as §13.1 names them."
+      "doneWhen": "The code textarea and prompt textarea each post their value under the code and prompt multipart fields exactly as \u00a713.1 names them."
     },
     {
       "id": "T-045",
       "phase": 3,
-      "title": "Build the Generator Studio’s mode selector (FR-G04)",
+      "title": "Build the Generator Studio\u2019s mode selector (FR-G04)",
       "track": "studio-preview",
       "size": "25m",
       "contract": [
-        "§13"
+        "\u00a713"
       ],
       "deps": [
         "T-043",
@@ -911,17 +911,17 @@
         "client/src/studio/ModeSelector.jsx"
       ],
       "verify": "npm test -- mode-selector",
-      "doneWhen": "Selecting wireframe, code, prompt, or combined shows exactly the matching input controls and sets the mode field to one of §13's four values."
+      "doneWhen": "Selecting wireframe, code, prompt, or combined shows exactly the matching input controls and sets the mode field to one of \u00a713's four values."
     },
     {
       "id": "T-046",
       "phase": 3,
-      "title": "Build the Generator Studio’s pageName/sectionName fields and accent colour picker (FR-G07)",
+      "title": "Build the Generator Studio\u2019s pageName/sectionName fields and accent colour picker (FR-G07)",
       "track": "studio-preview",
       "size": "30m",
       "contract": [
-        "§13.1",
-        "§6"
+        "\u00a713.1",
+        "\u00a76"
       ],
       "deps": [
         "T-043"
@@ -935,11 +935,11 @@
     {
       "id": "T-047",
       "phase": 3,
-      "title": "Build the Generator Studio’s generation progress and plain-language error surfacing (FR-G05)",
+      "title": "Build the Generator Studio\u2019s generation progress and plain-language error surfacing (FR-G05)",
       "track": "studio-preview",
       "size": "40m",
       "contract": [
-        "§13"
+        "\u00a713"
       ],
       "deps": [
         "T-033"
@@ -949,17 +949,17 @@
         "client/src/studio/ErrorBanner.jsx"
       ],
       "verify": "npm test -- studio-progress-errors",
-      "doneWhen": "A submitted job shows live progress against §11.0's seven stages until it settles, and each of §13's status codes (400, 413, 422, 500) maps to a distinct, non-technical message; the raw error.code is never shown to the user as the primary text."
+      "doneWhen": "A submitted job shows live progress against \u00a711.0's seven stages until it settles, and each of \u00a713's status codes (400, 413, 422, 500) maps to a distinct, non-technical message; the raw error.code is never shown to the user as the primary text."
     },
     {
       "id": "T-048",
       "phase": 3,
-      "title": "Build the Generator Studio’s job history (FR-G08)",
+      "title": "Build the Generator Studio\u2019s job history (FR-G08)",
       "track": "studio-preview",
       "size": "35m",
       "contract": [
-        "§11",
-        "§13.4"
+        "\u00a711",
+        "\u00a713.4"
       ],
       "deps": [
         "T-036",
@@ -974,11 +974,11 @@
     {
       "id": "T-049",
       "phase": 3,
-      "title": "Build the Generator Studio’s read-only generated JSX view and preview link (FR-G06)",
+      "title": "Build the Generator Studio\u2019s read-only generated JSX view and preview link (FR-G06)",
       "track": "studio-preview",
       "size": "25m",
       "contract": [
-        "§11.2"
+        "\u00a711.2"
       ],
       "deps": [
         "T-037"
@@ -996,7 +996,7 @@
       "track": "studio-preview",
       "size": "40m",
       "contract": [
-        "§7"
+        "\u00a77"
       ],
       "deps": [
         "T-011",
@@ -1011,11 +1011,11 @@
     {
       "id": "T-051",
       "phase": 3,
-      "title": "Build the CMS side-editor — click an element, edit content and css, PATCH per §13.2",
+      "title": "Build the CMS side-editor \u2014 click an element, edit content and css, PATCH per \u00a713.2",
       "track": "studio-preview",
       "size": "50m",
       "contract": [
-        "§13.2"
+        "\u00a713.2"
       ],
       "deps": [
         "T-016",
@@ -1034,7 +1034,7 @@
       "track": "studio-preview",
       "size": "25m",
       "contract": [
-        "§7 R11"
+        "\u00a77 R11"
       ],
       "deps": [
         "T-050"
@@ -1048,12 +1048,12 @@
     {
       "id": "T-053",
       "phase": 3,
-      "title": "Build the css overlay editing hook in the side-editor, validated client-side against §8",
+      "title": "Build the css overlay editing hook in the side-editor, validated client-side against \u00a78",
       "track": "studio-preview",
       "size": "30m",
       "contract": [
-        "§8",
-        "§13.2"
+        "\u00a78",
+        "\u00a713.2"
       ],
       "deps": [
         "T-032",
@@ -1063,19 +1063,19 @@
         "client/src/studio/SideEditor.jsx"
       ],
       "verify": "npm test -- css-overlay-editor",
-      "doneWhen": "A css value that fails the §8 declaration allow-list is rejected client-side before the PATCH request is sent, with the same rule the server enforces."
+      "doneWhen": "A css value that fails the \u00a78 declaration allow-list is rejected client-side before the PATCH request is sent, with the same rule the server enforces."
     },
     {
       "id": "T-054",
       "phase": 3,
-      "title": "Scaffold the Python perception service exposing POST /perceive and GET /health per §12",
+      "title": "Scaffold the Python perception service exposing POST /perceive and GET /health per \u00a712",
       "track": "perception",
       "size": "60m",
       "contract": [
-        "§12",
-        "§10",
-        "§11.0",
-        "§11.2"
+        "\u00a712",
+        "\u00a710",
+        "\u00a711.0",
+        "\u00a711.2"
       ],
       "deps": [],
       "files": [
@@ -1088,7 +1088,7 @@
         ".gitignore"
       ],
       "verify": "python -m pytest perception/tests/test_health.py",
-      "doneWhen": "GET /health returns { ok, models, device } with the device DETECTED at runtime rather than hardcoded, and POST /perceive returns the exact §12 response shape on a stub payload, with the §12 422 envelope on bad input. Asserted directly: no fieldId anywhere in the response (§12), stages 2–4 only (§11.0), no file written (§11.2), and confidence null rather than a fabricated number (§10)."
+      "doneWhen": "GET /health returns { ok, models, device } with the device DETECTED at runtime rather than hardcoded, and POST /perceive returns the exact \u00a712 response shape on a stub payload, with the \u00a712 422 envelope on bad input. Asserted directly: no fieldId anywhere in the response (\u00a712), stages 2\u20134 only (\u00a711.0), no file written (\u00a711.2), and confidence null rather than a fabricated number (\u00a710)."
     },
     {
       "id": "T-055",
@@ -1097,8 +1097,8 @@
       "track": "perception",
       "size": "40m",
       "contract": [
-        "§6",
-        "§11.0"
+        "\u00a76",
+        "\u00a711.0"
       ],
       "deps": [
         "T-054"
@@ -1116,7 +1116,7 @@
       "track": "perception",
       "size": "60m",
       "contract": [
-        "§6"
+        "\u00a76"
       ],
       "deps": [
         "T-055"
@@ -1125,17 +1125,17 @@
         "perception/stages/understand.py"
       ],
       "verify": "python -m pytest perception/tests/test_understand.py",
-      "doneWhen": "Each detected region produces an IR element entry (without fieldId) carrying confidence, sourceOf: wireframe, and a bbox in the normalised image’s coordinate space."
+      "doneWhen": "Each detected region produces an IR element entry (without fieldId) carrying confidence, sourceOf: wireframe, and a bbox in the normalised image\u2019s coordinate space."
     },
     {
       "id": "T-057",
       "phase": 3,
-      "title": "Implement fusion and hierarchy — assemble the IR's layout/theme/cards sub-objects for the /perceive response",
+      "title": "Implement fusion and hierarchy \u2014 assemble the IR's layout/theme/cards sub-objects for the /perceive response",
       "track": "perception",
       "size": "55m",
       "contract": [
-        "§6",
-        "§12"
+        "\u00a76",
+        "\u00a712"
       ],
       "deps": [
         "T-056"
@@ -1144,17 +1144,17 @@
         "perception/stages/fuse.py"
       ],
       "verify": "python -m pytest perception/tests/test_fuse.py",
-      "doneWhen": "Fed the organiser's sample wireframe, the response's elements cover the reference set — heroImage, brandBadge, headlineMain, headlineSub, description, statBadges, ctaButton."
+      "doneWhen": "Fed the organiser's sample wireframe, the response's elements cover the reference set \u2014 heroImage, brandBadge, headlineMain, headlineSub, description, statBadges, ctaButton."
     },
     {
       "id": "T-058",
       "phase": 3,
-      "title": "Wire Node’s call to POST /perceive and assemble the full IR per §12",
+      "title": "Wire Node\u2019s call to POST /perceive and assemble the full IR per \u00a712",
       "track": "perception",
       "size": "45m",
       "contract": [
-        "§12",
-        "§6"
+        "\u00a712",
+        "\u00a76"
       ],
       "deps": [
         "T-057",
@@ -1169,12 +1169,12 @@
     {
       "id": "T-059",
       "phase": 3,
-      "title": "Implement the perception degradation path per §12 and §11.1",
+      "title": "Implement the perception degradation path per \u00a712 and \u00a711.1",
       "track": "perception",
       "size": "35m",
       "contract": [
-        "§11.1",
-        "§12"
+        "\u00a711.1",
+        "\u00a712"
       ],
       "deps": [
         "T-058"
@@ -1183,17 +1183,17 @@
         "server/src/generate/perceiveAndAssembleIr.js"
       ],
       "verify": "npm test -- perception-degradation",
-      "doneWhen": "With the perception service stopped, unreachable, or returning non-200, the stage is recorded as degraded, a warning is emitted, and generation continues down the deterministic path — prompt mode and the CMS contract stay fully demonstrable."
+      "doneWhen": "With the perception service stopped, unreachable, or returning non-200, the stage is recorded as degraded, a warning is emitted, and generation continues down the deterministic path \u2014 prompt mode and the CMS contract stay fully demonstrable."
     },
     {
       "id": "T-060",
       "phase": 3,
-      "title": "Implement code-input mode — AST to elements to IR, IDs preserved, code parsed and never executed",
+      "title": "Implement code-input mode \u2014 AST to elements to IR, IDs preserved, code parsed and never executed",
       "track": "any",
       "size": "55m",
       "contract": [
-        "§8",
-        "§6"
+        "\u00a78",
+        "\u00a76"
       ],
       "deps": [
         "T-019",
@@ -1212,7 +1212,7 @@
       "track": "generation",
       "size": "50m",
       "contract": [
-        "§6"
+        "\u00a76"
       ],
       "deps": [
         "T-033",
@@ -1232,7 +1232,7 @@
       "track": "generation",
       "size": "55m",
       "contract": [
-        "§6"
+        "\u00a76"
       ],
       "deps": [
         "T-041"
@@ -1241,7 +1241,7 @@
         "server/src/generate/applyIdPolicy.js"
       ],
       "verify": "npm test -- id-policy-content-policy",
-      "doneWhen": "Regeneration forces contentPolicy: keep — a preserved fieldId's existing stored content survives even when the IR's default differs — except when the prompt explicitly changes that field's copy, which is recorded in warnings."
+      "doneWhen": "Regeneration forces contentPolicy: keep \u2014 a preserved fieldId's existing stored content survives even when the IR's default differs \u2014 except when the prompt explicitly changes that field's copy, which is recorded in warnings."
     },
     {
       "id": "T-063",
@@ -1250,7 +1250,7 @@
       "track": "api-glassbox",
       "size": "50m",
       "contract": [
-        "§13.3"
+        "\u00a713.3"
       ],
       "deps": [
         "T-062"
@@ -1259,7 +1259,7 @@
         "server/src/routes/regenerate.js"
       ],
       "verify": "npm test -- regenerate-card-slots",
-      "doneWhen": "Growing three stats to four preserves items 0-2's nested IDs and allocates one new pair; shrinking leaves the orphaned pair stored, not deleted; the response matches §13.3's preservedIds/newIds shape."
+      "doneWhen": "Growing three stats to four preserves items 0-2's nested IDs and allocates one new pair; shrinking leaves the orphaned pair stored, not deleted; the response matches \u00a713.3's preservedIds/newIds shape."
     },
     {
       "id": "T-064",
@@ -1268,7 +1268,7 @@
       "track": "api-glassbox",
       "size": "35m",
       "contract": [
-        "§11"
+        "\u00a711"
       ],
       "deps": [
         "T-040",
@@ -1283,11 +1283,11 @@
     {
       "id": "T-065",
       "phase": 4,
-      "title": "Implement the human-in-the-loop questions and answers endpoints per §11.3",
+      "title": "Implement the human-in-the-loop questions and answers endpoints per \u00a711.3",
       "track": "api-glassbox",
       "size": "45m",
       "contract": [
-        "§11.3"
+        "\u00a711.3"
       ],
       "deps": [
         "T-022",
@@ -1303,11 +1303,11 @@
     {
       "id": "T-066",
       "phase": 4,
-      "title": "Build the human-in-the-loop UI — question, bbox overlay, options, submit",
+      "title": "Build the human-in-the-loop UI \u2014 question, bbox overlay, options, submit",
       "track": "studio-preview",
       "size": "45m",
       "contract": [
-        "§11.3"
+        "\u00a711.3"
       ],
       "deps": [
         "T-065",
@@ -1322,11 +1322,11 @@
     {
       "id": "T-067",
       "phase": 4,
-      "title": "Surface confidence bands per §10 in the API response and the Glass Box timeline",
+      "title": "Surface confidence bands per \u00a710 in the API response and the Glass Box timeline",
       "track": "api-glassbox",
       "size": "30m",
       "contract": [
-        "§10"
+        "\u00a710"
       ],
       "deps": [
         "T-056",
@@ -1345,7 +1345,7 @@
       "track": "studio-preview",
       "size": "30m",
       "contract": [
-        "§10"
+        "\u00a710"
       ],
       "deps": [
         "T-067",
@@ -1355,7 +1355,7 @@
         "client/src/studio/ConfidenceBadge.jsx"
       ],
       "verify": "npm test -- confidence-surfaced-studio",
-      "doneWhen": "Each element carries a visible, colour-coded badge matching its §10 band."
+      "doneWhen": "Each element carries a visible, colour-coded badge matching its \u00a710 band."
     },
     {
       "id": "T-069",
@@ -1364,8 +1364,8 @@
       "track": "any",
       "size": "30m",
       "contract": [
-        "§7",
-        "§13.3"
+        "\u00a77",
+        "\u00a713.3"
       ],
       "deps": [
         "T-063",
@@ -1380,12 +1380,12 @@
     {
       "id": "T-070",
       "phase": 4,
-      "title": "Rehearse Gate 4 — the judge's headline survives redesign and regeneration",
+      "title": "Rehearse Gate 4 \u2014 the judge's headline survives redesign and regeneration",
       "track": "any",
       "size": "30m",
       "contract": [
-        "§13.3",
-        "§9"
+        "\u00a713.3",
+        "\u00a79"
       ],
       "deps": [
         "T-069",
@@ -1398,12 +1398,12 @@
     {
       "id": "T-071",
       "phase": 5,
-      "title": "Close the §14 duplicate-ID gap in the pre-submit gate",
+      "title": "Close the \u00a714 duplicate-ID gap in the pre-submit gate",
       "track": "any",
       "size": "40m",
       "contract": [
-        "§14",
-        "§2.1"
+        "\u00a714",
+        "\u00a72.1"
       ],
       "deps": [
         "T-006"
@@ -1421,9 +1421,9 @@
       "track": "any",
       "size": "40m",
       "contract": [
-        "§8",
-        "§13.1",
-        "§14"
+        "\u00a78",
+        "\u00a713.1",
+        "\u00a714"
       ],
       "deps": [
         "T-030",
@@ -1433,7 +1433,7 @@
         "docs/THREAT-MODEL.md"
       ],
       "verify": null,
-      "doneWhen": "The document names both sanitisation chokepoints, the upload format/size limits, the AST-only handling of pasted code, and the §14 forbidden-content list, each with where it is enforced in the codebase."
+      "doneWhen": "The document names both sanitisation chokepoints, the upload format/size limits, the AST-only handling of pasted code, and the \u00a714 forbidden-content list, each with where it is enforced in the codebase."
     },
     {
       "id": "T-073",
@@ -1442,7 +1442,7 @@
       "track": "any",
       "size": "25m",
       "contract": [
-        "§14"
+        "\u00a714"
       ],
       "deps": [
         "T-071"
@@ -1460,9 +1460,9 @@
       "track": "any",
       "size": "30m",
       "contract": [
-        "§2",
-        "§3",
-        "§4"
+        "\u00a72",
+        "\u00a73",
+        "\u00a74"
       ],
       "deps": [
         "T-020",
@@ -1474,7 +1474,7 @@
         "server/data/seed/elements.json"
       ],
       "verify": "node tools/check-contract.mjs seed",
-      "doneWhen": "The tracked seed JSON validates with zero errors and includes at least one element of every contentType — Image, Text, Textfield, Button, Cards."
+      "doneWhen": "The tracked seed JSON validates with zero errors and includes at least one element of every contentType \u2014 Image, Text, Textfield, Button, Cards."
     },
     {
       "id": "T-075",
@@ -1483,7 +1483,7 @@
       "track": "any",
       "size": "30m",
       "contract": [
-        "§7"
+        "\u00a77"
       ],
       "deps": [
         "T-025",
@@ -1502,14 +1502,16 @@
       "track": "any",
       "size": "60m",
       "contract": [
-        "§14",
-        "§9"
+        "\u00a714",
+        "\u00a79"
       ],
       "deps": [
         "T-071",
         "T-070",
         "T-085",
-        "T-091"
+        "T-091",
+        "T-093",
+        "T-094"
       ],
       "files": [
         "docs/DEMO-REHEARSAL-LOG.md"
@@ -1524,7 +1526,7 @@
       "track": "any",
       "size": "40m",
       "contract": [
-        "§12"
+        "\u00a712"
       ],
       "deps": [
         "T-076"
@@ -1533,7 +1535,7 @@
         "docs/DEMO-REHEARSAL-LOG.md"
       ],
       "verify": null,
-      "doneWhen": "A full recording of the 8-minute script exists and is stored outside git (per §14’s binary-artifact rule), ready to play if the live machine fails."
+      "doneWhen": "A full recording of the 8-minute script exists and is stored outside git (per \u00a714\u2019s binary-artifact rule), ready to play if the live machine fails."
     },
     {
       "id": "T-078",
@@ -1542,8 +1544,8 @@
       "track": "any",
       "size": "35m",
       "contract": [
-        "§12",
-        "§9"
+        "\u00a712",
+        "\u00a79"
       ],
       "deps": [
         "T-059",
@@ -1554,16 +1556,16 @@
       ],
       "files": [],
       "verify": null,
-      "doneWhen": "The full demo runs with the perception service stopped, LLM_API_KEY unset, and REDIS_URL, S3_ENDPOINT, EMBEDDING_BASE_URL and OTEL_EXPORTER_OTLP_ENDPOINT all unset. Every §15–§17 fallback is exercised in that one run."
+      "doneWhen": "The full demo runs with the perception service stopped, LLM_API_KEY unset, and REDIS_URL, S3_ENDPOINT, EMBEDDING_BASE_URL and OTEL_EXPORTER_OTLP_ENDPOINT all unset. Every \u00a715\u2013\u00a717 fallback is exercised in that one run."
     },
     {
       "id": "T-079",
       "phase": 4,
-      "title": "Implement the cache adapter interface and the in-process TTL cache (§15.1)",
+      "title": "Implement the cache adapter interface and the in-process TTL cache (\u00a715.1)",
       "track": "api-glassbox",
       "size": "40m",
       "contract": [
-        "§15.1"
+        "\u00a715.1"
       ],
       "deps": [
         "T-004"
@@ -1573,16 +1575,16 @@
         "server/src/cache/memoryCache.js"
       ],
       "verify": "npm test -- cache-memory",
-      "doneWhen": "cacheGet/cacheSet/cacheDel behave per §15.1, entries expire at their TTL, and a miss returns null rather than throwing. An element or section document written through this adapter fails the test — §15.1 forbids caching them."
+      "doneWhen": "cacheGet/cacheSet/cacheDel behave per \u00a715.1, entries expire at their TTL, and a miss returns null rather than throwing. An element or section document written through this adapter fails the test \u2014 \u00a715.1 forbids caching them."
     },
     {
       "id": "T-080",
       "phase": 4,
-      "title": "Implement the Redis cache backend with boot-time fallback to the in-process cache (§15.1)",
+      "title": "Implement the Redis cache backend with boot-time fallback to the in-process cache (\u00a715.1)",
       "track": "api-glassbox",
       "size": "40m",
       "contract": [
-        "§15.1"
+        "\u00a715.1"
       ],
       "deps": [
         "T-079"
@@ -1596,11 +1598,11 @@
     {
       "id": "T-081",
       "phase": 4,
-      "title": "Wire the four sanctioned cache keys into the IR, render, embedding and perceive paths (§15.1)",
+      "title": "Wire the four sanctioned cache keys into the IR, render, embedding and perceive paths (\u00a715.1)",
       "track": "generation",
       "size": "35m",
       "contract": [
-        "§15.1"
+        "\u00a715.1"
       ],
       "deps": [
         "T-079",
@@ -1611,18 +1613,18 @@
         "server/src/cache/keys.js"
       ],
       "verify": "npm test -- cache-keys",
-      "doneWhen": "Only ir:, render:, embed: and perceive: keys are ever written, each at its stated TTL. GET /api/elements reads through to the store on every request — asserted, because caching it reintroduces the §9 failure."
+      "doneWhen": "Only ir:, render:, embed: and perceive: keys are ever written, each at its stated TTL. GET /api/elements reads through to the store on every request \u2014 asserted, because caching it reintroduces the \u00a79 failure."
     },
     {
       "id": "T-082",
       "phase": 4,
-      "title": "Implement the object storage adapter and the local-disk backend (§15.2)",
+      "title": "Implement the object storage adapter and the local-disk backend (\u00a715.2)",
       "track": "api-glassbox",
       "size": "40m",
       "contract": [
-        "§15.2",
-        "§11.2",
-        "§13.1"
+        "\u00a715.2",
+        "\u00a711.2",
+        "\u00a713.1"
       ],
       "deps": [
         "T-024"
@@ -1632,18 +1634,18 @@
         "server/src/storage/localDisk.js"
       ],
       "verify": "npm test -- storage-local",
-      "doneWhen": "putObject/getObject/deleteObject use exactly the keys §11.2 and §13.1 already define, under uploads/ and artifacts/. This is the default backend and needs no environment at all."
+      "doneWhen": "putObject/getObject/deleteObject use exactly the keys \u00a711.2 and \u00a713.1 already define, under uploads/ and artifacts/. This is the default backend and needs no environment at all."
     },
     {
       "id": "T-083",
       "phase": 4,
-      "title": "Implement the S3-compatible storage backend, proxying reads through VITE_STORAGE_URL (§15.2)",
+      "title": "Implement the S3-compatible storage backend, proxying reads through VITE_STORAGE_URL (\u00a715.2)",
       "track": "api-glassbox",
       "size": "45m",
       "contract": [
-        "§15.2",
-        "§14",
-        "§7 R13"
+        "\u00a715.2",
+        "\u00a714",
+        "\u00a77 R13"
       ],
       "deps": [
         "T-082"
@@ -1652,17 +1654,17 @@
         "server/src/storage/s3.js"
       ],
       "verify": "npm test -- storage-s3",
-      "doneWhen": "A stored outputRef resolves identically under both backends. No bucket host ever appears in a response body — reads are proxied through VITE_STORAGE_URL, trailing slash intact. Asserted, because a real bucket URL is a §14 and R13 violation."
+      "doneWhen": "A stored outputRef resolves identically under both backends. No bucket host ever appears in a response body \u2014 reads are proxied through VITE_STORAGE_URL, trailing slash intact. Asserted, because a real bucket URL is a \u00a714 and R13 violation."
     },
     {
       "id": "T-084",
       "phase": 4,
-      "title": "Implement embed() and rerank() with the deterministic lexical fallback (§16.1)",
+      "title": "Implement embed() and rerank() with the deterministic lexical fallback (\u00a716.1)",
       "track": "generation",
       "size": "45m",
       "contract": [
-        "§16.1",
-        "§6"
+        "\u00a716.1",
+        "\u00a76"
       ],
       "deps": [
         "T-026",
@@ -1673,18 +1675,18 @@
         "server/src/models/rerank.js"
       ],
       "verify": "npm test -- embedding-rerank",
-      "doneWhen": "embed() returns null with no service configured and every caller falls back to §6’s keyword scorer; rerank() still returns a full ranking via lexical overlap. Template and role selection produce identical output with the embedding service stopped."
+      "doneWhen": "embed() returns null with no service configured and every caller falls back to \u00a76\u2019s keyword scorer; rerank() still returns a full ranking via lexical overlap. Template and role selection produce identical output with the embedding service stopped."
     },
     {
       "id": "T-085",
       "phase": 4,
-      "title": "Implement the model orchestrator — one call site, one retry, schema-validated (§16.2)",
+      "title": "Implement the model orchestrator \u2014 one call site, one retry, schema-validated (\u00a716.2)",
       "track": "generation",
       "size": "50m",
       "contract": [
-        "§16.2",
-        "§8",
-        "§11"
+        "\u00a716.2",
+        "\u00a78",
+        "\u00a711"
       ],
       "deps": [
         "T-027",
@@ -1694,17 +1696,17 @@
         "server/src/models/orchestrator.js"
       ],
       "verify": "npm test -- model-orchestrator",
-      "doneWhen": "Every hosted-model call in the repo goes through callModel — asserted by a grep test, because a direct provider call bypasses the retry, the schema check and the trace. Exactly one retry on timeout or schema failure, never on a 4xx. LLM_API_KEY unset returns { ok: false } with no network attempt."
+      "doneWhen": "Every hosted-model call in the repo goes through callModel \u2014 asserted by a grep test, because a direct provider call bypasses the retry, the schema check and the trace. Exactly one retry on timeout or schema failure, never on a 4xx. LLM_API_KEY unset returns { ok: false } with no network attempt."
     },
     {
       "id": "T-086",
       "phase": 4,
-      "title": "Implement structured JSON logging, subject to §14 in full (§17.1)",
+      "title": "Implement structured JSON logging, subject to \u00a714 in full (\u00a717.1)",
       "track": "api-glassbox",
       "size": "30m",
       "contract": [
-        "§17.1",
-        "§14"
+        "\u00a717.1",
+        "\u00a714"
       ],
       "deps": [
         "T-002"
@@ -1713,16 +1715,16 @@
         "server/src/observability/log.js"
       ],
       "verify": "npm test -- logging",
-      "doneWhen": "One JSON line per event with ts, level, msg and jobId when in scope. An upload is logged as its <jobId>.<ext> key and never as the user’s original path — asserted, because an original path is exactly the absolute-local-path leak §14 names."
+      "doneWhen": "One JSON line per event with ts, level, msg and jobId when in scope. An upload is logged as its <jobId>.<ext> key and never as the user\u2019s original path \u2014 asserted, because an original path is exactly the absolute-local-path leak \u00a714 names."
     },
     {
       "id": "T-087",
       "phase": 4,
-      "title": "Implement GET /api/metrics in Prometheus text format, no server required (§17.2)",
+      "title": "Implement GET /api/metrics in Prometheus text format, no server required (\u00a717.2)",
       "track": "api-glassbox",
       "size": "35m",
       "contract": [
-        "§17.2"
+        "\u00a717.2"
       ],
       "deps": [
         "T-086",
@@ -1733,17 +1735,17 @@
         "server/src/routes/metrics.js"
       ],
       "verify": "npm test -- metrics",
-      "doneWhen": "The four minimum series in §17.2 are present and parse as Prometheus text. The endpoint is the contract; nothing needs to scrape it for the demo to work."
+      "doneWhen": "The four minimum series in \u00a717.2 are present and parse as Prometheus text. The endpoint is the contract; nothing needs to scrape it for the demo to work."
     },
     {
       "id": "T-088",
       "phase": 4,
-      "title": "Implement OpenTelemetry tracing, one span per stage, dropped silently when unconfigured (§17.3)",
+      "title": "Implement OpenTelemetry tracing, one span per stage, dropped silently when unconfigured (\u00a717.3)",
       "track": "api-glassbox",
       "size": "35m",
       "contract": [
-        "§17.3",
-        "§11.0"
+        "\u00a717.3",
+        "\u00a711.0"
       ],
       "deps": [
         "T-023"
@@ -1752,17 +1754,17 @@
         "server/src/observability/tracing.js"
       ],
       "verify": "npm test -- tracing",
-      "doneWhen": "Span names match §11.0’s seven stage names exactly. With OTEL_EXPORTER_OTLP_ENDPOINT unset, spans are dropped and nothing warns, errors, or slows. The §11 stage trace remains the authoritative record."
+      "doneWhen": "Span names match \u00a711.0\u2019s seven stage names exactly. With OTEL_EXPORTER_OTLP_ENDPOINT unset, spans are dropped and nothing warns, errors, or slows. The \u00a711 stage trace remains the authoritative record."
     },
     {
       "id": "T-089",
       "phase": 4,
-      "title": "Implement the pixelmatch visual gate, null when there was no wireframe (§18)",
+      "title": "Implement the pixelmatch visual gate, null when there was no wireframe (\u00a718)",
       "track": "perception",
       "size": "45m",
       "contract": [
-        "§18",
-        "§6"
+        "\u00a718",
+        "\u00a76"
       ],
       "deps": [
         "T-055",
@@ -1772,17 +1774,17 @@
         "server/src/quality/visual.js"
       ],
       "verify": "npm test -- quality-visual",
-      "doneWhen": "Similarity is scored against the NORMALISED wireframe using stage 2’s recorded transform, and is null in prompt mode. A low score appends a warning and never fails the generation."
+      "doneWhen": "Similarity is scored against the NORMALISED wireframe using stage 2\u2019s recorded transform, and is null in prompt mode. A low score appends a warning and never fails the generation."
     },
     {
       "id": "T-090",
       "phase": 4,
-      "title": "Implement the axe-core accessibility and bundle-cost gates on stage 6 (§18)",
+      "title": "Implement the axe-core accessibility and bundle-cost gates on stage 6 (\u00a718)",
       "track": "api-glassbox",
       "size": "40m",
       "contract": [
-        "§18",
-        "§7"
+        "\u00a718",
+        "\u00a77"
       ],
       "deps": [
         "T-034",
@@ -1793,17 +1795,17 @@
         "server/src/quality/performance.js"
       ],
       "verify": "npm test -- quality-a11y",
-      "doneWhen": "Violations are counted by impact against the rendered preview and recorded on the stage-6 trace. §7’s accessibility rules — image alt, CTA aria-label, no gray-400 body copy, no empty nested card id — are each covered. Neither gate fails a generation."
+      "doneWhen": "Violations are counted by impact against the rendered preview and recorded on the stage-6 trace. \u00a77\u2019s accessibility rules \u2014 image alt, CTA aria-label, no gray-400 body copy, no empty nested card id \u2014 are each covered. Neither gate fails a generation."
     },
     {
       "id": "T-091",
       "phase": 4,
-      "title": "Compute and surface the 0–100 quality score per §18.1’s formula",
+      "title": "Compute and surface the 0\u2013100 quality score per \u00a718.1\u2019s formula",
       "track": "api-glassbox",
       "size": "35m",
       "contract": [
-        "§18.1",
-        "§10"
+        "\u00a718.1",
+        "\u00a710"
       ],
       "deps": [
         "T-089",
@@ -1814,7 +1816,69 @@
         "server/src/quality/score.js"
       ],
       "verify": "npm test -- quality-score",
-      "doneWhen": "§18.1’s formula is implemented literally and the number appears in the API response and on the Glass Box timeline. A prompt-mode job scores visualSimilarity as 1.0, not 0 — asserted, because penalising prompt mode for having no image is the obvious way to get this wrong. Nothing in the system branches on the score."
+      "doneWhen": "\u00a718.1\u2019s formula is implemented literally and the number appears in the API response and on the Glass Box timeline. A prompt-mode job scores visualSimilarity as 1.0, not 0 \u2014 asserted, because penalising prompt mode for having no image is the obvious way to get this wrong. Nothing in the system branches on the score."
+    },
+    {
+      "id": "T-092",
+      "phase": 2,
+      "title": "Add designTokens to the IR schema with DEFAULT_TOKENS (\u00a76.1)",
+      "track": "generation",
+      "size": "35m",
+      "contract": [
+        "\u00a76.1",
+        "\u00a76"
+      ],
+      "deps": [
+        "T-019"
+      ],
+      "files": [
+        "server/src/ir/designTokens.js",
+        "server/src/ir/schema.js"
+      ],
+      "verify": "npm test -- design-tokens",
+      "doneWhen": "designTokens is optional in the Ajv schema and an IR without it still validates. Every token value is a Tailwind utility class and no value is a colour literal \u2014 asserted, because a raw value forces the emitter to inline a style, which collides with R10 and \u00a78. An unrecognised token key is ignored rather than rejected."
+    },
+    {
+      "id": "T-093",
+      "phase": 2,
+      "title": "Make the deterministic emitter read designTokens, proving it changes nothing by default (\u00a76.1)",
+      "track": "generation",
+      "size": "40m",
+      "contract": [
+        "\u00a76.1",
+        "\u00a77"
+      ],
+      "deps": [
+        "T-092",
+        "T-025"
+      ],
+      "files": [
+        "server/src/generate/emitter.js"
+      ],
+      "verify": "npm test -- emitter-tokens",
+      "doneWhen": "The emitter produces BYTE-IDENTICAL output for an IR with no designTokens and an IR carrying DEFAULT_TOKENS explicitly \u2014 this equivalence is the assertion that stops the field quietly changing the deterministic path. theme.accent and designTokens.colors.accent are asserted to agree. A prompt changing the accent moves both and records a warning (\u00a76 conflict resolution)."
+    },
+    {
+      "id": "T-094",
+      "phase": 2,
+      "title": "Implement \u00a718.2 \u2014 retry once on structural failure, then fall back to the deterministic emitter",
+      "track": "generation",
+      "size": "40m",
+      "contract": [
+        "\u00a718.2",
+        "\u00a711.1",
+        "\u00a716.2"
+      ],
+      "deps": [
+        "T-025",
+        "T-034",
+        "T-085"
+      ],
+      "files": [
+        "server/src/generate/validateAndRecover.js"
+      ],
+      "verify": "npm test -- validation-recovery",
+      "doneWhen": "A parse error or an ESLint ERROR (not a warning) triggers exactly one retry from the same IR; a second structural failure falls back to the deterministic emitter, records stage 6 as degraded per \u00a711.1, appends a warning, and the JOB SUCCEEDS. Asserted that the total attempt count is two, not four \u2014 \u00a716.2 has its own single retry for a schema-invalid model response and the two must not compose. No rule-based auto-repair."
     }
   ]
 }

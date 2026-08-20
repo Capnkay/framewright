@@ -612,5 +612,90 @@ the contract does not define it, ask or log the gap. Logged. It wants closing as
 sides must agree on the name. Whoever closes it: do not rename `artifact` without changing
 both sides in the same commit.`n| T-004 missing test | The json-store test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
 
+
+---
+
+## 2026-08-20 · T-005's `files` list had the same defect — fourth in a row
+
+| What | Detail | Found by |
+|---|---|---|
 | T-005 missing test | The mongo-store test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
 | T-006 missing test | The allocate-id test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
+
+**Four tasks out of four now: T-002, T-003, T-005, T-054.** Every one declared a
+`verify` command naming a test file its own `files` list omitted. Two different
+builders hit it independently, four times, inside one afternoon.
+
+It is worth stating plainly that this is no longer a per-task correction. It is a
+defect in how `_build/tasks.json` was generated, it is present in an unknown number of
+the ~87 remaining tasks, and everyone is currently paying for it one task at a time.
+**Somebody should sweep the whole board once** — for every task with a non-null
+`verify` naming `npm test -- <x>` or a pytest path, assert the corresponding test file
+appears in that task's `files`. That is a ten-minute script and it retires the problem
+instead of rediscovering it.
+
+---
+
+## 2026-08-20 · CONTRACT v1.5 → v1.6 — the last two places the diagram and this document disagreed
+
+Found by reading `IMG_3214.PNG` against the contract a second time, after v1.5 had already
+reconciled the infra band.
+
+### 1. The Design System & Tokens store existed nowhere (§6.1)
+
+The diagram carries a token store feeding **both** the layout planner and code generation —
+colours, typography, spacing, shadows, border radius, breakpoints, components. Grepping this
+document for "design system", "token", "typography", "shadow" and "border-radius" returned
+**zero hits across all 1,141 lines.** The IR's `theme` was four fields.
+
+That gap sat directly under the **15-point layout-fidelity criterion**, and it would have
+been discovered by whoever built the emitter, at the point where retrofitting the IR is
+expensive. T-025 has not been built, so it is closed now instead.
+
+`designTokens` is **optional**, and the load-bearing part is what happens when it is absent:
+the emitter uses `DEFAULT_TOKENS` and produces exactly what it produces today. T-093's
+verification is that the emitter's output is **byte-identical** for an IR with no
+`designTokens` and an IR carrying `DEFAULT_TOKENS` explicitly. That equivalence is the only
+thing standing between an additive field and a silent change to the deterministic path.
+
+Two rules inside it are not cosmetic:
+
+- **Tailwind utility classes, never raw CSS values.** `text-4xl`, not `36px`. A token
+  holding a raw value forces the emitter to invent a class name or inline a style, and the
+  second collides with R10's `cssText` overlay and §8's CSS allow-list.
+- **`theme` stays and is not deprecated.** It is what `sectionTextMode` and
+  `getSectionTextContrastClass` read. `theme.accent` and `designTokens.colors.accent` must
+  agree, set from one source. Renaming it after the clock started is forbidden regardless.
+
+### 2. v1.5 contradicted the brief on validation failure (§18.2)
+
+**This one was mine, introduced hours earlier.** §18 said no gate may fail a generation. The
+diagram routes *"Validation Failed → auto-fix (rules) or re-generate"*, and the source
+brief's own risk table says *"Validate with a parser; retry once; fall back to a template
+filled from IR."* All three cannot hold.
+
+The error was running two different things together. **Scoring** gates — visual similarity,
+accessibility count, performance, the §18.1 score — should never block; that part of §18 was
+right and stands. **Structural failure** is a different animal: a component that does not
+parse is not a low-scoring component, it is not a component. Shipping it with a warning
+attached would have satisfied §18 as written and handed a judge a broken preview — the exact
+outcome this document exists to prevent.
+
+§18.2: emit, parse, lint; on a parse error or an ESLint **error** retry exactly once from the
+same IR; on a second structural failure fall back to the deterministic emitter, record stage
+6 `degraded`, warn, and **the job succeeds**. §11.1 already says a degraded stage is a
+success for the job and a warning for the stage; this is the case it was describing.
+
+**Rule-based auto-repair declined deliberately.** The diagram offers it. Repairing generated
+code with rules is unbounded work, and the deterministic emitter already gives a
+guaranteed-valid answer for free. Falling back to something that always works beats fixing
+something that sometimes does.
+
+**"Retry once" means once.** §16.2's orchestrator has its own single retry for a
+schema-invalid model response; §18.2's is a separate, later retry of the whole emit step. The
+two must not compose into four attempts, and T-094 asserts the total is two — NFR-02 gives
+the entire generation 60 seconds.
+
+**Board:** T-092, T-093, T-094 added, all Phase 2 and `generation` track, because both
+changes are spine work that must land before the Phase 3 split. T-076's dependencies extended.
+Total 92 → 95.

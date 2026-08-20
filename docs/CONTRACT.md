@@ -1,6 +1,6 @@
 # Framewright — The Contract
 
-**Status: FROZEN — both verification gates passed.** Version 1.5, 2026-08-20.
+**Status: FROZEN — both verification gates passed.** Version 1.6, 2026-08-20.
 
 *v1.0 drafted. **v1.1** after a cold-boot re-derivation from the brief: full wire shapes
 for every endpoint, the `fetchElementsByIds` signature, regeneration semantics, the store
@@ -18,6 +18,8 @@ placeholder rule now match what is actually built, tested, and enforced by the g
 quality gates. Additive only — nothing in §1–§14 changed. Every addition is optional and
 degrades to nothing when its dependency is absent, because Standing Rule 3 says the
 deterministic path always works.*
+
+**v1.6** closes the last two places the architecture diagram and this document disagreed: `designTokens` in the IR (§6.1), and a validation-failure policy that matches the brief's own risk table (§18.2). Additive only.*
 
 *All changes and why each mattered: `docs/corrections/REGISTER.md`.*
 
@@ -366,6 +368,63 @@ parallel tracks would otherwise invent different answers.
   "warnings": []
 }
 ```
+
+### 6.1 Design tokens
+
+Added in v1.6. The architecture diagram carries a **Design System & Tokens** store feeding
+both the layout planner and code generation; this document had `theme`'s four fields and
+nothing else. That gap sat directly under the 15-point layout-fidelity criterion, so it is
+closed here rather than discovered by the emitter.
+
+`designTokens` is **optional**. When absent, the emitter uses `DEFAULT_TOKENS` below and
+produces exactly the output it produces today — so this changes nothing about the
+deterministic path, and an IR written before v1.6 stays valid.
+
+```json
+"designTokens": {
+  "colors": {
+    "accent": "red-500", "accentContrast": "white",
+    "surface": "white", "surfaceAlt": "gray-50",
+    "text": "gray-800", "textMuted": "gray-500"
+  },
+  "typography": {
+    "headingFamily": "font-sans", "bodyFamily": "font-sans",
+    "headingWeight": "font-extrabold", "bodyWeight": "font-normal",
+    "scale": { "h1": "text-4xl md:text-5xl", "h2": "text-xl md:text-2xl",
+               "body": "text-base", "eyebrow": "text-sm", "stat": "text-2xl" }
+  },
+  "spacing":      { "sectionY": "py-8 md:py-16", "gap": "gap-4", "containerX": "px-0 md:px-12" },
+  "shadows":      { "card": "shadow-none", "button": "shadow-none" },
+  "borderRadius": { "button": "rounded-md", "card": "rounded-lg", "image": "rounded-none" },
+  "breakpoints":  { "stack": "md" },
+  "components":   { "button": "inline-flex items-center justify-center font-semibold" }
+}
+```
+
+Rules:
+
+1. **Every value is a Tailwind utility class, not a raw CSS value.** `text-4xl`, never
+   `36px`. R11 requires Tailwind for layout, and a token holding a raw value forces the
+   emitter to invent a class name or inline a style — the second of which collides with
+   R10's `cssText` overlay and with §8's CSS allow-list.
+2. **Tokens never carry colour literals.** `red-500`, never `#ef4444`. §8's CSS allow-list
+   and §14's "no real hosts or identifiers" both assume the palette is symbolic.
+3. **`theme` stays exactly as it is and is not deprecated.** `theme.accent` and
+   `designTokens.colors.accent` must agree; the API sets both from the same source. `theme`
+   is what §2's `sectionTextMode` and `getSectionTextContrastClass` read, and renaming or
+   removing it after the clock started is forbidden anyway.
+4. **A token the emitter does not recognise is ignored, not an error.** Perception and a
+   hosted model can both propose tokens; an unknown key must never fail a generation.
+5. **Prompt wins**, per §6's conflict-resolution order. "Make the CTA green" sets
+   `colors.accent` and records a warning, exactly as it does for `theme.accent` today.
+
+**`DEFAULT_TOKENS` is the object printed above**, which is the Pulse Fit reference set and
+reproduces the golden component's current classes. It is checked in beside the emitter, and
+the emitter is required to produce byte-identical output for an IR with no `designTokens`
+and an IR carrying `DEFAULT_TOKENS` explicitly. That equivalence is the assertion that stops
+this field quietly changing the deterministic path.
+
+---
 
 ### Field notes — the ones that matter
 
@@ -1158,3 +1217,43 @@ score = 40 * structurePass
   same job, and so a judge can check the arithmetic.
 
 **The score is not a gate.** It is displayed. Nothing branches on it.
+
+### 18.2 What happens when validation actually fails
+
+Added in v1.6, resolving a contradiction introduced by v1.5. §18 says no gate fails a
+generation. The architecture diagram routes *"Validation Failed → auto-fix (rules) or
+re-generate"*, and the source brief's own risk table says *"Validate with a parser; retry
+once; fall back to a template filled from IR."* Those cannot all be true.
+
+They are reconciled by separating two things v1.5 ran together:
+
+| | |
+|---|---|
+| **Scoring gates** — visual similarity, accessibility count, performance, the §18.1 score | Never block. Record, warn, display. §18 stands unchanged |
+| **Structural failure** — emitted JSX does not parse, or ESLint reports an error | **Recoverable, and recovered** |
+
+A component that does not parse is not a low-scoring component. It is not a component.
+Shipping it with a warning attached would satisfy §18 as written and hand a judge a broken
+preview, which is the outcome the whole document exists to prevent.
+
+**The policy, in order:**
+
+1. Emit. Parse the result with `@babel/parser` and lint it with the hermetic config (§18).
+2. On a parse error or an ESLint **error** — warnings do not count — **retry exactly once**
+   from the same IR.
+3. If the retry also fails structurally, **fall back to the deterministic emitter**, which
+   takes no model output and cannot produce unparseable JSX. Record `degraded` on stage 6
+   per §11.1 and append a warning naming what failed.
+4. The job **succeeds**. A degraded stage is a success for the job and a warning for the
+   stage — §11.1 already says so, and this is exactly the case it describes.
+
+**Rule-based auto-repair is explicitly out of scope.** The diagram offers it; we decline it.
+Repairing generated code with rules is unbounded work, and the deterministic emitter already
+gives us a guaranteed-valid answer for free. Falling back to something that always works
+beats fixing something that sometimes does.
+
+**"Retry once" means once.** Not once per stage, not once per element. §16.2's orchestrator
+has its own single retry for a schema-invalid model response; this is a separate, later
+retry of the whole emit step, and the two do not compose into four attempts. NFR-02 gives
+the whole generation 60 seconds.
+
