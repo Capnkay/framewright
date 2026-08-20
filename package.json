@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test tests/**/*.mjs",
-    "build": "echo \"no build step: docs/html is static\"",
-    "vercel-build": "echo \"no build step: docs/html is static\""
+    "build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/",
+    "vercel-build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/"
   }
 }

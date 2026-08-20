@@ -1,7 +1,7 @@
 {
-  "buildCommand": "echo \"no build step\"",
+  "buildCommand": "rm -rf public && mkdir -p public && cp -r docs/html/. public/",
   "installCommand": "echo \"no dependencies\"",
-  "outputDirectory": "docs/html",
+  "outputDirectory": "public",
   "framework": null,
   "cleanUrls": true,
   "trailingSlash": false
