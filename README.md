@@ -6,26 +6,46 @@ traced, and reproducible. The full behavioural contract lives in `docs/CONTRACT.
 the build plan lives in `docs/ROADMAP.md`. If any two artifacts in this repository
 ever disagree with `docs/CONTRACT.md`, the contract wins and the other is a bug.
 
+## Start here
+
+**If you are here to build — human or AI agent — read [`AGENTS.md`](AGENTS.md) first.**
+It is the canonical instruction file: the ritual, the rules, and where everything lives.
+
+Then, every session, one command:
+
+```
+continue build
+```
+
+Which runs `node tools/baton.mjs status` and `next`, hands you the next task whose
+dependencies are met, and names the contract sections that task must satisfy. Full
+protocol in [`docs/BATON.md`](docs/BATON.md); first-time machine setup in
+[`SETUP.md`](SETUP.md).
+
 ## Status
 
-**Harness only.** This repository currently contains repository hygiene, git hooks,
-and configuration — the enforcement floor the rest of the project is built on. No
-application code has been written yet. See `docs/ROADMAP.md` Phase 0 for what this
-repository satisfies today, and Phase 1 onward for what has not started.
+**Current build state is always [`_build/STATE.md`](_build/STATE.md)** — generated from
+the task board, never hand-maintained, so it cannot go stale. Do not look for progress
+anywhere else and do not restate it anywhere else.
+
+Today: the harness is complete and Phase 1 has not started. On disk and working —
+repository hygiene, five hooks, the task board and its tooling, the frozen contract, and
+the **golden reference component with its seed data, four helpers and 13 passing tests**.
+The wired Vite/Express application does not exist yet; the component that application will
+mount does, and its tests run today.
 
 ## Run commands
 
-The application itself does not exist yet. These are the commands it will use once
-the corresponding roadmap phase lands; each row is marked with the phase that
-introduces it, so this table stays honest as the project grows instead of describing
-software that isn't there yet.
+`npm test` works **right now**, on a fresh clone, with no `npm install` — the golden
+component's checks are zero-dependency by design. Everything else arrives with the phase
+marked against it, so this table describes what exists rather than what is planned.
 
 | Command | Purpose | Introduced |
 |---|---|---|
 | `npm install` | install frontend and API dependencies | Phase 1 |
 | `npm run dev` | start the Vite frontend, `http://localhost:5173` | Phase 1 |
 | `npm run server` | start the Node/Express API, `http://localhost:5000` | Phase 1 |
-| `npm test` | run the automated checks, including the store-liveness assertion (`docs/CONTRACT.md` section 9) | Phase 1 |
+| `npm test` | run the automated checks, including the store-liveness assertion (`docs/CONTRACT.md` section 9) | **works now — 13/13, no install needed** |
 | `npm run lint` | run ESLint against generated and hand-written code | Phase 2 |
 | `python -m perception.server` | start the local Python perception service | Phase 3 |
 

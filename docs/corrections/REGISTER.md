@@ -224,3 +224,52 @@ into components, because nothing in its training data ever asked it to.
    ours being wrong first.
 
 Updated: `docs/BENCHMARK-RESULTS.md` (definitive), ROADMAP v1.4, stage card 01, EC-008.
+
+---
+
+## 2026-08-20 · Harness audit — mechanical, cold-boot, and conventions
+
+Three checks run by agents that did not build the harness. The mechanical pass returned
+20/20 clean. The cold-boot pass — simulating someone who had never seen the repository —
+found four real gaps, and the worst was a false completion claim.
+
+| # | Found | Resolution |
+|---|---|---|
+| 1 | **Phase 0.4 was marked done and was not done.** The roadmap promises "agent definitions for the executor + the work-unit format Antigravity consumes." The format was satisfied — a baton task *is* a work unit — but **no artifact addressed to the executor existed**: no `AGENTS.md`, no `.claude/agents/`, no `.agents/`. Phase 0 read 1/1 done | Closed properly with three files, and the roadmap row now records that it was marked done in error. This register exists to catch exactly this, and it did not — because the same party both claimed and closed it |
+| 2 | **`README.md` never bridged to the build system.** No mention of the baton, `continue build`, or `_build/STATE.md`. Any tool reading only the README — which by our own plan includes the primary executor — got project understanding and then dead-ended | README now opens with a "Start here" section pointing at `AGENTS.md`, the one command, and the generated board |
+| 3 | **`README.md` said "no application code has been written yet."** The golden component, four helpers, seed data and 13 passing tests exist. The file most likely to be read alone was wrong about the repository's contents | Corrected to distinguish the wired application (does not exist) from the component it will mount (exists, tested) |
+| 4 | **`SETUP.md` stopped before the one command that works.** Step 5 said nothing was runnable. `npm test` runs on a fresh clone with no install and passes 13/13 — the very evidence this register cites | Added as its own step, with the expected result and an instruction to stop if it fails |
+| 5 | **The entire git-hook floor was opt-in and unverified.** `core.hooksPath` is per-clone local config that nothing sets automatically. A teammate who skipped that step got **no secret scan, no integrity check, no claim check, no task-id check** — silently, with everything appearing to work | `baton status` now warns loudly at the top of every run when hooks are not wired. Same class as the CRLF bug: perfect for the person who built it, silently absent for everyone else |
+
+### On the `CONTEXT.md` request
+
+A teammate asked for a `CONTEXT.md` so all agents on all devices share build context. The
+cold-boot audit ruled it **partly met**: the content exists and is current
+(`_build/STATE.md` is generated, not hand-maintained), but it was **not discoverable by
+anything that does not read `CLAUDE.md`** — which is every tool except Claude Code,
+including our primary executor.
+
+Resolved with the documented convention rather than an invented filename. **VERIFIED**
+2026-08-20 against primary sources:
+
+- **`AGENTS.md` is a real open standard** — launched by OpenAI Codex, Cursor, Amp, Jules
+  and Factory; stewarded by the **Linux Foundation's Agentic AI Foundation since Dec 2025**
+  (agents.md, opened directly). Read by Cursor, Copilot, Gemini CLI, Devin Desktop and
+  others.
+- **Anthropic documents the pointer pattern itself** — Claude Code reads `CLAUDE.md`, not
+  `AGENTS.md`, and the official recommendation is to make `AGENTS.md` canonical and reduce
+  `CLAUDE.md` to an `@AGENTS.md` import plus tool-specific notes
+  (code.claude.com/docs/en/memory). Not folklore.
+- **Antigravity's own docs do NOT claim it auto-reads a root `AGENTS.md`.** They document
+  `.agents/rules/` and `.agents/skills/`. Several third-party blogs assert otherwise and
+  are contradicted by the primary source. A *different* Google product — the Gemini API
+  "Antigravity agent" — does use `AGENTS.md`; the two are easy to conflate.
+
+So we covered both paths rather than betting on either: `AGENTS.md` canonical,
+`CLAUDE.md` importing it, `.agents/rules/framewright.md` for Antigravity. **Still
+unverified:** which file Antigravity actually picks up. Whoever runs it first should
+confirm empirically and record it in `docs/EDGE-CASES.md`.
+
+**Deliberately not done:** no file restates build progress. `_build/STATE.md` is generated
+from the task board, and a hand-written summary alongside it would drift within hours and
+then quietly lie. The new files are routers, not second sources of truth.

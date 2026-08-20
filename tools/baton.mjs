@@ -384,7 +384,26 @@ function writeTasksMd(tasks, claims) {
 
 // -------------------------------------------------------------- commands ---
 
+// The git hooks only run if core.hooksPath points at .githooks, and that is
+// per-clone local config that nothing sets automatically. A teammate who skips
+// that setup step gets NO secret scan, NO integrity check, NO claim check and NO
+// task-id check -- silently, with everything appearing to work. Warn loudly.
+function warnIfHooksNotWired() {
+  let configured = '';
+  try {
+    const r = spawnSync('git', ['config', '--get', 'core.hooksPath'],
+      { encoding: 'utf8', windowsHide: true });
+    configured = (r.stdout || '').trim();
+  } catch { /* git absent -- the caller has bigger problems */ }
+  if (configured === '.githooks') return;
+  console.log('  !! GIT HOOKS ARE NOT ACTIVE ON THIS MACHINE.');
+  console.log('     No secret scan, no integrity check, no claim check on commit.');
+  console.log('     Fix it now:  git config core.hooksPath .githooks');
+  console.log('');
+}
+
 function cmdStatus(tasks, claims) {
+  warnIfHooksNotWired();
   const { done, inFlight, blocked, nextUp, byPhase } = boardData(tasks, claims);
   console.log('Framewright — build board\n');
   for (const phase of Object.keys(byPhase).sort((a, b) => Number(a) - Number(b))) {

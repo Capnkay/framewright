@@ -69,7 +69,7 @@ Nothing here consumes event hours. This is the entire advantage.
 | 0.1 | `docs/CONTRACT.md` frozen — IR v1.0, CMS shapes, ID ranges, sanitiser policy, job/trace shape, HTTP contracts | Attacked by a reviewer who did not write it, and re-derived from the brief by a second |
 | 0.2 | Framewright repo: own git, `.gitignore`, `.env.example`, `robots.txt`, README skeleton | `.env.example` is tracked and contains only placeholders |
 | 0.3 | Five hooks installed and **test-fired against both a true positive and a legitimate-workflow false positive** | Every hook passes both tests. A hook that fails either does not ship |
-| 0.4 | Agent definitions for the executor + the work-unit format Antigravity consumes | A work unit names the contract section it must satisfy |
+| 0.4 | Agent definitions for the executor + the work-unit format Antigravity consumes | **Was marked done in error and corrected 2026-08-20.** The work-unit *format* was satisfied — a baton task is a work unit — but no *artifact* addressed to the executor existed. Now closed properly: `AGENTS.md` (canonical), `CLAUDE.md` importing it, and `.agents/rules/framewright.md` for Antigravity |
 | 0.5 | 13 Stage Cards + the Map + Judge Cards | Each teammate can explain their subsystem cold |
 | 0.6 | Golden reference component + seed JSON + the two hand-written helpers, **as standalone files with a unit test** | The component renders against a mocked store and the §9 assertion runs green against that mock. No server, no database — those are Phase 1 |
 | 0.7 | Environments verified on every machine, including the GPU laptop | `GET /health` returns `cuda:0`; one wireframe survives the perception path |

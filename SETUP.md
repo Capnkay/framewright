@@ -93,9 +93,22 @@ This should exit `0` when the repository's history contains no secret, no forbid
 hostname, no out-of-range ID, no absolute local path, and no model weight file, and
 when `.env.example` is tracked and placeholder-only.
 
-## 5. Install project dependencies
+## 5. Verify the golden component
 
-Not available yet — the application has not been scaffolded. See `docs/ROADMAP.md`
+```bash
+npm test
+```
+
+**This works right now, on a fresh clone, with no `npm install`.** The checks are
+zero-dependency on purpose. Expect **13 passing, 0 failing** — including the two that
+matter most: that every nested card field gets its own store key, and that patching a
+nested card field actually changes what renders.
+
+If this fails on a clean clone, stop and say so before building anything on top of it.
+
+## 6. Install project dependencies
+
+Not available yet — the wired application has not been scaffolded. See `docs/ROADMAP.md`
 Phase 1 for what lands next and the commands it introduces.
 
 ## Working on this build
