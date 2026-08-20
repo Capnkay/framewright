@@ -78,3 +78,10 @@
 - Device: Mohits_Victus
 - Files: server/src/generate/perceiveAndAssembleIr.js, tests/perception-degradation.test.mjs
 
+## T-089 — Implement the pixelmatch visual gate, null when there was no wireframe (§18)
+- Started: 2026-08-20T20:53:08.136Z
+- Finished: 2026-08-20T20:56:32.594Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: server/src/quality/visual.js, tests/quality-visual.test.mjs
+
