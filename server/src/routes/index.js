@@ -171,37 +171,8 @@ export function postRegenerate(ctx = {}) {
 import { getJob } from './jobs.js';
 export { getJob };
 
-/** POST /api/jobs/:jobId/replay — §11 Replay. */
-export function postReplay(ctx = {}) {
-  const { jobId } = ctx.params || {};
-  const body = ctx.body || {};
-
-  if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
-    return badRequest('jobId must match job-<10 digits> (§11.1).');
-  }
-
-  const fromStage = body.fromStage;
-  if (!Number.isInteger(fromStage) || fromStage < 1 || fromStage > 7) {
-    return badRequest('fromStage is required and must be an integer 1–7 (§11.0).');
-  }
-
-  // §11.0: stages 2, 3 and 4 need the perception machine. A replay targeting
-  // stage <= 4 with perception down returns 422 rather than hanging. The
-  // skeleton already answers this correctly, because "rather than hanging" is
-  // the behaviour, and perception is down until T-058.
-  if (fromStage <= 4) {
-    return {
-      status: STATUS.UNPROCESSABLE,
-      body: error(
-        ERROR_CODE.PARSE_FAILURE,
-        `Replay from stage ${fromStage} requires the perception service, which is unreachable. ` +
-          'Stages 5, 6 and 7 replay without it (§11.0).',
-      ),
-    };
-  }
-
-  return notImplemented('T-040', 'POST /api/jobs/:jobId/replay');
-}
+import { postReplay } from './replay.js';
+export { postReplay };
 
 /** GET /api/jobs/:jobId/artifacts/:name — §11.2. */
 export function getArtifact(ctx = {}) {

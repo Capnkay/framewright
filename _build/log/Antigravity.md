@@ -56,3 +56,10 @@
 - Device: Jainam
 - Files: server/src/routes/jobs.js, tests/get-job.test.mjs
 
+## T-040 — Implement POST /api/jobs/:jobId/replay per §11's Replay section
+- Started: 2026-08-20T19:43:08.419Z
+- Finished: 2026-08-20T19:43:24.430Z
+- Duration: 0m
+- Device: Jainam
+- Files: server/src/routes/replay.js, tests/replay-endpoint.test.mjs
+
