@@ -56,3 +56,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: client/src/utils/getHtml.js, client/src/sections/HeroSection.jsx, tests/get-html-r6.test.mjs
 
+## T-014 — Implement R8-R10, R13-R14 in HeroSection, including R9's length>0 guard
+- Started: 2026-08-20T19:01:09.677Z
+- Finished: 2026-08-20T19:10:11.750Z
+- Duration: 9m
+- Device: LAPTOP-E9HORJ7M
+- Files: client/src/sections/HeroSection.jsx, tests/hero-section-r8-r14.test.mjs
+
