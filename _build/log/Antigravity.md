@@ -35,3 +35,10 @@
 - Device: Jainam
 - Files: server/src/pipeline/stage1InputAcquisition.js, tests/stage1.test.mjs
 
+## T-021 — Write the Element document and Cards loop item Ajv schemas per §3 and §4
+- Started: 2026-08-20T19:26:33.933Z
+- Finished: 2026-08-20T19:27:49.984Z
+- Duration: 1m
+- Device: Jainam
+- Files: server/src/schemas/element.schema.json, server/src/validate/elementValidator.js, tests/element-schema.test.mjs
+

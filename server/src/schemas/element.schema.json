@@ -1,0 +1,59 @@
+{
+  "$id": "https://example.com/schemas/element.schema.json",
+  "type": "object",
+  "properties": {
+    "sectionId": { "type": "string", "pattern": "^1[0-9]{9}$" },
+    "elementName": { "type": "string" },
+    "fieldId": { "type": "string", "pattern": "^2[0-9]{9}$" },
+    "content": { "type": ["string", "null"] },
+    "contentType": {
+      "type": "string",
+      "enum": ["Image", "Text", "Textfield", "Button", "Cards"]
+    },
+    "css": { "type": ["string", "null"] },
+    "loop": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "patternProperties": {
+          "^field[1-9][0-9]*$": { "type": ["string", "null"] },
+          "^fieldType[1-9][0-9]*$": { "type": "string", "enum": ["Image", "Text", "Textfield", "Button", "Cards"] },
+          "^fieldId[1-9][0-9]*$": { "type": "string", "pattern": "^3[0-9]{9}$" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "projectName": { "type": "string" },
+    "pageName": { "type": "string" }
+  },
+  "required": [
+    "sectionId",
+    "elementName",
+    "fieldId",
+    "content",
+    "contentType",
+    "css",
+    "loop",
+    "projectName",
+    "pageName"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "contentType": { "const": "Cards" }
+        }
+      },
+      "then": {
+        "properties": {
+          "loop": { "type": "array" }
+        }
+      },
+      "else": {
+        "properties": {
+          "loop": { "type": "null" }
+        }
+      }
+    }
+  ]
+}
