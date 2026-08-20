@@ -71,3 +71,10 @@
 - Device: LAPTOP-PUPG5T28
 - Files: server/src/routes/elements.js, tests/get-elements.test.mjs
 
+## T-016 — Implement PATCH /api/elements/:fieldId per §13.2
+- Started: 2026-08-20T18:42:38.825Z
+- Finished: 2026-08-20T18:47:19.619Z
+- Duration: 5m
+- Device: LAPTOP-PUPG5T28
+- Files: server/src/routes/elements.js, tests/patch-elements.test.mjs
+
