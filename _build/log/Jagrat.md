@@ -70,3 +70,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/emitComponent.js, tests/emit-component.test.mjs
 
+## T-028 — Implement the component-file write path per §7's mounting seam
+- Started: 2026-08-20T19:15:54.624Z
+- Finished: 2026-08-20T19:17:45.584Z
+- Duration: 2m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/writeComponentFile.js, tests/write-component-file.test.mjs
+
