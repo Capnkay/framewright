@@ -42,12 +42,17 @@
       "deps": [],
       "files": [
         "client/package.json",
+        "client/index.html",
         "client/vite.config.js",
         "client/tailwind.config.js",
+        "client/postcss.config.js",
+        "client/src/index.css",
         "client/src/main.jsx",
         "client/src/App.jsx",
+        "client/src/redux/reducers.js",
         "client/src/routes/GeneratePage.jsx",
-        "client/src/routes/PreviewPage.jsx"
+        "client/src/routes/PreviewPage.jsx",
+        "tests/app-shell.test.mjs"
       ],
       "verify": "npm test -- app-shell",
       "doneWhen": "npm run dev serves both routes; the Redux store is attached at the app root and the cms slice namespace exists even if empty."
