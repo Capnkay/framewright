@@ -130,7 +130,8 @@
         "T-003"
       ],
       "files": [
-        "server/src/store/mongoStore.js"
+        "server/src/store/mongoStore.js",
+        "tests/mongo-store.test.mjs"
       ],
       "verify": "npm test -- mongo-store",
       "doneWhen": "allocateId is atomic under concurrent calls against a real or in-memory Mongo instance; _id and $oid never appear in a returned document."

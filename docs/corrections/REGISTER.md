@@ -612,3 +612,4 @@ the contract does not define it, ask or log the gap. Logged. It wants closing as
 sides must agree on the name. Whoever closes it: do not rename `artifact` without changing
 both sides in the same commit.`n| T-004 missing test | The json-store test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
 
+| T-005 missing test | The mongo-store test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |

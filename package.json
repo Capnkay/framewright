@@ -2,7 +2,7 @@
   "name": "framewright",
   "private": true,
   "version": "0.1.0",
-  "description": "Framewright \u2014 wireframe, code, or prompt to a CMS-ready React section, with a live preview and store-backed editing.",
+  "description": "Framewright — wireframe, code, or prompt to a CMS-ready React section, with a live preview and store-backed editing.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -12,5 +12,9 @@
     "server": "node server/src/server.js",
     "build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/",
     "vercel-build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/"
+  },
+  "devDependencies": {
+    "mongodb": "^7.5.0",
+    "mongodb-memory-server": "^11.2.0"
   }
 }

@@ -1,12 +1,12 @@
 import { createAdapter } from './adapter.js';
 import { createJsonStore } from './jsonStore.js';
+import { createMongoStore } from './mongoStore.js';
 
 export function createStore(env = {}) {
   const type = env.STORE_TYPE || 'json';
   
   if (type === 'mongo') {
-    // To be implemented in T-005
-    return createAdapter(createStubStore('mongo'));
+    return createAdapter(createMongoStore(env.MONGO_URI));
   } else if (type === 'json') {
     return createAdapter(createJsonStore('./server/data/store.json'));
   }

@@ -14,3 +14,10 @@
 - Device: Jainam
 - Files: server/src/store/jsonStore.js, server/data/store.json, tests/json-store.test.mjs
 
+## T-005 — Implement the Mongo store with an atomic allocateId via findOneAndUpdate
+- Started: 2026-08-20T15:53:18.759Z
+- Finished: 2026-08-20T16:13:47.618Z
+- Duration: 20m
+- Device: Jainam
+- Files: server/src/store/mongoStore.js, tests/mongo-store.test.mjs
+
