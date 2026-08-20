@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "express": "^4.21.0",
-    "mongodb": "^7.5.0"
+    "mongodb": "^7.5.0",
+    "ajv": "^8.17.1"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.2.0"

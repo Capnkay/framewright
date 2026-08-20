@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://framewright.local/schemas/ir-v1.0.json",
+  "title": "Framewright IR v1.0",
+  "description": "CONTRACT.md §6 — the bridge document perception writes, generation reads, validation compares against, and the Glass Box replays from.",
+  "type": "object",
+  "required": [
+    "irVersion",
+    "sectionType",
+    "platform",
+    "pageName",
+    "sectionName",
+    "source",
+    "layout",
+    "theme",
+    "cards",
+    "elements",
+    "idPolicy",
+    "variations",
+    "warnings"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "irVersion": { "type": "string" },
+    "sectionType": { "type": "string" },
+    "platform": { "type": "string" },
+    "pageName": { "type": "string" },
+    "sectionName": { "type": "string" },
+
+    "source": {
+      "type": "object",
+      "required": ["mode", "inputs"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["wireframe", "code", "prompt", "combined"] },
+        "inputs": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["wireframe", "code", "prompt"] }
+        },
+        "wireframeRef": { "type": ["string", "null"] }
+      }
+    },
+
+    "layout": {
+      "type": "object",
+      "required": ["direction", "breakpoint", "mobileBehaviour", "container", "regions"],
+      "properties": {
+        "direction": { "type": "string" },
+        "breakpoint": { "type": "string" },
+        "mobileBehaviour": { "type": "string" },
+        "container": {
+          "type": "object",
+          "required": ["maxWidth", "padding"],
+          "properties": {
+            "maxWidth": { "type": "string" },
+            "padding": { "type": "string" }
+          }
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role", "children"],
+            "properties": {
+              "role": { "type": "string" },
+              "side": { "type": "string" },
+              "width": { "type": "string" },
+              "children": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "accents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "edge": { "type": "string" },
+              "width": { "type": "string" },
+              "colour": { "type": "string" },
+              "fromBreakpoint": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "theme": {
+      "type": "object",
+      "required": ["accent", "surface", "text", "textMode"],
+      "properties": {
+        "accent": { "type": "string" },
+        "surface": { "type": "string" },
+        "text": { "type": "string" },
+        "textMode": { "type": "string", "enum": ["auto", "light", "dark"] }
+      }
+    },
+
+    "designTokens": {
+      "description": "§6.1 — optional. Absent means the emitter uses DEFAULT_TOKENS and the deterministic path is unaffected.",
+      "type": "object",
+      "properties": {
+        "colors": { "type": "object" },
+        "typography": { "type": "object" },
+        "spacing": { "type": "object" },
+        "shadows": { "type": "object" },
+        "borderRadius": { "type": "object" },
+        "breakpoints": { "type": "object" },
+        "components": { "type": "object" }
+      }
+    },
+
+    "cards": {
+      "type": "object",
+      "required": ["of", "count", "gridColumns", "layoutMode", "fieldsPerItem", "items"],
+      "properties": {
+        "of": { "type": "string" },
+        "count": { "type": "integer" },
+        "gridColumns": { "type": "integer" },
+        "layoutMode": { "type": "string", "enum": ["grid", "list"] },
+        "fieldsPerItem": { "type": "integer" },
+        "items": {
+          "type": "array",
+          "description": "§6 field notes — content only. No field IDs appear in the IR; the API allocates and attaches them after the IR is final.",
+          "items": {
+            "type": "object",
+            "not": {
+              "required": ["fieldId1", "fieldId2", "fieldId3"]
+            }
+          }
+        }
+      }
+    },
+
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["elementName", "contentType", "tag", "order", "default", "classes", "css", "confidence", "sourceOf", "bbox"],
+        "properties": {
+          "elementName": { "type": "string" },
+          "contentType": { "type": "string", "enum": ["Image", "Text", "Textfield", "Button", "Cards"] },
+          "tag": { "type": "string" },
+          "order": { "type": "integer" },
+          "default": { "type": ["string", "null"] },
+          "classes": { "type": "string" },
+          "css": { "type": ["string", "null"] },
+          "alt": { "type": ["string", "null"] },
+          "confidence": {
+            "description": "§6 field notes — 0.0-1.0, or null when the element did not come from an image.",
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "sourceOf": { "type": "string", "enum": ["wireframe", "code", "prompt", "default"] },
+          "bbox": {
+            "description": "[x, y, w, h] in the normalised image's coordinate space, or null for non-visual sources.",
+            "type": ["array", "null"],
+            "items": { "type": "number" },
+            "minItems": 4,
+            "maxItems": 4
+          }
+        }
+      }
+    },
+
+    "idPolicy": {
+      "type": "object",
+      "required": ["mode", "contentPolicy", "preserve"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["allocate", "preserve"] },
+        "contentPolicy": {
+          "description": "§6 field notes — a separate axis from mode. overwrite sets content from the IR's default; keep leaves existing content untouched for elements that already existed.",
+          "type": "string",
+          "enum": ["overwrite", "keep"]
+        },
+        "preserve": {
+          "type": "object",
+          "properties": {
+            "elements": { "type": "object" },
+            "cards": { "type": "object" }
+          }
+        }
+      }
+    },
+
+    "variations": {
+      "description": "§2/§6 — always a string. There is no numeric form of this field anywhere.",
+      "type": "string"
+    },
+
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
