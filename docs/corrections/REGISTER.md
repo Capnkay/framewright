@@ -553,3 +553,4 @@ need it rather than here.
 
 `LAW-MANIFEST.sha256` regenerated for `.githooks/pre-push` from LF content, per `EC-006`.
 The manifest caught the edit before the commit did, which is what it is for.
+| T-003 missing test | The store-adapter-interface test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |

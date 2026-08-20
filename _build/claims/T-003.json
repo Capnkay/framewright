@@ -3,7 +3,9 @@
   "who": "Antigravity",
   "device": "Jainam",
   "claimedAt": "2026-08-20T15:35:01.970Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-20T15:40:56.564Z",
+  "durationMs": 354594
 }
