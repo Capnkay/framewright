@@ -21,7 +21,10 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import HeroSection from '../sections/generated/HeroSection.jsx';
+
+// Eagerly discover all generated JSX components.
+// Keys are relative paths: '../sections/generated/SectionName-1000000001-v1.jsx'
+const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
 
 export default function PreviewPage() {
   // §1: pageName is case-sensitive. Whatever case the URL carries is the key.
@@ -34,6 +37,28 @@ export default function PreviewPage() {
 
   const keyCount = sections ? Object.keys(sections).length : 0;
   const missingCount = Array.isArray(missing) ? missing.length : 0;
+
+  // We sort sections if they have an order property, otherwise just map them.
+  const sectionDocs = sections ? Object.values(sections) : [];
+
+  const renderedSections = sectionDocs.map((section) => {
+    const safeName = String(section.sectionName || 'Section').replace(/[^a-zA-Z0-9_]/g, '');
+    const filename = `${safeName}-${section.sectionId}-v${section.variation}.jsx`;
+    const moduleKey = `../sections/generated/${filename}`;
+    const Component = generatedModules[moduleKey]?.default;
+
+    if (!Component) {
+      // In case the module is not found, render a fallback.
+      return (
+        <div key={section.sectionId} className="p-4 border-2 border-dashed border-red-300 text-red-600 my-4 rounded">
+          <p className="font-mono">Missing component file: {filename}</p>
+          <p className="text-sm">The section document is in the store, but the file was not found by Vite eager-glob.</p>
+        </div>
+      );
+    }
+    
+    return <Component key={section.sectionId} pageName={pageName} />;
+  });
 
   return (
     <main className="p-6">
@@ -71,7 +96,9 @@ export default function PreviewPage() {
         </p>
       ) : null}
 
-      <HeroSection pageName={pageName} />
+      <div className="mt-8 flex flex-col gap-8">
+        {renderedSections}
+      </div>
     </main>
   );
 }

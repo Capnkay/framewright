@@ -91,3 +91,10 @@
 - Device: Jainam
 - Files: server/src/routes/regenerate.js, tests/regenerate-base.test.mjs
 
+## T-029 — Wire Vite eager-glob discovery of generated sections into the preview app
+- Started: 2026-08-20T20:28:06.603Z
+- Finished: 2026-08-20T20:31:14.705Z
+- Duration: 3m
+- Device: Jainam
+- Files: client/src/routes/PreviewPage.jsx, tests/generated-glob-discovery.test.mjs
+

@@ -35,8 +35,4 @@ test('HeroSection.jsx satisfies R1-R5 and R11-R12 (T-011)', () => {
   assert.match(source, /className="[^"]*dynamicStyle2 [^"]*"/, 'R12: images must have dynamicStyle2');
 });
 
-test('PreviewPage mounts the golden HeroSection', () => {
-  const source = read('client/src/routes/PreviewPage.jsx');
-  assert.match(source, /import HeroSection from ['"]\.\.\/sections\/generated\/HeroSection\.jsx['"]/, 'PreviewPage must import HeroSection');
-  assert.match(source, /<HeroSection\s+pageName=\{pageName\}\s*\/>/, 'PreviewPage must mount HeroSection and pass pageName');
-});
+
