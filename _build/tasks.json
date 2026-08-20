@@ -195,7 +195,7 @@
         "T-001"
       ],
       "files": [
-        "client/src/store/cmsSlice.js",
+        "client/src/redux/cmsSlice.js",
         "tests/cms-slice.test.mjs"
       ],
       "verify": "npm test -- cms-slice",
