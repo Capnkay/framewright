@@ -3,66 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Framewright — What the Harness Is</title>
+<title>Framewright — The Harness</title>
 <link rel="stylesheet" href="stages/_card.css">
 <style>
   .wrap{max-width:940px}
-  .yes{color:#1a7f37;font-weight:600}
-  .no{color:#b42318;font-weight:600}
   .big{font-family:var(--hand);font-size:19px;display:block;margin-bottom:4px}
   .q{font-family:var(--hand);font-size:15px;margin:0 0 4px}
+  .num{font-family:var(--hand);font-size:26px;display:block;line-height:1.1}
+  .stat{text-align:center}
+  .cmd{font-family:var(--mono);background:#1f2430;color:#e6e9ef;border:2.4px solid var(--ink);
+       border-radius:9px;padding:9px 14px;display:inline-block;font-size:14px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <p class="crumb">For the team &nbsp;·&nbsp; written 2026-08-20 &nbsp;·&nbsp; ~6 minutes</p>
-  <h1>What the harness is, and what's in it</h1>
-  <p style="margin:0 0 4px;color:var(--ink2)">You asked for a context file so every agent on every
-  device has the right context. <b>You were right that something was missing</b> — read on for what it
-  was, and what it's now called.</p>
+  <p class="crumb">Framewright &nbsp;·&nbsp; for the team &nbsp;·&nbsp; ~6 minutes</p>
+  <h1>The harness</h1>
+  <p style="margin:0 0 6px;color:var(--ink2)">Everything that exists before the build starts, so that
+  six people on six machines can work at once without colliding, losing work, or drifting from the spec.</p>
 
-  <div class="note good"><b>Short version:</b> the content you wanted already existed, but only
-  Claude Code could find it. That gap is now closed with <code>AGENTS.md</code> — which turns out to be
-  a real cross-tool standard, not a name we invented. Keep poking at gaps; this one was worth finding.</div>
+  <div class="note good"><b>You need to remember one command.</b> Everything below happens behind it.
+  <span class="cmd" style="margin-left:8px">continue build</span></div>
 
-  <h2>Your question, answered honestly</h2>
+  <h2>How a session works</h2>
   <div class="row">
-    <div class="card b">
-      <p class="q">&ldquo;Do all agents have context on build progress?&rdquo;</p>
-      <p style="margin:0 0 8px"><span class="yes">The content: yes, and it can't go stale.</span>
-      <code>_build/STATE.md</code> is <b>generated</b> from the task board every time anyone finishes
-      a task. Nobody maintains it by hand, so it cannot drift from reality.</p>
-      <p style="margin:0"><span class="no">The discoverability: no — and you found a real hole.</span>
-      Our rules lived in <code>CLAUDE.md</code>, which <b>Claude Code auto-loads and nothing else does.</b>
-      Antigravity is our main executor. Every rule we wrote was invisible to it.</p>
+    <div class="card g" style="flex:1 1 420px">
+      <ol class="rit" style="counter-reset:s;list-style:none;padding:0;margin:0">
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0">Pull, so everyone else's claims land first</li>
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0">The board shows who holds what, and what's blocked</li>
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0">You're handed the next task whose dependencies are met</li>
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0"><b>The task names the contract sections it must satisfy.</b> Open them &mdash; they are the requirement</li>
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0">Claim it. The claim pushes instantly, so nobody races you</li>
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0">Build it</li>
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0">Mark it done &mdash; <b>a verification runs and decides</b>, not an opinion</li>
+        <li style="counter-increment:s;position:relative;padding-left:24px;margin:5px 0">Commit with the task id. Push</li>
+      </ol>
     </div>
-    <div class="card g">
-      <p class="q">What we did about it</p>
-      <p style="margin:0 0 8px"><b><code>AGENTS.md</code></b> at the repo root is now the one canonical
-      instruction file. It's an open standard backed by the <b>Linux Foundation</b> since Dec 2025, and
-      it's read by Cursor, Copilot, Gemini CLI, Codex and Devin.</p>
-      <p style="margin:0 0 8px"><code>CLAUDE.md</code> is now three lines of import plus Claude-specific
-      notes. That's <b>Anthropic's own documented recommendation</b>, not our invention.</p>
-      <p style="margin:0"><code>.agents/rules/</code> carries the same rules for Antigravity, because its
-      docs describe <i>that</i> folder and <b>do not</b> mention a root <code>AGENTS.md</code> —
-      third-party blogs say they do, the official docs disagree. We covered both rather than betting.</p>
+    <div class="card b" style="flex:1 1 300px">
+      <p class="q">Two design choices worth knowing</p>
+      <p style="margin:0 0 9px"><b>One file per claim.</b> Different tasks touch different files and merge
+      silently. Two people claiming the <i>same</i> task makes a git conflict &mdash; the one collision you
+      want loud rather than hidden.</p>
+      <p style="margin:0 0 9px"><b>One journal per person.</b> Nobody ever conflicts on the log, however
+      much they write.</p>
+      <p style="margin:0">Session died mid-task? Your claim stands with a timestamp, and the next person
+      sees it's stale and can take it over deliberately. Nothing is lost quietly.</p>
     </div>
   </div>
 
-  <div class="note warn"><b>One thing we deliberately did NOT do:</b> no file restates build progress.
-  A hand-written progress summary sitting next to a generated board drifts within hours and then
-  quietly lies to whoever reads it next. The new files are <b>routers</b> — they point at the
-  generated truth. They are not a second copy of it.</div>
-
-  <h2>The harness in one picture</h2>
+  <h2>How the pieces connect</h2>
   <div class="card scroll">
     <svg viewBox="0 0 900 300" width="900">
       <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
         <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></marker></defs>
       <g font-family="Segoe Print,Comic Sans MS,cursive" font-size="12.5" text-anchor="middle">
         <rect x="10" y="20" width="150" height="58" rx="8" fill="#fff3bf" stroke="#1a1a1a" stroke-width="2.2"/>
-        <text x="85" y="43" font-weight="bold">AGENTS.md</text><text x="85" y="60" font-size="11">the rules — canonical</text>
+        <text x="85" y="43" font-weight="bold">AGENTS.md</text><text x="85" y="60" font-size="11">the rules &mdash; canonical</text>
 
         <rect x="10" y="96" width="150" height="52" rx="8" fill="#eef0f2" stroke="#1a1a1a" stroke-width="2.2"/>
         <text x="85" y="117" font-size="11.5">CLAUDE.md</text><text x="85" y="133" font-size="10.5">imports it</text>
@@ -78,8 +75,8 @@
         <text x="312" y="157" font-size="11">one command,</text><text x="312" y="173" font-size="11">every session</text>
 
         <rect x="460" y="20" width="164" height="66" rx="8" fill="#a5d8ff" stroke="#1a1a1a" stroke-width="2.2"/>
-        <text x="542" y="44" font-weight="bold">_build/STATE.md</text><text x="542" y="62" font-size="11">generated board</text>
-        <text x="542" y="78" font-size="10.5">never hand-edited</text>
+        <text x="542" y="44" font-weight="bold">the board</text><text x="542" y="62" font-size="11">generated, always true</text>
+        <text x="542" y="78" font-size="10.5">_build/STATE.md</text>
 
         <rect x="460" y="112" width="164" height="76" rx="8" fill="#d0bfff" stroke="#1a1a1a" stroke-width="2.2"/>
         <text x="542" y="136" font-weight="bold">your next task</text><text x="542" y="155" font-size="11">+ the contract</text>
@@ -101,95 +98,122 @@
         </g>
       </g>
     </svg>
+    <p style="margin:9px 0 0"><b>One canonical rulebook, four doors into it.</b> Whichever tool you use
+    &mdash; Claude Code, Antigravity, Cursor, Copilot, or a human with a terminal &mdash; you reach the
+    same instructions. <code>AGENTS.md</code> is an open standard stewarded by the Linux Foundation;
+    the others point at it rather than repeating it, so there is nothing to keep in sync.</p>
   </div>
 
-  <h2>What's actually in the repo &mdash; all of it</h2>
+  <h2>What's in it</h2>
   <div class="row">
     <div class="card">
-      <p class="q">Coordination &mdash; how 6 people don't collide</p>
+      <p class="q">Coordination &mdash; six people, no collisions</p>
       <table>
-        <tr><td><code>tools/baton.mjs</code></td><td>the CLI: status, next, claim, done, drop, takeover, sync</td></tr>
-        <tr><td><code>_build/tasks.json</code></td><td><b>79 tasks</b>, each 20&ndash;60 min, with deps, files, and the contract sections it must satisfy</td></tr>
-        <tr><td><code>_build/claims/</code></td><td>one file per claim &mdash; two people claiming the same task makes a git conflict <i>on purpose</i></td></tr>
-        <tr><td><code>_build/log/</code></td><td>one journal per person &mdash; nobody ever conflicts on the log</td></tr>
-        <tr><td><code>_build/STATE.md</code></td><td>the board. Generated. Never hand-edited</td></tr>
+        <tr><td><code>tools/baton.mjs</code></td><td>status, next, claim, done, drop, takeover, sync</td></tr>
+        <tr><td><code>_build/tasks.json</code></td><td><b>79 tasks</b>, 20&ndash;60 min each, with dependencies, file scope, and the contract sections each must satisfy</td></tr>
+        <tr><td><code>_build/claims/</code></td><td>one file per claim</td></tr>
+        <tr><td><code>_build/log/</code></td><td>one journal per person</td></tr>
+        <tr><td><code>_build/STATE.md</code></td><td>the board &mdash; generated from the task data, so it cannot go stale</td></tr>
       </table>
+      <p style="margin:7px 0 0;font-size:11.5px"><code>baton sync</code> tells you if something that
+      landed affects <i>your</i> current task. Silence means nothing relevant moved &mdash; which is what
+      makes silence trustworthy.</p>
     </div>
     <div class="card">
-      <p class="q">The floor &mdash; what stops a bad commit</p>
+      <p class="q">The floor &mdash; what a bad commit runs into</p>
       <table>
-        <tr><td><code>protect-secrets</code></td><td>secret paths and credential-shaped content</td></tr>
+        <tr><td><code>protect-secrets</code></td><td>secret-shaped paths and credential-shaped content</td></tr>
         <tr><td><code>block-dangerous-shell</code></td><td>pipe-to-shell, destructive removes, force-push</td></tr>
-        <tr><td><code>guard-secret-shell</code></td><td>shell writes into secret files, keys in commands</td></tr>
-        <tr><td><code>.githooks/pre-commit</code></td><td>integrity manifest + you hold a claim</td></tr>
-        <tr><td><code>.githooks/commit-msg</code></td><td>the message names a task</td></tr>
-        <tr><td><code>.githooks/pre-push</code></td><td>scans <b>full git history</b> &mdash; a key deleted later is still a leak</td></tr>
+        <tr><td><code>guard-secret-shell</code></td><td>shell writes into secret files, keys inside commands</td></tr>
+        <tr><td><code>pre-commit</code></td><td>integrity manifest, and you hold a claim</td></tr>
+        <tr><td><code>commit-msg</code></td><td>the message names a task</td></tr>
+        <tr><td><code>pre-push</code></td><td>scans <b>full git history</b> &mdash; a key deleted later is still a leak</td></tr>
       </table>
-      <p style="margin:6px 0 0;font-size:11.5px">Every one was fired against a real violation
-      <i>and</i> against a legitimate 3am action, to prove it blocks the first without blocking the second.</p>
+      <p style="margin:7px 0 0;font-size:11.5px">Each one fires against a real violation <b>and</b> against
+      a legitimate 3am action, so it blocks the first without blocking the second.</p>
     </div>
   </div>
 
   <div class="row">
     <div class="card">
-      <p class="q">The spec &mdash; what we're building against</p>
+      <p class="q">The spec &mdash; what we build against</p>
       <table>
-        <tr><td><code>docs/CONTRACT.md</code></td><td><b>frozen, v1.4.</b> IR schema, CMS shapes, ID ranges, sanitiser policy, every endpoint's wire shape</td></tr>
-        <tr><td><code>docs/ROADMAP.md</code></td><td>44 planned hours, five gates, four tracks, the 8-minute demo</td></tr>
-        <tr><td><code>seed/</code> + <code>client/src/</code></td><td>the golden component, four helpers, seed data</td></tr>
-        <tr><td><code>tests/</code></td><td><b>13 checks that pass today</b> with no <code>npm install</code></td></tr>
+        <tr><td><code>docs/CONTRACT.md</code></td><td><b>frozen, v1.4.</b> IR schema, CMS shapes, ID ranges, sanitiser policy, every endpoint's wire shape. If code and contract disagree, the code is the bug</td></tr>
+        <tr><td><code>docs/ROADMAP.md</code></td><td>44 planned hours, five gates, four tracks, the 8-minute demo, beat by beat</td></tr>
+        <tr><td><code>client/src/</code> + <code>seed/</code></td><td>the golden reference component, four helpers, seed data</td></tr>
+        <tr><td><code>tests/</code></td><td>13 checks that run on a fresh clone with no install</td></tr>
       </table>
     </div>
     <div class="card">
-      <p class="q">Understanding &mdash; so we can explain it to judges</p>
+      <p class="q">Understanding &mdash; so we can explain it</p>
       <table>
-        <tr><td><code>docs/html/stages/</code></td><td><b>13 stage cards</b>, one page each: in, out, why this approach, how it fails</td></tr>
-        <tr><td><code>docs/html/JUDGE-CARDS.html</code></td><td>what each of us says, and the 3 questions we'll be asked</td></tr>
-        <tr><td><code>docs/THREAT-MODEL.md</code></td><td>10 threats, each with its control</td></tr>
-        <tr><td><code>docs/BENCHMARK-RESULTS.md</code></td><td>measured, not assumed</td></tr>
-        <tr><td><code>docs/corrections/REGISTER.md</code></td><td>every defect found before it cost us, and why it mattered</td></tr>
+        <tr><td><a href="stages/index.html">13 stage cards</a></td><td>one page each: what goes in, what comes out, why this approach, how it fails</td></tr>
+        <tr><td><a href="JUDGE-CARDS.html">Judge cards</a></td><td>what each of us says, and the three questions we'll be asked</td></tr>
+        <tr><td><code>docs/THREAT-MODEL.md</code></td><td>ten threats, each with its control</td></tr>
+        <tr><td><code>docs/BENCHMARK-RESULTS.md</code></td><td>measured on our own hardware, not assumed</td></tr>
+        <tr><td><a href="TEAM-RULES.html">The one-pager</a></td><td>print it, keep it visible</td></tr>
       </table>
     </div>
   </div>
 
-  <h2>Why the register is the part to actually read</h2>
-  <div class="card y">
-    <p style="margin:0 0 8px">It's a list of things that were <b>wrong</b> and got caught. A few, so you
-    can see what kind of thing it catches:</p>
-    <ul style="margin:0">
-      <li><b>Nested card IDs had no store keys.</b> Every stat card would have rendered its default forever
-      while everything else worked. Nothing would have looked broken.</li>
-      <li><b>Regeneration preserved IDs but overwrote content</b> &mdash; so the judge's typed headline
-      would vanish during the exact demo moment built around it surviving.</li>
-      <li><b>Line endings broke the integrity check</b> &mdash; on a fresh clone all 8 entries failed.
-      Your first commit would have been blocked by our own hook.</li>
-      <li><b>The protocol contradicted itself</b> &mdash; finishing a task made you unable to commit it.
-      Every task. Every person.</li>
-      <li><b>Phase 0.4 was marked done and wasn't.</b> That's the gap you were pointing at.</li>
-    </ul>
-    <p style="margin:8px 0 0">None of these were visible from reading the code. They surfaced from
-    <b>cloning the repo and behaving like someone who'd never seen it</b> &mdash; which is close to what
-    you were doing when you asked your question.</p>
+  <h2>What's proven, not claimed</h2>
+  <div class="card gr">
+    <div class="row" style="text-align:center">
+      <div class="stat"><span class="num">13&nbsp;/&nbsp;13</span>golden component checks pass<br><span style="font-size:11px;color:var(--ink2)">on a fresh clone, no install</span></div>
+      <div class="stat"><span class="num">79</span>tasks, dependency-ordered<br><span style="font-size:11px;color:var(--ink2)">each citing its contract sections</span></div>
+      <div class="stat"><span class="num">6</span>gates, each fired both ways<br><span style="font-size:11px;color:var(--ink2)">blocks the bad, passes the good</span></div>
+      <div class="stat"><span class="num">2&nbsp;min</span>clone to first task<br><span style="font-size:11px;color:var(--ink2)">verified from a cold clone</span></div>
+    </div>
+    <p style="margin:11px 0 0">The whole chain was tested by cloning this repository into an empty
+    directory and working it as a stranger: manifest intact, tests green, board resolves, commits
+    blocked before claiming and allowed after, messages rejected without a task id. <b>Not asserted
+    &mdash; run.</b></p>
   </div>
 
-  <h2>Still open &mdash; where help is genuinely useful</h2>
-  <div class="card r">
+  <h2>Two rules that decide our score</h2>
+  <div class="row">
+    <div class="card r">
+      <span class="big">The store has to be alive</span>
+      <p style="margin:0 0 6px">Every field renders as <code>value || "DEFAULT"</code>. With a dead data
+      store the page looks <i>pixel-identical to a working one</i> &mdash; right copy, right layout, right
+      responsive behaviour. It compiles, lints, and passes schema checks.</p>
+      <p style="margin:0 0 6px">It fails only when someone changes a value and nothing moves &mdash;
+      <b>which is exactly what a judge is told to do.</b></p>
+      <p style="margin:0"><b>A dead store caps us at 40 out of 100.</b> An automated check catches it and
+      runs on every commit. Never disable it.</p>
+    </div>
+    <div class="card y">
+      <span class="big">Some of the code looks wrong and is graded</span>
+      <p style="margin:0 0 6px">Do not tidy any of this. Tidying it costs the 25-point criterion:</p>
+      <ul style="margin:0 0 6px">
+        <li><code>dangerouslySetInnerHTML</code> with a default fallback</li>
+        <li><code>dynamicStyle</code> / <code>dynamicStyle2</code> marker classes &mdash; look dead, aren't</li>
+        <li>the <code>const ids</code> map &mdash; don't inline it, don't extract it</li>
+        <li>CSS applied via <code>getElementById</code> &mdash; not a style prop</li>
+      </ul>
+      <p style="margin:0">Every one of them is inspected by a judge.</p>
+    </div>
+  </div>
+
+  <h2>Where help is useful</h2>
+  <div class="card b">
     <ul style="margin:0">
-      <li><b>Which file does Antigravity actually read?</b> Its docs say <code>.agents/rules/</code>;
-      blogs say root <code>AGENTS.md</code>. We covered both. <b>5-minute test:</b> put a distinctive
-      phrase in one, ask Antigravity about it, see if it knows. Record the answer in
-      <code>docs/EDGE-CASES.md</code>.</li>
-      <li><b>The nine Studio requirements (FR-G01&ndash;G09)</b> are never listed explicitly in the brief.
-      Our nine-item reading is an inference. The Studio is <b>10 points</b> &mdash; worth ten minutes
-      against the original document.</li>
-      <li><b>The GitHub repo and Vercel</b> aren't set up. Docs deploy needs no secrets; output
-      directory is <code>docs/html</code>.</li>
+      <li><b>Confirm which file Antigravity reads.</b> Its documentation describes
+      <code>.agents/rules/</code>; other sources say a root <code>AGENTS.md</code>. We support both.
+      Five-minute check: put a distinctive phrase in one, ask Antigravity about it, note which it knows.</li>
+      <li><b>Check the nine Studio requirements</b> (FR-G01&ndash;G09) against the original brief. Our
+      task list works from a nine-item reading; the Studio is worth <b>10 points</b>, so it's worth
+      ten minutes of confirmation.</li>
+      <li><b>GitHub and Vercel.</b> The docs site needs no secrets &mdash; output directory is
+      <code>docs/html</code>.</li>
+      <li><b>Anything that surprises you.</b> Write it into <code>docs/EDGE-CASES.md</code> while it's
+      fresh. Twenty minutes lost to something confusing is worth five minutes of writing it down.</li>
     </ul>
   </div>
 
   <div class="foot">
     <span>Read next: <a href="../../AGENTS.md">AGENTS.md</a> &middot; <a href="TEAM-RULES.html">the one-pager</a></span>
-    <span>Then: <code>continue build</code></span>
+    <span>Then: <span style="font-family:var(--mono)">continue build</span></span>
   </div>
 
 </div>
