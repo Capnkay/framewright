@@ -158,3 +158,26 @@ A commit author is not the same kind of secret as an API key.
 **Cost of getting this wrong:** roughly an hour, and three fixes to things that were never
 broken. When a deploy fails and there is no build log, look at the commit metadata before
 looking at the build configuration.
+
+---
+
+## EC-011 · A page loses its stylesheet only when deployed
+**Date:** 2026-08-20 · **Status:** fixed
+
+`/stages` rendered completely unstyled on Vercel while working perfectly locally.
+
+**Cause:** `cleanUrls` rewrites `/stages/index.html` to `/stages` — with no trailing slash.
+A relative `href="_card.css"` then resolves against `/` instead of `/stages/`, so the
+browser requests `/_card.css` and gets a 404. Locally the URL keeps its `/index.html`, the
+relative path resolves correctly, and nothing looks wrong.
+
+Only the directory index breaks. Pages one level deeper (`/stages/01-...`) resolve
+relative paths correctly, which makes it look like a one-page problem rather than a
+configuration one.
+
+**How to tell:** the page renders with default serif fonts and no layout, and the console
+shows a single 404 for the stylesheet.
+
+**Do:** use root-absolute stylesheet paths — `/stages/_card.css`, not `_card.css`. All 14
+pages in that directory now do. Check the browser console on the deployed site, not only
+locally; this class of fault is invisible until it is served.
