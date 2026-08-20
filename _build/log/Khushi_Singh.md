@@ -50,3 +50,10 @@
 - Device: LAPTOP-PUPG5T28
 - Files: .githooks/pre-push
 
+## T-011 — Mount the golden HeroSection at /preview/Home, satisfying R1-R5 and R11-R12
+- Started: 2026-08-20T18:15:31.999Z
+- Finished: 2026-08-20T18:19:37.629Z
+- Duration: 4m
+- Device: LAPTOP-PUPG5T28
+- Files: client/src/sections/HeroSection.jsx, client/src/routes/PreviewPage.jsx, tests/hero-section-mount.test.mjs
+

@@ -21,6 +21,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import HeroSection from '../sections/generated/HeroSection.jsx';
 
 export default function PreviewPage() {
   // §1: pageName is case-sensitive. Whatever case the URL carries is the key.
@@ -69,6 +70,8 @@ export default function PreviewPage() {
           be the §9 failure exactly.
         </p>
       ) : null}
+
+      <HeroSection pageName={pageName} />
     </main>
   );
 }
