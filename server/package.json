@@ -12,6 +12,7 @@
     "start": "node src/server.js"
   },
   "dependencies": {
+    "@babel/parser": "^8.0.4",
     "ajv": "^8.17.1",
     "express": "^4.21.0",
     "mongodb": "^7.5.0",

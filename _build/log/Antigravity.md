@@ -98,3 +98,10 @@
 - Device: Jainam
 - Files: client/src/routes/PreviewPage.jsx, tests/generated-glob-discovery.test.mjs
 
+## T-060 — Implement code-input mode — AST to elements to IR, IDs preserved, code parsed and never executed
+- Started: 2026-08-20T20:34:54.633Z
+- Finished: 2026-08-20T20:37:38.340Z
+- Duration: 3m
+- Device: Jainam
+- Files: server/src/generate/codeToIr.js, tests/code-to-ir.test.mjs
+
