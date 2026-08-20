@@ -1,0 +1,45 @@
+# perception/constraints.txt — pins that stop pip from silently replacing the
+# CUDA build of torch with the CPU one.
+#
+# USE IT ON EVERY INSTALL INTO perception/.venv:
+#
+#     perception/.venv/Scripts/python -m pip install -c perception/constraints.txt <package>
+#
+# WHY THIS FILE EXISTS, and it is not hypothetical. On 2026-08-20,
+# `pip install transformers` in this venv upgraded torch to 2.13.0+cpu and
+# destroyed a working CUDA install. Nothing warned: the install succeeded, the
+# import succeeded, and only `torch.cuda.is_available()` told the truth — it had
+# gone from True to False. `GET /health` went from cuda:0 to cpu.
+#
+# The person who hit it had written the EC-012 warning about this exact failure
+# earlier the same day. A comment in a file did not prevent it. A constraint does,
+# because pip enforces it rather than relying on anyone reading anything.
+#
+# Recovering afterwards is worse than avoiding it: restoring torch left
+# torchvision pinned to a version built against the newer torch, which fails at
+# import with "operator torchvision::nms does not exist" — an error that names
+# neither package's version and reads like a broken install rather than a
+# mismatch.
+#
+# TORCH AND TORCHVISION VERSIONS ARE COUPLED. torch 2.6.0 pairs with torchvision
+# 0.21.0. Changing one means changing both, from the CUDA index, together:
+#
+#     python -m pip install --force-reinstall --no-deps \
+#       torch==<v>+cu124 torchvision==<v>+cu124 \
+#       --index-url https://download.pytorch.org/whl/cu124
+#
+# --no-deps is deliberate there: it stops pip resolving torch's dependency tree
+# and reaching for a PyPI wheel, which is how the CPU build gets back in.
+#
+# NOTE ON WHAT IS NOT WRITTEN HERE. `pip freeze` records this venv's torch as a
+# file:/// URL containing an absolute local path. That is a §14 violation — it
+# leaks a real username — so these are plain version specifiers. Never paste
+# `pip freeze` output into a tracked file without reading it first.
+
+torch==2.6.0+cu124
+torchvision==0.21.0+cu124
+
+# Pinned because torch 2.6.0 was built against the NumPy 2.x ABI, and a silent
+# downgrade to 1.x by some other package's resolver produces array-conversion
+# errors deep inside torch rather than at the boundary.
+numpy==2.2.6

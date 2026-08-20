@@ -258,3 +258,66 @@ that way.
 **One loose thread:** `fastapi.testclient` emits a `StarletteDeprecationWarning` asking for
 `httpx2`. Harmless today, one warning, tests pass. Worth pinning if it ever becomes an
 error rather than a warning.
+
+---
+
+## EC-013 · Installing any package silently replaces your CUDA torch with the CPU build
+**Date:** 2026-08-20 · **Status:** guarded by `perception/constraints.txt`
+
+`pip install transformers` in `perception/.venv` upgraded torch from **2.6.0+cu124** to
+**2.13.0+cpu** and destroyed a working CUDA install.
+
+**Nothing warned.** The install printed a success line. `import torch` worked. The only
+symptom was `torch.cuda.is_available()` flipping from `True` to `False`, and `GET /health`
+going from `cuda:0` back to `cpu` — which reads exactly like EC-012, a problem you have
+already "fixed", so the temptation is to go and rebuild the venv from scratch.
+
+**Why it happens:** the CUDA wheels live on `download.pytorch.org`, not PyPI. Any package
+that declares a `torch` dependency lets pip resolve it from **PyPI**, where the only wheel is
+the CPU one — and pip considers 2.13.0 an upgrade over 2.6.0, so it takes it.
+
+**How to tell it is this and not a broken GPU:** `nvidia-smi` still shows the card,
+`torch.__version__` ends in `+cpu` rather than `+cu124`. The version string is the tell, and
+it is the first thing to check.
+
+**The second failure, which arrives while fixing the first.** Reinstalling the CUDA torch
+leaves torchvision pinned to the version installed alongside the newer torch, and it fails at
+import with:
+
+```
+RuntimeError: operator torchvision::nms does not exist
+```
+
+That error names neither package's version and reads like a corrupt install. It is a
+mismatch: **torch and torchvision versions are coupled.** torch 2.6.0 pairs with torchvision
+0.21.0.
+
+**Do — recover:**
+
+```
+python -m pip install --force-reinstall --no-deps <cached torch cu124 wheel>
+python -m pip install --force-reinstall --no-deps torchvision==0.21.0+cu124 \
+  --index-url https://download.pytorch.org/whl/cu124
+python -c "import torch,torchvision;from torchvision.ops import nms;print(torch.__version__,torch.cuda.is_available())"
+```
+
+`--no-deps` is the load-bearing flag: it stops pip resolving torch's dependency tree and
+reaching for a PyPI wheel, which is how the CPU build gets back in.
+
+**Do — prevent.** Use the constraints file on every install into that venv:
+
+```
+perception/.venv/Scripts/python -m pip install -c perception/constraints.txt <package>
+```
+
+Verified: with the constraints file, `pip install torch==2.13.0` fails with
+`ResolutionImpossible`, and `pip install transformers` resolves without touching torch.
+
+**Why a constraints file and not just this warning.** EC-012 already documented the CPU-wheel
+trap, in detail, with the reasoning. The person who hit EC-013 is the person who wrote
+EC-012, the same day. A comment does not stop a resolver; a constraint does, because pip
+enforces it rather than relying on anyone reading anything.
+
+**One thing not to do:** never paste `pip freeze` output into a tracked file. It records this
+venv's torch as a `file:///D:/...` URL — an absolute local path, which §14 forbids because it
+leaks a real username. `constraints.txt` uses plain version specifiers for that reason.

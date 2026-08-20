@@ -5,7 +5,7 @@
 #
 #     py -0p                      # list the interpreters you actually have
 #     <path-to-python3.10> -m venv perception/.venv
-#     perception/.venv/Scripts/python -m pip install -r perception/requirements.txt   # Windows
+#     perception/.venv/Scripts/python -m pip install -c perception/constraints.txt #         -r perception/requirements.txt                                        # Windows
 #     perception/.venv/bin/python  -m pip install -r perception/requirements.txt      # POSIX
 #
 # WHY 3.10 AND NOT WHATEVER `python` RESOLVES TO. torch's cu124 wheels are built
@@ -24,6 +24,11 @@
 # Check for a cached wheel first -- gpu-test/ already holds
 # torch-2.6.0+cu124-cp310-cp310-win_amd64.whl, and installing from that file
 # skips a 2.5 GB download.
+#
+# ALWAYS PASS -c perception/constraints.txt. Installing ANY package that depends
+# on torch lets pip resolve it from PyPI, where the only wheel is the CPU one --
+# `pip install transformers` has already destroyed a working CUDA install here
+# once. See docs/EDGE-CASES.md EC-013.
 #
 # Then verify before anything else: GET /health must report cuda:0 (roadmap gate
 # 0.7). If it says cpu, you are on the wrong interpreter or the wrong wheel. See
