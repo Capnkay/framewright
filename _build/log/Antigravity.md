@@ -105,3 +105,10 @@
 - Device: Jainam
 - Files: server/src/generate/codeToIr.js, tests/code-to-ir.test.mjs
 
+## T-038 — Build the Job Timeline UI — seven stages, real timings, per-stage status per §11.1
+- Started: 2026-08-20T20:40:03.231Z
+- Finished: 2026-08-20T20:41:23.599Z
+- Duration: 1m
+- Device: Jainam
+- Files: client/src/studio/JobTimeline.jsx, tests/job-timeline-ui.test.mjs
+
