@@ -111,3 +111,24 @@ refused for having no open claim.
 
 **Do:** already fixed — the hook accepts a claim that is `active` **or** `done`, belonging
 to you. If you see this again, the hook has regressed; fix the hook, do not skip it.
+
+---
+
+## EC-008 · A vision model that describes your wireframe perfectly and finds nothing in it
+**Date:** 2026-08-20 · **Status:** measured, architecture changed
+
+Florence-2 called our hand-drawn wireframe *"a hand-drawn website layout"* — correct — and
+then returned one bounding box around the entire image. Short labels via
+`<OPEN_VOCABULARY_DETECTION>` returned no boxes at all.
+
+**How to tell:** the box covers >75% of the frame, or the caption is accurate while the
+detection is empty. The model is not confused; it is answering a different question well.
+
+**Why:** general vision models are trained on photographs. Nothing in that distribution
+teaches that a line drawing decomposes into UI components. This is not fixable by
+prompting.
+
+**Do:** do not spend hours on prompt variations. Use classical CV for a drawing of
+rectangles, and train a detector on data you generate yourself. Record the measurement —
+it is worth more to a judge than a working model would have been, because it explains why
+the architecture is shaped the way it is.

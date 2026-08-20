@@ -1,6 +1,6 @@
 # Framewright — Roadmap
 
-**Version 1.3, 2026-08-20.** Budget: 2–2.5 days on the clock. Planned to **44 working hours**, inside a 48–56 hour
+**Version 1.4, 2026-08-20.** Budget: 2–2.5 days on the clock. Planned to **44 working hours**, inside a 48–56 hour
 window, leaving 4–12 hours of slack for sleep, meals, and the gate that slips.
 Crew: 3+. Executor: Google Antigravity, primary on implementation.
 
@@ -33,9 +33,13 @@ at all: a preview with no live store caps at **40**, and the wrong stack caps at
 
 ### Perception, after measurement
 
-The wireframe benchmark ran on 2026-08-20 and **a general-purpose vision model failed
-completely** on low-fidelity wireframe input — whole-image boxes for essentially every
-element, on both model sizes. Full numbers: `docs/BENCHMARK-RESULTS.md`.
+The wireframe benchmark ran on 2026-08-20. A state-of-the-art vision model scored
+**0 of 7, twice** — once with the wrong task token and once with the right one. Asked to
+detect objects unprompted, it returned a single box labelled `"whiteboard"`.
+
+**It is not failing to see the image. It is seeing one object where we need seven.** That
+is a training-distribution gap, and no prompt fixes it. Full numbers:
+`docs/BENCHMARK-RESULTS.md`.
 
 VRAM was never the constraint: peak 0.60 GB on a 6 GB card. The constraint is the input
 distribution. Models trained on photographs do not see structure in a line drawing.
@@ -69,7 +73,7 @@ Nothing here consumes event hours. This is the entire advantage.
 | 0.5 | 13 Stage Cards + the Map + Judge Cards | Each teammate can explain their subsystem cold |
 | 0.6 | Golden reference component + seed JSON + the two hand-written helpers, **as standalone files with a unit test** | The component renders against a mocked store and the §9 assertion runs green against that mock. No server, no database — those are Phase 1 |
 | 0.7 | Environments verified on every machine, including the GPU laptop | `GET /health` returns `cuda:0`; one wireframe survives the perception path |
-| 0.8 | ~~**The wireframe benchmark**~~ **DONE 2026-08-20 — see `docs/BENCHMARK-RESULTS.md`.** Florence-2 returned whole-image boxes for ~7 of 7. Retest with the correct task token pending. Original text: — install torch and transformers, download weights, run one real wireframe through Florence-2 on the actual 3050, record what labels come back | The single largest unverified assumption in the plan. Budget **2–3 hours**, most of it environment setup, and do it first. If it fails, the perception plan changes shape and we want to know now |
+| 0.8 | ~~**The wireframe benchmark**~~ **DONE 2026-08-20 — see `docs/BENCHMARK-RESULTS.md`.** **CLOSED.** 0 of 7 with the wrong task, 0 of 7 with the right one. A training-distribution gap, not a prompting error. Original text: — install torch and transformers, download weights, run one real wireframe through Florence-2 on the actual 3050, record what labels come back | The single largest unverified assumption in the plan. Budget **2–3 hours**, most of it environment setup, and do it first. If it fails, the perception plan changes shape and we want to know now |
 
 **Phase 0 exit gate:** the contract is frozen, the hooks are proven, and one person who
 did not write the docs can operate the repo from them alone.

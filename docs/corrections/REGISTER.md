@@ -189,3 +189,38 @@ architecture from an assertion into a measurement we can put in front of a judge
 *generic vision models do not read wireframes, here is the evidence, so we built something
 that does.* That is the benchmark the original architecture diagram asked for, and almost
 no team arrives with one.
+
+---
+
+## 2026-08-20 · The retest — hypothesis closed
+
+The retest ran with the correct task tokens and a short label vocabulary.
+
+| Task | Result |
+|---|---|
+| `<OPEN_VOCABULARY_DETECTION>`, short labels | **0 of 7 — no boxes at all** |
+| `<OD>`, unprompted | one box, whole image, `"whiteboard"` |
+| `<DENSE_REGION_CAPTION>` | one region, whole image, `"hand-drawn website layout"` |
+
+**0 of 7 with the wrong task. 0 of 7 with the right one.** Our method error was real and
+it was not the cause. The finding is definitive: a training-distribution gap, not a
+prompting problem.
+
+**The precise statement, which is better than "it failed":** the model is not failing to
+see the image — it is seeing **one object where we need seven**. It identifies the artifact
+correctly and describes it well, because *"hand-drawn website layout"* is the right answer
+to the question it was trained to answer. It has no notion that a wireframe decomposes
+into components, because nothing in its training data ever asked it to.
+
+**Two lessons worth keeping:**
+
+1. **We planned around the wrong risk.** Weeks of consideration went into whether a 6 GB
+   card could hold the models. Peak usage was 1.76 GB. The real risk — that the input
+   distribution was unlike anything these models were trained on — was named as unverified
+   in the roadmap and was very nearly not tested at all.
+2. **Re-planning before the retest would have been luck.** The decision to move to
+   classical CV was made on the first, flawed result and happened to be right. The retest
+   is what makes it judgement rather than a coincidence. Both runs are recorded, including
+   ours being wrong first.
+
+Updated: `docs/BENCHMARK-RESULTS.md` (definitive), ROADMAP v1.4, stage card 01, EC-008.

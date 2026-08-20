@@ -76,21 +76,21 @@
     <table>
       <tr><th style="width:27%">Option</th><th style="width:19%">Verdict</th><th>Reason</th></tr>
       <tr><td><b>Contour detection</b><br><span style="font-size:11px">OpenCV, Apache-2.0</span></td><td><b>chosen</b></td>
-          <td>A wireframe is rectangles and text. Contours find rectangles in a line drawing almost trivially — the worst case for a photo-trained network is close to the best case for classical CV. No weights, no VRAM, no licence question. <b>Upgrade path:</b> a detector trained on wireframes we render from our own IR schema, giving unlimited data with perfect ground-truth boxes.</td></tr><tr><td><b>Open-vocabulary grounding</b><br><span style="font-size:11px">Florence-2, MIT</span></td><td><b>measured, rejected</b></td><td><b>Tested on our own hardware 2026-08-20 and it failed</b> — whole-image boxes for essentially every element, on both model sizes. VRAM was never the issue (peak 0.60&nbsp;GB of 6). The input distribution was. See the note below.</td></tr>
+          <td>A wireframe is rectangles and text. Contours find rectangles in a line drawing almost trivially — the worst case for a photo-trained network is close to the best case for classical CV. No weights, no VRAM, no licence question. <b>Upgrade path:</b> a detector trained on wireframes we render from our own IR schema, giving unlimited data with perfect ground-truth boxes.</td></tr><tr><td><b>Open-vocabulary grounding</b><br><span style="font-size:11px">Florence-2, MIT</span></td><td><b>measured, rejected</b></td><td><b>Measured twice on our own hardware, both task families. 0 of 7 each time.</b> Asked to detect objects unprompted it returned <i>one</i> box labelled <code>"whiteboard"</code>. VRAM was never the issue (peak 1.76&nbsp;GB of 6). See the note below.</td></tr>
       <tr><td>YOLOv8</td><td>rejected</td><td>Pretrained on COCO — person, car, chair. <b>No UI classes at all.</b> And AGPL with a network clause, which our architecture triggers.</td></tr>
       <tr><td>LayoutLMv3</td><td>rejected</td><td>A forms-and-receipts model. Cannot emit web-section roles without retraining. Its <i>weights</i> are non-commercial even though the code repo is MIT.</td></tr>
       <tr><td>Donut</td><td>rejected</td><td>Emits structured text, not boxes. We need coordinates.</td></tr>
     </table>
   </div>
 
-  <div class="note warn"><b>We measured this instead of assuming it.</b> The approved diagram names three models for this box, and none can produce our label set without retraining — verified against primary sources. We then tested the one that theoretically could, on our own wireframe, on our own GPU. <b>It returned boxes covering the whole image for essentially every element.</b> Numbers in <code>docs/BENCHMARK-RESULTS.md</code>. That measurement is now the strongest thing we can show a judge: not "our pipeline is better than a model call", but <i>here is the evidence that it has to be.</i></div>
+  <div class="note warn"><b>We measured this instead of assuming it.</b> The approved diagram names three models for this box, and none can produce our label set without retraining — verified against primary sources. We then tested the one that theoretically could, on our own wireframe, on our own GPU. <b>It is not failing to see the image — it is seeing exactly one object where we need seven.</b> Unprompted, it called our wireframe <i>"a hand-drawn website layout"</i>, which is the correct answer to the question it was trained to answer. It simply has no notion that a wireframe decomposes into UI components. That is a <b>training-distribution gap, not a prompting problem</b> — confirmed across both task families. Numbers in <code>docs/BENCHMARK-RESULTS.md</code>.</div>
 
   <h2>How it fails</h2>
   <div class="row">
     <div class="card r">
       <table>
         <tr><th>Failure</th><th>What happens</th></tr>
-        <tr><td>Sketch-fidelity input</td><td><b>Measured 2026-08-20.</b> A general vision model scored 0 of 7 on exactly this input. This is why the stage is classical CV, not a network trained on photographs.</td></tr>
+        <tr><td>Sketch-fidelity input</td><td><b>Measured, definitively.</b> A state-of-the-art vision model scored 0 of 7 on exactly this input, twice, across both task families. This is why the stage is classical CV — not a preference, a finding.</td></tr>
         <tr><td>Two regions overlap</td><td>Fusion assigns the text to the wrong one. Both drop below 0.60 and escalate.</td></tr>
         <tr><td>Model unreachable</td><td>Stage marked <code>degraded</code>. The pipeline continues on the prompt path. <b>Never a crash.</b></td></tr>
         <tr><td>Confident and wrong</td><td>The dangerous one. High confidence, wrong role. Only the golden-file diff catches it.</td></tr>
