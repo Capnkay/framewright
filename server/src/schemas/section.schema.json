@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://framewright.local/schemas/section.schema.json",
+  "title": "Section",
+  "type": "object",
+  "properties": {
+    "sectionName": { "type": "string" },
+    "sectionId": { "type": "string", "pattern": "^1\\d{9}$" },
+    "pageName": { "type": "string" },
+    "variations": { "type": "string" },
+    "sectionStatus": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+    "cardLayoutMode": { "type": "string", "enum": ["grid", "list"] },
+    "sectionTextMode": { "type": "string", "enum": ["auto", "light", "dark"] },
+    "wireframes": { "type": "string" },
+    "platform": { "type": "string" },
+    "isGenerated": { "type": "boolean" },
+    "cardGridColumns": { "type": "number" },
+    "sectionColor": { "type": "string" },
+    "sectionPaddingTop": { "type": "string" },
+    "sectionPaddingBottom": { "type": "string" },
+    "sectionPaddingLeft": { "type": "string" },
+    "sectionPaddingRight": { "type": "string" },
+    "path": { "type": "string" }
+  },
+  "required": ["sectionName", "sectionId", "pageName", "variations"],
+  "additionalProperties": true
+}

@@ -78,3 +78,10 @@
 - Device: LAPTOP-PUPG5T28
 - Files: server/src/routes/elements.js, tests/patch-elements.test.mjs
 
+## T-020 — Write the Section document Ajv schema and validator per §2
+- Started: 2026-08-20T18:51:20.971Z
+- Finished: 2026-08-20T19:26:33.453Z
+- Duration: 35m
+- Device: LAPTOP-PUPG5T28
+- Files: server/src/schemas/section.schema.json, server/src/validate/sectionValidator.js, tests/section-schema.test.mjs
+

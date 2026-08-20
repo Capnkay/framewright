@@ -53,6 +53,13 @@ function validateSchema(value, schema, path, errors) {
     errors.push({ path, message: `must be one of ${JSON.stringify(schema.enum)}, got ${JSON.stringify(value)}` });
   }
 
+  if (schema.pattern !== undefined && typeof value === 'string') {
+    const regex = new RegExp(schema.pattern);
+    if (!regex.test(value)) {
+      errors.push({ path, message: `must match pattern ${schema.pattern}` });
+    }
+  }
+
   if (schema.minimum !== undefined && typeof value === 'number' && value < schema.minimum) {
     errors.push({ path, message: `must be >= ${schema.minimum}` });
   }
