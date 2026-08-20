@@ -1,0 +1,34 @@
+# Framewright perception service — CONTRACT.md section 12.
+#
+# Install into a dedicated virtual environment, NOT the system interpreter:
+#
+#     python -m venv perception/.venv
+#     perception/.venv/Scripts/pip install -r perception/requirements.txt   # Windows
+#     perception/.venv/bin/pip install -r perception/requirements.txt       # POSIX
+#
+# THE GPU BUILD IS NOT LISTED HERE, DELIBERATELY. torch's CUDA wheels do not come
+# from PyPI, so `pip install torch` silently installs the CPU build and /health
+# then reports "cpu" on a machine that has a perfectly good GPU. Install it
+# explicitly first, from the index in docs/GPU-BENCHMARK.md:
+#
+#     pip install torch --index-url https://download.pytorch.org/whl/cu124
+#
+# Then verify before anything else: GET /health must report cuda:0 (roadmap gate
+# 0.7). If it says cpu, you are on the wrong interpreter or the wrong wheel.
+
+# T-054 — the service itself. Everything below is required today.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9   # multipart upload of the wireframe, section 12
+httpx>=0.27               # fastapi.testclient
+pytest>=8.0
+
+# T-055 — stage 2, preprocessing-normalization.
+opencv-python-headless>=4.10
+numpy>=1.26
+pillow>=10.0
+
+# T-056 — stage 3, multimodal-understanding. Apache-2.0, approved in README.
+# Heavy; install when T-056 is claimed, not before.
+# paddleocr>=2.8
+# paddlepaddle-gpu>=2.6

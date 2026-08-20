@@ -7,3 +7,10 @@
 - Device: Mohits_Victus
 - Files: server/package.json, server/src/app.js, server/src/server.js, server/src/routes/index.js, server/src/http/envelope.js, tests/api-skeleton.test.mjs, tools/test.mjs, package.json
 
+## T-054 — Scaffold the Python perception service exposing POST /perceive and GET /health per §12
+- Started: 2026-08-20T15:33:04.207Z
+- Finished: 2026-08-20T15:40:27.969Z
+- Duration: 7m
+- Device: Mohits_Victus
+- Files: perception/__init__.py, perception/app.py, perception/server.py, perception/requirements.txt, perception/tests/__init__.py, perception/tests/test_health.py, .gitignore
+

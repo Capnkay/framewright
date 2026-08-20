@@ -3,7 +3,9 @@
   "who": "Mohit Gupta",
   "device": "Mohits_Victus",
   "claimedAt": "2026-08-20T15:33:04.207Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-20T15:40:27.969Z",
+  "durationMs": 443762
 }

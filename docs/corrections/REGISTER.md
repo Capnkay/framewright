@@ -553,4 +553,61 @@ need it rather than here.
 
 `LAW-MANIFEST.sha256` regenerated for `.githooks/pre-push` from LF content, per `EC-006`.
 The manifest caught the edit before the commit did, which is what it is for.
+
+---
+
+## 2026-08-20 · T-003's `files` list had the same defect — recorded by the executor
+
+| What | Detail | Found by |
+|---|---|---|
 | T-003 missing test | The store-adapter-interface test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
+
+**This is now three tasks out of three.** T-002, T-003 and T-054 each declared a
+`verify` command naming a test file that their own `files` list omitted — found
+independently, by two different builders, within the same hour. It is not three
+mistakes; it is one systematic defect in how the board was generated, and every
+remaining task with a `verify` should be assumed to have it until checked.
+
+---
+
+## 2026-08-20 · T-054's `files` list had the same defect T-002 did
+
+Two files declared — `perception/server.py`, `perception/app.py` — and a verify command of
+`python -m pytest perception/tests/test_health.py`, naming a third file the task did not
+declare. Same shape as T-002, found the same way: reading the verify command before
+building.
+
+Amended to seven files: the package `__init__.py` (README documents starting the service as
+`python -m perception.server`, which needs the package), `requirements.txt`, the test module
+and its `__init__.py`, and `.gitignore` for the venv and bytecode. Size 45m → 60m, and the
+contract list widened from `§12` alone to `§12, §10, §11.0, §11.2` — the three extra
+sections are the ones the tests actually assert.
+
+**Worth checking the rest of the board for this.** Two tasks out of two examined had it. The
+pattern is a task whose `verify` names a test file that its `files` list does not.
+
+---
+
+## 2026-08-20 · GAP: §12 requires inline stage artifacts but never names the field
+
+`§11.2` says the Python service "returns its stage outputs inline in the `/perceive`
+response body, and Node persists them", and `§12`'s response sketch says
+`"stages": [ ...stage trace records for stages 2-4, artifacts INLINE... ]`.
+
+**Both describe the behaviour. Neither names the field that carries it.** `§11.1`'s stage
+record has `inputRef` and `outputRef`, and those are paths — which is exactly what the
+Python service must not produce, because a relative path written on the perception laptop
+resolves to nothing on the Node machine. That is the whole reason artifacts are Node-owned.
+
+So the one field that makes §11.2 implementable is the one field §11.1 does not have.
+
+T-054 implements it as `artifact`, sitting alongside `outputRef` in each stage record, with
+`outputRef` left `null` on this side of the seam — Node fills it in when it persists the
+content. T-054's test asserts `outputRef is None` for every stage returned by `/perceive`,
+so the rule cannot quietly regress into a path being invented here.
+
+**This is a contract gap, not a contract change.** `AGENTS.md` says: do not invent fields; if
+the contract does not define it, ask or log the gap. Logged. It wants closing as an additive
+§11.1 field before T-058 wires Node's call to `/perceive`, because that is the moment both
+sides must agree on the name. Whoever closes it: do not rename `artifact` without changing
+both sides in the same commit.

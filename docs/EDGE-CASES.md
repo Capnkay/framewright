@@ -181,3 +181,48 @@ shows a single 404 for the stylesheet.
 **Do:** use root-absolute stylesheet paths — `/stages/_card.css`, not `_card.css`. All 14
 pages in that directory now do. Check the browser console on the deployed site, not only
 locally; this class of fault is invisible until it is served.
+
+---
+
+## EC-012 · /health says `cpu` on the machine with the GPU in it
+**Date:** 2026-08-20 · **Status:** open — environment work outstanding
+
+Roadmap gate 0.7 is "`GET /health` returns `cuda:0`". On this machine it returns `cpu`, and
+nothing is broken.
+
+**Why:** there are two Python interpreters here with different torch builds, and **neither
+one can run the service on the GPU**:
+
+| Interpreter | torch | CUDA | fastapi |
+|---|---|---|---|
+| system `python` (3.14) | `2.12.1+cpu` | no | yes |
+| `gpu-test/.venv` | `2.6.0+cu124` | **yes, RTX 3050** | **no** |
+
+So the service runs on the interpreter without CUDA, and the interpreter with CUDA cannot
+import the service. Gate 0.7 cannot pass until one environment has both.
+
+**How to tell it is this and not a GPU fault:** `detect_device()` returns `cpu` while
+`gpu-test/.venv/Scripts/python -c "import torch; print(torch.cuda.is_available())"` prints
+`True`. The GPU is fine. The interpreter is wrong.
+
+**Root cause worth remembering:** `pip install torch` pulls the **CPU** build from PyPI.
+The CUDA wheels live on a separate index and must be asked for explicitly. Nothing warns
+you — the install succeeds, the import succeeds, and only `torch.cuda.is_available()` tells
+the truth.
+
+**Do:** build one venv that has both, GPU wheel first:
+
+```
+python -m venv perception/.venv
+perception/.venv/Scripts/pip install torch --index-url https://download.pytorch.org/whl/cu124
+perception/.venv/Scripts/pip install -r perception/requirements.txt
+```
+
+Then check `/health` before writing any perception code. `perception/requirements.txt`
+deliberately does **not** list torch, with a comment saying why, so nobody installs the CPU
+build by accident.
+
+**Do not** hardcode `cuda:0` to make the gate pass. `detect_device()` returning `cpu`
+honestly is what makes gate 0.7 mean anything — a hardcoded answer passes on a machine with
+no GPU at all and sends the next person hunting a fault that does not exist. T-054's test
+asserts the function agrees with `torch.cuda.is_available()` in both directions.
