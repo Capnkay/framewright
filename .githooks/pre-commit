@@ -134,14 +134,31 @@ fi
 # all — see docs/BATON.md's own warning about a floor that blocks legitimate
 # work getting removed at three in the morning.
 #
-# If a message file DOES exist here (direct/manual invocation for testing —
-# see SETUP.md's `sh .githooks/pre-commit` pattern — or a leftover
-# COMMIT_EDITMSG from a prior attempt), it is still checked and still fails
-# closed on a missing id or an unreadable file. Nothing here silently
-# swallows a real error.
+# A message file is only checked here when git or a person passed its path
+# EXPLICITLY as $1 — direct/manual invocation for testing, per SETUP.md's
+# `sh .githooks/pre-commit <msgfile>` pattern. In that case it still fails
+# closed on a missing id or an unreadable file; nothing here silently
+# swallows a real error. See the note below for why a leftover
+# .git/COMMIT_EDITMSG is deliberately NOT read.
 
-COMMIT_MSG_FILE="${1:-.git/COMMIT_EDITMSG}"
-if [ -f "$COMMIT_MSG_FILE" ]; then
+# Only an EXPLICITLY passed path is a message THIS commit owns. Defaulting
+# to .git/COMMIT_EDITMSG judges whatever a PRIOR attempt left behind, which
+# is not the message being written and may not even be this committer's.
+# Verified: a leftover "package file modified" -- written by a tool-initiated
+# commit that never completed -- blocked a commit whose own message did carry
+# its task id, and kept blocking every subsequent commit in the clone. That
+# is the floor rejecting legitimate work on evidence from an unrelated
+# attempt, which is precisely the failure docs/BATON.md warns gets a hook
+# deleted at three in the morning.
+#
+# The floor is NOT weakened by this: .githooks/commit-msg performs the same
+# check on the real, finalised message, unconditionally, on every commit git
+# makes, and fails closed on a missing id or an unreadable file. What is
+# removed here is a redundant copy reading the wrong input. SETUP.md's manual
+# `sh .githooks/pre-commit <msgfile>` test path passes $1 explicitly and so
+# is still checked, still fails closed.
+if [ -n "$1" ] && [ -f "$1" ]; then
+  COMMIT_MSG_FILE="$1"
   COMMIT_MSG=$(cat "$COMMIT_MSG_FILE" 2>/dev/null) || fail "could not read the commit message file: $COMMIT_MSG_FILE"
   echo "$COMMIT_MSG" | grep -Eq 'T-[0-9]{3}'
   if [ $? -ne 0 ]; then

@@ -29,3 +29,10 @@
 - Device: LAPTOP-PUPG5T28
 - Files: client/src/redux/cmsSlice.js, tests/cms-slice.test.mjs
 
+## T-009 — Pin fetchElementsByIds' §5.0 flattening and §5.1 missing-ID assertion with a dedicated suite
+- Started: 2026-08-20T16:55:55.764Z
+- Finished: 2026-08-20T17:16:03.112Z
+- Duration: 20m
+- Device: LAPTOP-PUPG5T28
+- Files: client/src/redux/fetchElementsByIds.js, tests/fetch-elements-by-ids.test.mjs
+

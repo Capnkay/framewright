@@ -1020,3 +1020,89 @@ a transport error fail straight to the deterministic fallback. That reading is a
 better trade — the keyless path is instant and always works, so spending a second
 30-second window to maybe avoid it is a poor use of NFR-02's 60-second total budget. If the
 intent was broader, this is the line to change.
+## 2026-08-20 · T-009 · `pre-commit` step 4 read a stale message and blocked every commit
+
+**Two corrections, one to a frozen floor and one to the board.**
+
+### 1. `.githooks/pre-commit` step 4 judged the wrong commit message
+
+`COMMIT_MSG_FILE="${1:-.git/COMMIT_EDITMSG}"` defaulted to a file that, for a real
+`git commit`, holds whatever a **prior** attempt left behind. On this clone that leftover was
+`package file modified` — no task id, written by some tool-initiated commit that never
+completed. Result: `git commit -m "Claim T-009"` was rejected for not containing a task id,
+by a hook reading a different message than the one being written. It would have rejected
+every subsequent commit in the clone the same way, for any committer, until someone thought
+to look inside `.git/`.
+
+The hook's own header already explains why this cannot work: git runs `pre-commit` **before**
+the message for the commit in progress exists, `-m` included. So step 4 could never see the
+real message; it could only ever see a stale one. Its verdict was structurally unrelated to
+the commit it was blocking.
+
+**Fixed** by gating step 4 on an explicitly-passed `$1`:
+
+```
+-  COMMIT_MSG_FILE="${1:-.git/COMMIT_EDITMSG}"
+-  if [ -f "$COMMIT_MSG_FILE" ]; then
++  if [ -n "$1" ] && [ -f "$1" ]; then
++    COMMIT_MSG_FILE="$1"
+```
+
+**The floor is not weakened, and this is the part that mattered when deciding.**
+`.githooks/commit-msg` performs the identical check on the real, finalised message, on every
+commit git makes, unconditionally, and fails closed on a missing id, a missing path, or an
+unreadable file. What was removed is a redundant second copy reading an input it had no valid
+claim to. `SETUP.md`'s manual `sh .githooks/pre-commit <msgfile>` pattern passes `$1`
+explicitly and is still checked, still fails closed.
+
+Verified in all five modes before the manifest was regenerated:
+
+| Invocation | Expected | Result |
+|---|---|---|
+| `pre-commit <msg without id>` | fail | fails, exit 1 |
+| `pre-commit <msg with id>` | pass | exit 0 |
+| `pre-commit` (no arg, stale id-less `COMMIT_EDITMSG` present) | pass | exit 0 |
+| `commit-msg <msg without id>` | fail | fails, exit 1 |
+| `commit-msg` (no arg) | fail closed | fails, refuses to guess |
+
+`LAW-MANIFEST.sha256` regenerated for the changed file — and while resolving a rebase
+conflict against T-054's concurrent edit to the same hook, regenerated from disk rather than
+hand-merged. A hash manifest is the one file where taking "theirs" or "ours" is always wrong:
+both sides are stale the moment the covered file merges. Upstream's `tools/check-verify-files.mjs`
+entry and board-sweep step are both present and intact in the merged result.
+
+**Recorded because it is a near-miss, not just a fix.** `AGENTS.md` rule 7 says never weaken
+a hook to get past it, and the tempting move here — one `echo` into `.git/COMMIT_EDITMSG` —
+would have unblocked the commit in a second, left the trap armed for the next five people,
+and recorded nothing. `docs/BATON.md`'s warning about a floor that blocks legitimate work
+getting deleted at three in the morning is the mechanism by which that ends badly.
+
+### 2. T-009's `files` path and title, per F-002
+
+`_build/tasks.json`:
+
+| Field | Was | Now |
+|---|---|---|
+| `files[0]` | `client/src/store/fetchElementsByIds.js` | `client/src/redux/fetchElementsByIds.js` |
+| `title` | "Write fetchElementsByIds by hand, including the §5.0 flattening rule and the §5.1 missing-ID assertion" | "Pin fetchElementsByIds' §5.0 flattening and §5.1 missing-ID assertion with a dedicated suite" |
+
+The path correction is F-002's Correction 1, sixth row, and follows the precedent already set
+for T-008. The retitle is F-002's Correction 2: the thunk, its §5.0 flattening and its §5.1
+`missing` assertion were all written and committed in T-000, so a task titled "Write
+fetchElementsByIds by hand" invites either a duplicate module at the board's non-existent
+path — orphaning the code `tests/golden.test.mjs` actually imports — or a done-marking on the
+strength of somebody else's work. Both are the §9 silent-death failure arriving through the
+task board. `doneWhen` was left alone; it already describes the verification accurately.
+
+Scope held deliberately to T-009. F-002's remaining rows (T-010, T-011, T-012, T-014, T-050)
+are the same defect and still open; sweeping them under this claim is the cross-scope edit
+`AGENTS.md` warns creates a conflict for someone asleep — and the register's own last entry
+is a record of exactly that going wrong twice in one hour.
+
+F-002 also proposes T-009 "run the thunk under real middleware" and read `VITE_API_URL` from
+`import.meta.env`. **Not done, on purpose.** Real middleware means `@reduxjs/toolkit` on a
+path `tests/golden.test.mjs` imports, which is precisely the F-005 regression — a static
+dependency turning `npm test` red on a fresh clone. The suite uses a hand-rolled thunk
+harness instead, matching `makeMockStore()` in `golden.test.mjs`. `apiBaseUrl()` already
+reads `import.meta.env.VITE_API_URL` when present; hardening its precedence would have meant
+editing the implementation and then verifying my own edit, which rule 6 forbids.

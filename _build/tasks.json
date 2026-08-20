@@ -204,7 +204,7 @@
     {
       "id": "T-009",
       "phase": 1,
-      "title": "Write fetchElementsByIds by hand, including the \u00a75.0 flattening rule and the \u00a75.1 missing-ID assertion",
+      "title": "Pin fetchElementsByIds' \u00a75.0 flattening and \u00a75.1 missing-ID assertion with a dedicated suite",
       "track": "any",
       "size": "50m",
       "contract": [
@@ -215,7 +215,7 @@
         "T-008"
       ],
       "files": [
-        "client/src/store/fetchElementsByIds.js",
+        "client/src/redux/fetchElementsByIds.js",
         "tests/fetch-elements-by-ids.test.mjs"
       ],
       "verify": "npm test -- fetch-elements-by-ids",
