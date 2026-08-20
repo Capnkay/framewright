@@ -85,3 +85,11 @@
 - Device: Mohits_Victus
 - Files: server/src/quality/visual.js, tests/quality-visual.test.mjs
 
+## T-072 — Write docs/THREAT-MODEL.md, the judge-facing security artifact
+- Started: 2026-08-20T20:57:33.890Z
+- Finished: 2026-08-20T21:00:50.103Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: docs/THREAT-MODEL.md
+- Note: Merged implementation status, defects-found-during-build, and judge-runnable checks into the existing threat model; all 10 original sections preserved; every cited file and test verified present.
+

@@ -3,7 +3,10 @@
   "who": "Mohit Gupta",
   "device": "Mohits_Victus",
   "claimedAt": "2026-08-20T20:57:33.890Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-20T21:00:50.103Z",
+  "durationMs": 196213,
+  "note": "Merged implementation status, defects-found-during-build, and judge-runnable checks into the existing threat model; all 10 original sections preserved; every cited file and test verified present."
 }

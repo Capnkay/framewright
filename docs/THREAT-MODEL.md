@@ -293,6 +293,106 @@ verifiable answer, not a claimed one.
 
 ---
 
+## 11. Implementation status — what is now code, not intention
+
+Threats 1–10 were written against the contract before most of the controls existed, and
+they are careful to say where they describe synthesis rather than shipped behaviour. This
+section closes that gap for the parts that have since been built, so a reader can tell
+analysis from implementation.
+
+| Control | Threat | Status | Implementation | Test |
+|---|---|---|---|---|
+| Write-side sanitiser | 4 | **Implemented** | `server/src/sanitise/sanitiseWrite.js` | `tests/sanitise-write.test.mjs` |
+| Read-side `getHtml` | 4 | **Implemented** | `client/src/utils/getHtml.js` | `tests/get-html-r6.test.mjs` |
+| CSS allow-list | 5 | **Implemented** | `isCleanCss` in the same module | `tests/sanitise-write.test.mjs` |
+| Perception returns no IDs | 1 | **Implemented** | `perceiveAndAssembleIr.js` strips any `fieldId` | `tests/perceive-assemble-ir.test.mjs` |
+| §14 history gate | 7 | **Implemented** | `.githooks/pre-push`, eight checks | fires on every push |
+| `LAW-MANIFEST` integrity | 7 | **Implemented** | `.githooks/pre-commit` | fires on every commit |
+| Read-side bypass scan | 4 | **Implemented** | `tools/check-sanitise-chokepoints.mjs` | — |
+| Post-synthesis AST assertion | 3 | **Not yet built** | — | — |
+| Import allow-list on emitted code | 3 | **Not yet built** | — | — |
+
+**Threat 3 remains the largest unimplemented control.** The enumerated
+execution-primitive blacklist described there — no `eval`, no dynamic `import(`, no
+`<script`, no `on*=`, `dangerouslySetInnerHTML` only from the sanitiser — is still this
+document's proposal rather than a running check. ESLint (T-034) runs against emitted
+components with a hermetic config, which catches some of it incidentally, but there is no
+assertion written specifically for this list.
+
+### The write-side allow-list, as actually implemented
+
+Worth one paragraph because the implementation makes a choice the contract does not
+dictate. Tags are found by a **scanner that tracks quote state**, not a regex. The obvious
+regex — `/<\/?([a-z]+)[^>]*?\/?>/` — ends a tag at the first `>` anywhere, including
+one inside `title="a>b"`, and releases the remainder of the attribute list as text where
+no later pass sees it as markup. Surviving tags are **rebuilt from their name alone**
+rather than having attributes trimmed off them, so there is no code path in which an
+attribute can survive `ALLOWED_ATTR` being empty. `<script>` and `<style>` have their
+contents discarded rather than unwrapped, because unwrapping moves the payload into a
+text node and calls it sanitised.
+
+### One input class worth naming explicitly
+
+**OCR output is attacker-controlled text.** Threat 1 covers the image as a vector for
+instructions; the narrower point is that any string PaddleOCR reads becomes an element's
+`content`. Someone who writes `<img src=x onerror=alert(1)>` on a whiteboard and
+photographs it has put a string into the pipeline without touching a text field. It is
+sanitised on exactly the same path as a typed prompt or a `PATCH` body — there is no
+OCR-specific route into storage.
+
+---
+
+## 12. Defects found in these controls during the build
+
+Listed because a threat model whose controls have never failed is a threat model whose
+controls have never been tested. All three were found while building, and all three are
+fixed.
+
+**1. The write-side chokepoint ran and had no effect.** `POST /api/generate` called the
+sanitiser, assigned the result to `ctx.body`, and then read the **raw** body on every line
+after it. The cleaned prompt was computed and discarded, and `body.prompt` reached the IR
+builder unsanitised. The code read as though it were correct, which is more dangerous than
+an obviously absent call — a reviewer scanning for "is the sanitiser invoked" would have
+found it and stopped. Fixed by rebinding the variable, with a test that asserts the
+rebind rather than the invocation.
+
+**2. Patched card loops were persisted unsanitised.** `PATCH /api/elements/:fieldId`
+checked that `loop` was an array and stored it verbatim. A payload in a card's `field1`
+went to disk unmodified. The read-side chokepoint caught it at render — which is precisely
+the case §8 opens by rejecting: *stored content should never be dirty in the first place.*
+Card loop fields are §9's step-5 target, so this was on the demo's critical path.
+
+**3. The rule existed in three places.** Before the chokepoint was extracted, the tag
+scanner and CSS test lived as a private copy inside the elements route, a second variant in
+the client, and then the chokepoint itself. Three copies of one security rule is three
+behaviours the moment one is edited, and the copy that drifts is the one an attacker finds.
+The route's copy was deleted. **The client's remains** — see the gap list below.
+
+A fourth finding of the same shape, though not a security defect: four optional-dependency
+guards used `except ImportError`, which does not catch a library that is *installed but
+cannot load*. Each had been tested only with the dependency absent, the one case where the
+narrow except trivially works.
+
+---
+
+## 13. What a judge can run
+
+```bash
+npm test -- sanitise-write          # the allow-list, incl. the quoted-attribute bypass
+npm test -- perceive-assemble-ir    # Python cannot mint a fieldId
+node tools/check-sanitise-chokepoints.mjs
+git push                            # §14, against full history
+```
+
+Two live checks worth asking for rather than reading:
+
+- `PATCH` an element with `<script>alert(1)</script>Hello`, then read the value back **out
+  of the store**. The script tag is gone from storage, not merely from the render.
+- `PATCH` a `css` value of `background: url(http://example.com/x.png)`. It is a `400`, and
+  nothing is written.
+
+---
+
 ## What we have NOT done
 
 Stated plainly, because a security document that only lists controls and never lists gaps
@@ -312,3 +412,22 @@ is not credible to a professional judge.
 - **The orchestrated-executor control (threat 9) is a commit-boundary control only**, as
   stated there in full — it is not, and does not claim to be, a sandbox around the executor
   itself.
+- **Two sanitiser implementations still exist.** The write-side chokepoint
+  (`server/src/sanitise/sanitiseWrite.js`) and the read-side helper
+  (`client/src/utils/getHtml.js`) are behaviourally aligned deliberately, but they are not
+  the same code and can drift. Making the client import the server module is the fix and
+  has not been done — it crosses a bundler boundary and another track's lane.
+- **The sanitiser is hand-written, not DOMPurify.** `npm test` runs on a fresh clone with
+  no `node_modules`, which is why the store, envelope, schemas and sanitiser are all
+  dependency-free. The allow-list is narrow, fixed and idempotent, but a vetted library is
+  the right answer for production and both files say so in their headers.
+- **The OCR worker installs a stub module named `torch`** to break an import cycle
+  (`docs/EDGE-CASES.md` EC-014). It runs in a subprocess whose only job is OCR and which
+  wants nothing from torch. If a future PaddleOCR genuinely calls into it, that fails
+  loudly rather than returning a wrong answer — but it is a deliberate lie to an import
+  system and is recorded here as one.
+- **There is no authentication or rate limiting.** Every endpoint is anonymous and equally
+  privileged; anyone who can reach the API can `PATCH` any element. Uploads are capped at
+  8 MB each (§13.1) but not in number. This is a demo build, and any deployment beyond one
+  needs auth before anything else in this document matters.
+
