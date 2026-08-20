@@ -234,7 +234,7 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', () => {
   // to keep an unimplemented route loudly distinguishable from an implemented
   // one returning nothing. This count is a ratchet: it must fall to zero as
   // Phase 2 lands, and it can never rise without this assertion failing.
-  const EXPECTED_STUBS = 6;
+  const EXPECTED_STUBS = 5;
 
   const ctx = {
     params: { sectionId: '1000000001', fieldId: '2000000003', jobId: 'job-0000000001', name: 's3-regions.json' },

@@ -84,3 +84,10 @@
 - Device: Jainam
 - Files: server/src/routes/generate.js, tests/generate-prompt-mode.test.mjs
 
+## T-041 — Implement POST /api/sections/:sectionId/regenerate per §13.3 (base semantics)
+- Started: 2026-08-20T20:20:06.659Z
+- Finished: 2026-08-20T20:23:06.481Z
+- Duration: 3m
+- Device: Jainam
+- Files: server/src/routes/regenerate.js, tests/regenerate-base.test.mjs
+

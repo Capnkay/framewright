@@ -9,14 +9,14 @@ import os from 'node:os';
 test('POST /api/generate for mode=prompt end to end', async () => {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fw-test-generate-'));
   const jobsFile = path.join(tmpDir, 'jobs.json');
-  const storeDir = path.join(tmpDir, 'data');
+  const storeFile = path.join(tmpDir, 'store.json');
   const env = { 
     JOB_STORE_PATH: jobsFile,
+    STORE_PATH: storeFile,
     MONGODB_URI: '',
-    DATA_DIR: storeDir
   };
   
-  await fs.mkdir(storeDir, { recursive: true });
+
 
   const ctx = {
     env,

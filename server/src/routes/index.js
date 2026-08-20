@@ -132,14 +132,8 @@ export function patchElement(ctx = {}) {
   return notImplemented('T-016', 'PATCH /api/elements/:fieldId');
 }
 
-/** POST /api/sections/:sectionId/regenerate — §13.3. */
-export function postRegenerate(ctx = {}) {
-  const { sectionId } = ctx.params || {};
-  if (!isSectionId(sectionId)) {
-    return badRequest('sectionId must be a 10-digit string in the 1… range (§1).');
-  }
-  return notImplemented('T-041', 'POST /api/sections/:sectionId/regenerate');
-}
+import { postRegenerate } from './regenerate.js';
+export { postRegenerate };
 
 import { getJob } from './jobs.js';
 export { getJob };

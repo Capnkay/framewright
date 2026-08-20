@@ -27,7 +27,7 @@ export function createStore(env = {}) {
   if (type === 'mongo') {
     return createAdapter(createLazyMongoStore(env.MONGO_URI));
   } else if (type === 'json') {
-    return createAdapter(createJsonStore('./server/data/store.json'));
+    return createAdapter(createJsonStore(env.STORE_PATH || './server/data/store.json'));
   }
 
   return createAdapter(createStubStore(type));
