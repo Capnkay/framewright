@@ -718,3 +718,61 @@ over the network. `LAW-MANIFEST.sha256`'s `.githooks/pre-push` entry regenerated
 
 No contract change — `.githooks/pre-push` isn't a frozen document, but it is hook-floor law
 (CLAUDE.md), so the same append-only, state-the-why discipline applies.
+## 2026-08-20 · The verify/files defect swept off the whole board — 77 of 95 tasks
+
+Fixed per `docs/BATON.md`: *"The verification is wrong, not the code. Fix the verification in
+the same commit, and say so in `docs/corrections/REGISTER.md`."*
+
+Four tasks had been corrected one at a time — T-002, T-003, T-005, T-054 — each declaring a
+`verify` command naming a test file its own `files` list omitted. `AGENTS.md` tells an
+executor that needs an undeclared file to **stop**, so the defect turns every affected task
+into a scope violation before it can be verified at all.
+
+`tools/check-verify-files.mjs` swept the board. **77 of 95 tasks were affected** — including
+all sixteen I added myself today, so this was never an executor problem. It is how the board
+was generated. `--fix` patched every one; the sweep is re-runnable and exits non-zero on any
+future mismatch, so it can be wired into the pre-commit hook later if the same drift returns.
+
+It also reports which implied test files do not exist on disk. 76 do not, which is correct
+for an unclaimed task and would be a failure for a done one — a cheap second check that a
+task marked done actually has its verification written.
+
+---
+
+## 2026-08-20 · T-005's verification could not run, and `skip: null` was hiding it
+
+Found while verifying T-005 after it was already marked done on `main`. Three separate
+faults, stacked, each masking the next.
+
+**1. The import could never resolve.** `tests/mongo-store.test.mjs` imports
+`mongodb-memory-server` as a bare specifier. Node resolves bare imports **upward** from the
+importing file — `tests/node_modules`, then `<root>/node_modules` — and never sideways into
+`server/node_modules`. Running `cd server && npm install` therefore cannot fix it, which is
+the trap: the obvious remedy looks right and changes nothing. Root `package.json` already
+declared the dependency; nobody had run `npm install` at the root.
+
+**2. `skip: null` marks a test skipped — and still runs its body.** The guard was written as
+`{ skip: unavailable }` with `unavailable` null when the package resolves. node:test treats
+**any non-`false` value** as a skip, so the test reported `# SKIP`, the suite went green, and
+the assertions inside were executing the whole time with their results discarded. Verified
+directly:
+
+```
+test('with null',  { skip: null  }, ...)   ->  body RUNS, reported # SKIP
+test('with false', { skip: false }, ...)   ->  body runs, reported as a pass
+```
+
+`{ skip: unavailable || false }` is therefore load-bearing, not defensive styling. A guarded
+optional-dependency test written the obvious way is a test that never fails.
+
+**3. My own repair corrupted the file** — a shell-quoted `python -c` edit wrote an unbalanced
+string literal, and the resulting `SyntaxError` presented as a plain `'test failed'` with no
+message. Repaired from a script file rather than an inline command; that quoting is not worth
+fighting twice.
+
+**With all three fixed, the test runs and passes.** 50 concurrent `allocateId` calls return
+50 unique 10-digit IDs. **T-005's store code was correct throughout** — only its verification
+was broken, which is precisely the case `BATON.md` names.
+
+Suite now **44 passing, 0 failing, 0 skipped**, and the skip message says to install at the
+root and explains why `cd server && npm install` will not help.
