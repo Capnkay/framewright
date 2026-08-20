@@ -21,3 +21,11 @@
 - Device: Mohits_Victus
 - Files: perception/stages/normalise.py, perception/tests/test_normalise.py
 
+## T-097 — Benchmark DETR on a real wireframe before T-056 builds on it
+- Started: 2026-08-20T17:08:01.176Z
+- Finished: 2026-08-20T17:22:03.590Z
+- Duration: 14m
+- Device: Mohits_Victus
+- Files: perception/benchmarks/detr_wireframe.py, docs/BENCHMARK-RESULTS.md
+- Note: DETR measured 0 of 7 on the real wireframe: one box, 'cell phone', 64% of frame, identical at thresholds 0.5 down to 0.05, and COCO has no UI classes at all. Recorded as B-002; matches B-001's Florence-2 result. F-006's DETR half confirmed.
+

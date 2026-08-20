@@ -1,0 +1,12 @@
+{
+  "taskId": "T-097",
+  "who": "Mohit Gupta",
+  "device": "Mohits_Victus",
+  "claimedAt": "2026-08-20T17:08:01.176Z",
+  "status": "done",
+  "takenFrom": null,
+  "takenAt": null,
+  "finishedAt": "2026-08-20T17:22:03.590Z",
+  "durationMs": 842414,
+  "note": "DETR measured 0 of 7 on the real wireframe: one box, 'cell phone', 64% of frame, identical at thresholds 0.5 down to 0.05, and COCO has no UI classes at all. Recorded as B-002; matches B-001's Florence-2 result. F-006's DETR half confirmed."
+}

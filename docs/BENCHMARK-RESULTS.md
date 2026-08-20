@@ -106,3 +106,96 @@ anywhere for anyone to have trained Florence-2 on.
 **Credit where due:** the teammate who ran it reported the whole-image boxes plainly
 rather than counting them as hits. That honesty is the only reason the method error was
 findable at all.
+
+---
+
+## B-002 · DETR on the same low-fidelity wireframe
+
+**Date:** 2026-08-20 · **Status:** DEFINITIVE — four confidence thresholds, identical result · **VERIFIED** (run on our hardware)
+
+Run because F-006 pointed out that both committed architecture diagrams route detection
+through DETR, and DETR had never been measured here. It was an assumption sitting on the
+critical path of the input-coverage criterion.
+
+### Machine
+
+Same as B-001. RTX 3050 Laptop, 6.00 GB. `perception/.venv`, torch 2.6.0+cu124,
+transformers 5.15.1, `facebook/detr-resnet-50` (Apache-2.0, approved in the README table).
+
+Same image as B-001: `gpu-test/wireframe.png`, 1600×1168, hand-drawn.
+
+**Fed through stage 2 first**, deliberately — normalised to a 1024×1024 letterboxed canvas
+with the T-055 transform. That measures the pipeline as it would actually run, and it means
+a poor result cannot be blamed on unnormalised input.
+
+### What we measured
+
+| | |
+|---|---|
+| Model load | 41.8 s |
+| Inference | 1.47 s |
+| **Peak VRAM** | **0.34 GB** |
+| Detections at threshold 0.5 | **1** |
+| Detections at 0.3 / 0.1 / **0.05** | **1 / 1 / 1** |
+| **Targets located correctly** | **0 of 7** |
+
+### The finding
+
+**DETR returned exactly one object, labelled `"cell phone"`, covering 64% of the frame.**
+
+```json
+{ "label": "cell phone", "score": 0.5259,
+  "box_original": [6.1, 4.5, 1570.3, 1050.9], "area_fraction": 0.6446 }
+```
+
+Mapped back through the stage-2 transform, that box is very nearly the entire 1600×1168
+upload.
+
+**Lowering the threshold to 0.05 changed nothing.** Not one additional box. The model does
+not have seven weak hypotheses waiting under a cutoff — it has one, and nothing else clears
+5%.
+
+### The structural half, which matters more than the score
+
+```
+"ui_labels_available": []
+```
+
+**DETR's COCO vocabulary contains no UI classes at all.** It cannot emit `button`,
+`heading`, `card`, or `badge`, because those labels do not exist in its output space. This
+is not a tuning problem or a threshold problem. Asked to find a button, the best it can
+physically do is name the nearest of 91 photographic objects — and it chose `cell phone`,
+which for a tall rectangle full of smaller rectangles is a *reasonable* answer to the
+question it was actually trained to answer.
+
+### Read alongside B-001
+
+| | Florence-2 | DETR |
+|---|---|---|
+| Boxes returned | 1 | 1 |
+| Label | `"whiteboard"` | `"cell phone"` |
+| Frame coverage | 84% | 64% |
+| **Targets located** | **0 of 7** | **0 of 7** |
+| Peak VRAM | 0.60 GB | 0.34 GB |
+
+**Two independent architectures, two different training sets, the same failure, twice.** One
+called our wireframe a whiteboard; the other called it a cell phone. Both are describing the
+picture correctly and answering a different question from the one we asked.
+
+That is now a measured pattern rather than a single result, and it is the strongest evidence
+we have for the architecture: **general vision models do not read wireframes.** Not because
+they are weak — DETR is a fine detector — but because a line drawing that decomposes into UI
+components is not in any of their training distributions. EC-008 predicted this for DETR
+specifically, on the grounds that COCO is photographs, and the prediction held.
+
+VRAM was never the constraint in either run: 0.34 GB and 0.60 GB on a 6 GB card.
+
+### What it changes
+
+**Nothing about the plan, which is the point.** The contract, the stage cards and
+`docs/html/architecture.html` already commit to OpenCV contour detection plus PaddleOCR, and
+already record DETR and Florence-2 as measured-and-rejected. This run converts the DETR half
+of that from a reasoned expectation into a number.
+
+**It changes the two committed diagrams**, which still show DETR as the primary detector.
+See F-006.
