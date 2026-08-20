@@ -70,3 +70,10 @@
 - Device: Jainam
 - Files: client/src/utils/getHtml.js, tools/check-sanitise-chokepoints.mjs
 
+## T-032 — Implement the §8 CSS declaration allow-list validator
+- Started: 2026-08-20T20:02:05.524Z
+- Finished: 2026-08-20T20:04:23.954Z
+- Duration: 2m
+- Device: Jainam
+- Files: server/src/sanitise/cssAllowList.js, tests/css-allow-list.test.mjs
+
