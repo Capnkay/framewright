@@ -28,3 +28,10 @@
 - Device: Jainam
 - Files: server/src/ids/allocateId.js, tests/allocate-id.test.mjs
 
+## T-024 — Implement stage 1, input-acquisition — writes uploads to uploads/ per §13.1's format and size rules
+- Started: 2026-08-20T19:23:34.937Z
+- Finished: 2026-08-20T19:25:46.232Z
+- Duration: 2m
+- Device: Jainam
+- Files: server/src/pipeline/stage1InputAcquisition.js, tests/stage1.test.mjs
+
