@@ -82,7 +82,7 @@ test('a document read returns 404 with the error envelope when absent', async ()
   assert.ok(documents.length > 0, 'expected at least one document route');
 
   for (const route of documents) {
-    const ctx = { params: { sectionId: '1000000001', jobId: 'job-0000000001' } };
+    const ctx = { params: { sectionId: '1000000099', jobId: 'job-0000000099' } };
     const { status, body } = await route.handler(ctx);
     assert.equal(status, STATUS.NOT_FOUND, `${key(route)} should 404 on an absent document`);
     assert.ok(isErrorEnvelope(body), `${key(route)}'s 404 must carry the error envelope`);
@@ -163,11 +163,11 @@ test('id-shaped params are range-checked per §1', async () => {
   assert.equal((await patchElement({ params: { fieldId: '00000000-0000-0000-0000-000000000000' }, body: { content: 'x' } })).status, STATUS.BAD_REQUEST);
 });
 
-test('POST /api/generate 400s with §13’s own message when no input is supplied', () => {
-  const noMode = postGenerate({ body: {} });
+test('POST /api/generate 400s with §13’s own message when no input is supplied', async () => {
+  const noMode = await postGenerate({ body: {} });
   assert.equal(noMode.status, STATUS.BAD_REQUEST);
 
-  const noInput = postGenerate({ body: { mode: 'prompt' }, files: {} });
+  const noInput = await postGenerate({ body: { mode: 'prompt' }, files: {} });
   assert.equal(noInput.status, STATUS.BAD_REQUEST);
   assert.equal(
     noInput.body.error.message,
@@ -175,7 +175,7 @@ test('POST /api/generate 400s with §13’s own message when no input is supplie
     "§13's error example is quoted verbatim so the wire shape matches the contract",
   );
 
-  const badMode = postGenerate({ body: { mode: 'sketch', prompt: 'x' } });
+  const badMode = await postGenerate({ body: { mode: 'sketch', prompt: 'x' } });
   assert.equal(badMode.status, STATUS.BAD_REQUEST, 'mode is a closed set of four values');
 });
 
@@ -218,7 +218,7 @@ test('every error response carries the §13 error envelope', async () => {
     getElements({ query: {} }),
     patchElement({ params: { fieldId: 'nope' }, body: { content: 'x' } }),
     await getSection({ params: { sectionId: 'nope' } }),
-    postGenerate({ body: {} }),
+    await postGenerate({ body: {} }),
     await postReplay({ params: { jobId: 'nope' }, body: { fromStage: 5 } }),
   ];
   for (const probe of probes) {
@@ -234,7 +234,7 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', () => {
   // to keep an unimplemented route loudly distinguishable from an implemented
   // one returning nothing. This count is a ratchet: it must fall to zero as
   // Phase 2 lands, and it can never rise without this assertion failing.
-  const EXPECTED_STUBS = 7;
+  const EXPECTED_STUBS = 6;
 
   const ctx = {
     params: { sectionId: '1000000001', fieldId: '2000000003', jobId: 'job-0000000001', name: 's3-regions.json' },

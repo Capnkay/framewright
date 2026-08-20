@@ -77,3 +77,10 @@
 - Device: Jainam
 - Files: server/src/sanitise/cssAllowList.js, tests/css-allow-list.test.mjs
 
+## T-033 — Implement POST /api/generate for mode=prompt end to end
+- Started: 2026-08-20T20:05:22.942Z
+- Finished: 2026-08-20T20:17:19.815Z
+- Duration: 12m
+- Device: Jainam
+- Files: server/src/routes/generate.js, tests/generate-prompt-mode.test.mjs
+

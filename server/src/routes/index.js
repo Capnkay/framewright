@@ -89,35 +89,8 @@ export function getMetrics() {
   return notImplemented('T-087', 'GET /api/metrics');
 }
 
-/** POST /api/generate — §13, §13.1. */
-export function postGenerate(ctx = {}) {
-  const body = ctx.body || {};
-  const files = ctx.files || {};
-
-  const MODES = ['wireframe', 'code', 'prompt', 'combined'];
-  if (!MODES.includes(body.mode)) {
-    return badRequest(`mode is required and must be one of: ${MODES.join(', ')}.`);
-  }
-
-  // §13's own error example, verbatim.
-  const hasInput = Boolean(files.wireframe || body.code || body.prompt);
-  if (!hasInput) {
-    return badRequest('At least one of wireframe, code, or prompt is required.');
-  }
-
-  // §8's write-side chokepoint, second of the two call sites it names. It runs
-  // HERE, in front of T-033's implementation, rather than inside it — a prompt
-  // that reaches the IR builder dirty has already been persisted dirty by the
-  // time anyone notices, and §8 exists to stop content being stored dirty in
-  // the first place. `code` is passed through untouched on purpose: §8 routes
-  // pasted JSX to @babel/parser, and pre-stripping tags would corrupt the input
-  // to the parser that is itself the safe boundary.
-  const cleaned = sanitiseGenerateBody(body);
-  if (!cleaned.ok) return badRequest(cleaned.reason);
-  ctx.body = cleaned.body;
-
-  return notImplemented('T-033', 'POST /api/generate');
-}
+import { postGenerate } from './generate.js';
+export { postGenerate };
 
 import { getSections, getSection } from './sections.js';
 export { getSections, getSection };
