@@ -1246,26 +1246,3 @@ which is built yet. Preserving the documented shape for the common case keeps bo
 tasks' assumptions true. If whoever owns §11.2 would rather the attempt appear in every path,
 that is a one-line change in `artifactRef` — but it should be decided rather than drifted
 into, which is why it is written down here instead of just done.
-
----
-
-## 2026-08-20 · T-056's `files` list did not match its own `doneWhen`
-
-T-056 declared two files:
-
-```json
-["perception/stages/detect_regions.py", "perception/tests/test_detect_regions.py"]
-```
-
-Its `doneWhen` reads: "scored against the same 7 reference targets … and the number
-recorded in docs/BENCHMARK-RESULTS.md as B-003." The benchmark harness
-(`perception/benchmarks/contours_wireframe.py`) and the results document
-(`docs/BENCHMARK-RESULTS.md`) are both load-bearing deliverables of the task — the first
-produces the score, the second records it — but neither appeared in the `files` list.
-
-An executor obeying `AGENTS.md`'s scope rule ("build only what its `files` list covers")
-would have been unable to write either file without stopping to fix the record first.
-`AGENTS.md` says: "either the task is wrong (fix `tasks.json` and log it) or you are doing
-someone else's task." The task was wrong.
-
-**Fixed:** `files` now carries all four paths. No other field changed.
