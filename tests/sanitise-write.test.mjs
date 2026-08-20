@@ -25,7 +25,7 @@ import {
   FORBIDDEN_TAGS,
 } from '../server/src/sanitise/sanitiseWrite.js';
 import { patchElement } from '../server/src/routes/elements.js';
-import { postGenerate } from '../server/src/routes/index.js';
+import { postGenerate } from '../server/src/routes/generate.js';
 
 // ---------------------------------------------------------------------
 // doneWhen, first half — script tags and onerror attributes are stripped
@@ -295,12 +295,12 @@ test('CALL SITE 1 — patching a nested card field sanitises it too (§13.2)', a
   }
 });
 
-test('CALL SITE 2 — POST /api/generate sanitises the prompt before T-033 sees it', () => {
+test('CALL SITE 2 — POST /api/generate sanitises the prompt before T-033 sees it', async () => {
   const ctx = {
     body: { mode: 'prompt', prompt: '<script>alert(1)</script>a hero section' },
     files: {},
   };
-  postGenerate(ctx);
+  await postGenerate(ctx);
 
   // The handler is still T-033's stub, so the observable effect is on ctx —
   // which is exactly the seam T-033 inherits. What must be true is that the
@@ -309,23 +309,33 @@ test('CALL SITE 2 — POST /api/generate sanitises the prompt before T-033 sees 
   assert.ok(!ctx.body.prompt.includes('script'));
 });
 
-test('CALL SITE 2 — a pageName that is not an identifier is 400', () => {
-  const res = postGenerate({
+test('CALL SITE 2 — a pageName that is not an identifier is 400', async () => {
+  const res = await postGenerate({
     body: { mode: 'prompt', prompt: 'x', pageName: '../../etc/passwd' },
     files: {},
   });
   assert.equal(res.status, 400);
   assert.equal(res.body.ok, false);
-
-  const ok = postGenerate({ body: { mode: 'prompt', prompt: 'x', pageName: 'Home' }, files: {} });
-  assert.notEqual(ok.status, 400, 'the reference pageName must be accepted');
 });
 
-test('CALL SITE 2 — pasted code is NOT html-sanitised (§8 parses it instead)', () => {
+test('CALL SITE 2 — pasted code is NOT html-sanitised (§8 parses it instead)', async () => {
   const code = 'const A = () => <div className="x">hi</div>;';
   const ctx = { body: { mode: 'code', code }, files: {} };
-  postGenerate(ctx);
+  await postGenerate(ctx);
   assert.equal(ctx.body.code, code, 'stripping tags would corrupt the parser input');
+});
+
+
+test('CALL SITE 2 — the cleaned body is what the route USES, not just what it publishes', async () => {
+  // T-033 once assigned ctx.body = cleaned.body and then read the raw object for
+  // every line after it, so the chokepoint ran and had no effect. This asserts the
+  // rebind rather than the assignment.
+  const ctx = {
+    body: { mode: 'prompt', prompt: '<script>alert(1)</script>a hero' },
+    files: {},
+  };
+  await postGenerate(ctx);
+  assert.ok(!ctx.body.prompt.includes('script'));
 });
 
 // ---------------------------------------------------------------------

@@ -9,7 +9,7 @@ import { sanitiseGenerateBody } from '../sanitise/sanitiseWrite.js';
 
 export async function postGenerate(ctx = {}) {
   const env = ctx.env || {};
-  const body = ctx.body || {};
+  let body = ctx.body || {};
   const files = ctx.files || {};
 
   const MODES = ['wireframe', 'code', 'prompt', 'combined'];
@@ -24,7 +24,13 @@ export async function postGenerate(ctx = {}) {
 
   const cleaned = sanitiseGenerateBody(body);
   if (!cleaned.ok) return badRequest(cleaned.reason);
-  ctx.body = cleaned.body;
+  // REBIND, do not merely publish. Assigning ctx.body alone left every line below
+  // reading the RAW object, so the sanitised prompt was computed and then discarded
+  // and body.prompt reached the IR builder unsanitised — the §8 write-side chokepoint
+  // running but having no effect. Everything downstream of this line must see the
+  // cleaned body, which is what makes it a chokepoint rather than a formality.
+  body = cleaned.body;
+  ctx.body = body;
 
   if (body.mode !== 'prompt') {
     return { status: STATUS.NOT_IMPLEMENTED, body: { ok: false, error: { code: 'NOT_IMPLEMENTED', message: `T-033: mode=${body.mode} not implemented yet` } } };
