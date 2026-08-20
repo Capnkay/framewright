@@ -71,3 +71,10 @@
 - Device: Mohits_Victus
 - Files: server/src/generate/perceiveAndAssembleIr.js, tests/perceive-assemble-ir.test.mjs
 
+## T-059 — Implement the perception degradation path per §12 and §11.1
+- Started: 2026-08-20T20:47:08.725Z
+- Finished: 2026-08-20T20:49:59.234Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: server/src/generate/perceiveAndAssembleIr.js, tests/perception-degradation.test.mjs
+

@@ -31,6 +31,7 @@
 // put the degradation policy in two places.
 
 import { validateIr } from '../validate/irValidator.js';
+import { promptToIrKeyless } from './promptToIrKeyless.js';
 
 /** §12's default location for the perception service. Overridable per call. */
 export const DEFAULT_PERCEIVE_URL = 'http://127.0.0.1:8000';
@@ -269,4 +270,147 @@ export async function perceiveAndAssembleIr(options = {}) {
   return { ok: true, ir, warnings, perception: called.body };
 }
 
+// ---------------------------------------------------------------------------
+// T-059 — the degradation path. §12 and §11.1.
+// ---------------------------------------------------------------------------
+//
+// §12 states it as a requirement, not a nicety: "Degradation is mandatory and is part
+// of the contract, not an afterthought. If /perceive is unreachable, times out, or
+// returns non-200, the Node API records the stage as degraded, emits a warning, and
+// continues down the deterministic path. Prompt mode and the CMS contract must remain
+// fully demonstrable with the Python service stopped, the GPU absent, and no network."
+//
+// §11.1 supplies the vocabulary: `degraded` means "the stage did not do its real work
+// but the pipeline continued — the perception service being unreachable is the
+// canonical case. It is a success for the job and a warning for the stage."
+//
+// SO DEGRADED IS NOT FAILED, and the distinction is the whole point. A failed stage
+// stops the job; a degraded one produces a usable IR from the deterministic path and
+// lets the demo continue. Getting this backwards means a stopped Python service ends
+// the generation — which is precisely the outcome AGENTS.md rule 5 forbids.
+
+/** §11.1's stage statuses, for the two this path can produce. */
+export const STAGE_OK = 'ok';
+export const STAGE_DEGRADED = 'degraded';
+
+/**
+ * deterministicIr(request) -> IR
+ *
+ * The fallback the pipeline falls back TO. Built by the keyless prompt path, which
+ * needs no key, no GPU and no network — the three things §12 says must not be
+ * required. In wireframe mode there is no prompt to read, so the extractors find
+ * nothing and return their defaults, which is exactly the reference split-hero.
+ *
+ * `source` is corrected afterwards to say what actually happened: the mode really was
+ * `wireframe`, and the wireframe really was uploaded, even though nothing read it.
+ * Reporting `mode: "prompt"` here would make the job record claim an input the user
+ * never gave, and §6's sourceOf audit would inherit the lie.
+ */
+/**
+ * §6's `source.inputs` — what was actually supplied, never the mode.
+ *
+ * The enum is [wireframe, code, prompt]; `combined` is a mode and is not a member.
+ * Derived from the artefacts rather than the mode label so the IR cannot claim an
+ * input that was never given, which is the same honesty §6's sourceOf demands one
+ * level down.
+ */
+export function suppliedInputs({ mode, prompt, wireframeRef, code } = {}) {
+  const inputs = [];
+  if (wireframeRef || mode === 'wireframe' || mode === 'combined') inputs.push('wireframe');
+  if (code) inputs.push('code');
+  if (prompt) inputs.push('prompt');
+  if (inputs.length === 0) inputs.push(mode === 'combined' ? 'wireframe' : mode);
+  return inputs;
+}
+
+export function deterministicIr(request = {}) {
+  const {
+    pageName = 'Home',
+    sectionName = 'Custom',
+    platform = 'Website',
+    variations = '1',
+    prompt = '',
+    mode = 'wireframe',
+    inputs,
+    wireframeRef = null,
+    idPolicy,
+    designTokens,
+  } = request;
+
+  const ir = promptToIrKeyless(prompt, { pageName, sectionName, platform, variations });
+
+  ir.source = {
+    mode,
+    // §6's `inputs` lists what was actually SUPPLIED — wireframe, code, prompt — and
+    // `combined` is a mode, not an input. Deriving it from the mode put "combined"
+    // in the list and the IR failed §6 validation, which is exactly the kind of
+    // mismatch the schema exists to catch. So it is built from the artefacts present.
+    inputs: Array.isArray(inputs) ? inputs : suppliedInputs({ mode, prompt, wireframeRef, code: request.code }),
+    wireframeRef,
+  };
+  if (idPolicy) ir.idPolicy = idPolicy;
+  if (designTokens !== undefined) ir.designTokens = designTokens;
+  return ir;
+}
+
+/**
+ * perceiveOrDegrade(options) -> {
+ *   ir, stageStatus, degraded, warnings, reason, perception
+ * }
+ *
+ * The call site the generate route should use. It ALWAYS returns a usable IR — there
+ * is no shape in which this hands back nothing — because every caller downstream needs
+ * an IR and a caller forced to branch on its absence is a caller that will forget.
+ *
+ * `stageStatus` is §11.1's value for the stage-3/4 trace record: `ok` when perception
+ * did its work, `degraded` when the deterministic path carried it. The job itself is
+ * NOT failed in either case, per §11.1's "a success for the job and a warning for the
+ * stage".
+ *
+ * Two things are deliberately NOT done here:
+ *   - The trace record is not written. §11 rule 3 keeps stages pure functions of a
+ *     persisted input, and stageTrace.runStage owns the writing. This returns the
+ *     status for that record; it does not reach around the trace to store it.
+ *   - `StageDegraded` is not thrown. This is not itself a stage function, and a
+ *     throw-to-signal-success would oblige every caller to catch it. A caller running
+ *     this inside runStage raises StageDegraded from the result, which is one line and
+ *     keeps the choice with the stage.
+ */
+export async function perceiveOrDegrade(options = {}) {
+  const { request = {} } = options;
+
+  // No wireframe at all is not a degradation — it is prompt or code mode working
+  // exactly as designed, so the stage is skipped rather than warned about. Treating
+  // it as degraded would put a warning on every prompt-mode generation and train
+  // everyone to ignore the field that matters.
+  const attempted = await perceiveAndAssembleIr(options);
+
+  if (attempted.ok) {
+    return {
+      ir: attempted.ir,
+      stageStatus: STAGE_OK,
+      degraded: false,
+      warnings: attempted.warnings || [],
+      reason: null,
+      perception: attempted.perception,
+    };
+  }
+
+  const reason = attempted.reason;
+  const warning =
+    `Perception degraded: ${reason}. Generation continued down the deterministic ` +
+    'path; element geometry and copy come from the template rather than the wireframe.';
+
+  return {
+    ir: deterministicIr(request),
+    stageStatus: STAGE_DEGRADED,
+    degraded: true,
+    // The warning is FIRST so it is the one a truncated UI shows.
+    warnings: [warning, ...(attempted.warnings || []).filter((w) => w !== reason)],
+    reason,
+    perception: null,
+  };
+}
+
 export default perceiveAndAssembleIr;
+
