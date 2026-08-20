@@ -28,12 +28,25 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { createMongoStore } from '../server/src/store/mongoStore.js';
+
+// BOTH imports below are dynamic, and the second one is the subtle half.
+//
+// ../server/src/store/mongoStore.js imports `mongodb` at its top level. A STATIC
+// import of it here resolves when this file loads — before the guard below has a
+// chance to run — so the guard could never fire and this file failed outright on
+// a machine without the driver. The skip was unreachable code.
+//
+// That is the same defect as F-005's cause 2 in server/src/store/index.js: a
+// static import of the Mongo driver sitting on a path that is supposed to work
+// without it. Fixing one and not the other would have left the suite red on a
+// clean checkout either way.
 
 let MongoMemoryServer = null;
+let createMongoStore = null;
 let unavailable = null;
 try {
   ({ MongoMemoryServer } = await import('mongodb-memory-server'));
+  ({ createMongoStore } = await import('../server/src/store/mongoStore.js'));
 } catch (err) {
   unavailable =
     'mongodb-memory-server is not installed. Run `npm install` at the REPOSITORY ROOT ' +
