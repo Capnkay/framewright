@@ -112,6 +112,7 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #   opencollective.com      "funding" metadata
 #   tidelift.com            "funding" metadata
 #   feross.org              "funding" metadata -- feross's own site
+#   paulmillr.com           "funding" metadata -- paulmillr (chokidar/anymatch)
 #
 # NOTE for whoever hits this next: funding hosts are an OPEN set. A new dependency
 # can introduce one we have not listed, and this gate will stop the push. That is
@@ -128,7 +129,7 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #                           over the network by anything in this repository -- the
 #                           same "documentation reference, not a real host" case this
 #                           list already carves out for agents.md.
-ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|json-schema\.org)$'
+ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|paulmillr\.com|json-schema\.org)$'
 
 if [ -n "$URL_HOSTS" ]; then
   FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv "$ALLOWED_HOST_RE")
@@ -168,6 +169,13 @@ fi
 WEIGHT_FILES=$(git log --all --pretty=format: --name-only 2>/dev/null | sort -u | grep -Ei '\.(pt|onnx|safetensors)$')
 if [ -n "$WEIGHT_FILES" ]; then
   fail "model weight file(s) found tracked somewhere in git history: $WEIGHT_FILES"
+fi
+
+# --- 8. no duplicate fieldId / fieldIdN in JSON store -----------------------
+
+DUPLICATES=$(git grep -hE '"(fieldId|fieldIdN)"[[:space:]]*:[[:space:]]*"[0-9]{10}"' -- '*.json' 2>/dev/null | grep -Eo '"[0-9]{10}"' | sort | uniq -d)
+if [ -n "$DUPLICATES" ]; then
+  fail "duplicate fieldId/fieldIdN found in tracked JSON files (atomicity failure): $DUPLICATES"
 fi
 
 exit 0

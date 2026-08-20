@@ -43,3 +43,10 @@
 - Device: LAPTOP-PUPG5T28
 - Files: client/src/utils/sectionContrast.js, tests/text-contrast.test.mjs
 
+## T-071 — Close the §14 duplicate-ID gap in the pre-submit gate
+- Started: 2026-08-20T17:53:48.772Z
+- Finished: 2026-08-20T17:56:28.032Z
+- Duration: 3m
+- Device: LAPTOP-PUPG5T28
+- Files: .githooks/pre-push
+

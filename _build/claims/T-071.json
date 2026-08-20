@@ -1,9 +1,11 @@
 {
   "taskId": "T-071",
-  "who": "Antigravity",
-  "device": "Jainam",
-  "claimedAt": "2026-08-20T16:20:02.429Z",
-  "status": "active",
-  "takenFrom": null,
-  "takenAt": null
+  "who": "Khushi Singh",
+  "device": "LAPTOP-PUPG5T28",
+  "claimedAt": "2026-08-20T17:53:48.772Z",
+  "status": "done",
+  "takenFrom": "Antigravity",
+  "takenAt": "2026-08-20T17:53:48.769Z",
+  "finishedAt": "2026-08-20T17:56:28.032Z",
+  "durationMs": 159260
 }
