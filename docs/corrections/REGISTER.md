@@ -305,3 +305,132 @@ before changing configuration again. That was said and then not done; the next t
 were reasoned from probability instead of evidence. **When a deployment fails and there is
 no build output to read, the fault is upstream of the build** — in the commit, the
 integration, or the permissions. Filed as `EC-010`.
+
+---
+
+## 2026-08-20 · Task board FR-G labels corrected against PS7
+
+Found by reading `Level3_ProblemStatements.pdf` (PS7 §13.1) against `_build/tasks.json`
+for the first time since the board was written.
+
+All nine Generator Studio requirements were covered by a task. **Five carried the wrong
+FR number**, and two dropped half of the requirement they named. A judge cross-referencing
+our board against the brief would have hit a mismatch on five rows.
+
+| Brief (PS7 §13.1) | Board said | Now says |
+|---|---|---|
+| FR-G05 — progress **and** plain-language errors | T-047 "FR-G06", errors only | T-047 "FR-G05", both |
+| FR-G06 — read-only JSX **and** a preview link | T-049 "FR-G08", JSX only | T-049 "FR-G06", both |
+| FR-G07 — pageName, sectionName, accent colour | T-046 "FR-G09, FR-G05" | T-046 "FR-G07" |
+| FR-G08 — keep the last 5 jobs | T-048 "FR-G07", no count named | T-048 "FR-G08", last 5 named |
+| FR-G09 — zip download | T-042, unlabelled | T-042 "FR-G09" |
+
+**The two that were more than a label.** FR-G05 is one requirement with two halves —
+"show generation progress **and** surface API errors in plain language". Only the error
+half was scheduled, so T-047 gains `GenerationProgress.jsx`, ten minutes of size, and a
+`doneWhen` that names §11.0's seven stages as what progress is shown against. FR-G06 is
+likewise two halves — the read-only JSX **and** a link to the preview; only the JSX half
+was scheduled.
+
+No contract section changed. `_build/STATE.md` and `_build/TASKS.md` regenerated from the
+board.
+
+---
+
+## 2026-08-20 · CONTRACT v1.4 → v1.5 — the architecture diagram's four unbuilt layers
+
+Found by reading `IMG_3214.PNG` — the seven-stage architecture diagram — against the
+contract, the roadmap and the task board for the first time since the stage cards were
+written.
+
+The diagram's seven top-level stages match §11.0 exactly, and its thirteen subsystems map
+one-to-one onto `docs/html/stages/01`–`13`. That half was already reconciled. **Its bottom
+band was not.** Redis, MinIO/S3, the embedding model, the reranker, the model orchestrator,
+Prometheus, OpenTelemetry, Winston/Pino, alerts, pixelmatch visual diff, axe-core,
+Lighthouse and the 0–100 quality score appeared in **no contract section, no roadmap phase,
+and none of the 79 tasks**. Grepped; zero hits across all three.
+
+So the diagram promised a judge an architecture the build had no plan to produce. Team lead
+ruled: build it.
+
+**What was added — §15 caching and object storage, §16 model services, §17 observability,
+§18 automated quality gates.** Additive only. Nothing in §1–§14 changed, so the freeze holds
+and every existing task's contract references still resolve.
+
+**The rule that shaped all four.** Standing Rule 3 — the deterministic path always works —
+is not negotiable, and every one of these layers is a dependency that could break it. So
+each is written as an optional accelerator behind an interface that already exists, with a
+named fallback that needs no environment at all:
+
+| Layer | Absent means |
+|---|---|
+| Redis (§15.1) | the in-process TTL cache, which is the reference implementation |
+| S3/MinIO (§15.2) | local disk, which §11.2 and §13.1 already mandate |
+| Embeddings (§16.1) | `embed()` returns `null`, callers fall back to §6's keyword scorer |
+| Hosted model (§16.2) | `callModel` returns `{ ok: false }` with no network attempt |
+| OTel (§17.3) | spans dropped silently; §11's stage trace is authoritative regardless |
+| Prometheus (§17.2) | nothing — the endpoint is the contract, scraping it is optional |
+
+T-078 now asserts exactly this: one rehearsal with the perception service stopped and
+`LLM_API_KEY`, `REDIS_URL`, `S3_ENDPOINT`, `EMBEDDING_BASE_URL` and
+`OTEL_EXPORTER_OTLP_ENDPOINT` all unset, exercising every fallback in a single run.
+
+**Three decisions inside the additions that are load-bearing, and why.**
+
+1. **Element and section documents are never cached (§15.1).** A cache in front of the live
+   CMS store reintroduces the precise failure §9 exists to catch — a PATCH lands, the store
+   is correct, and the preview does not move. That is the 40-point cap, reopened by an
+   optimisation. `GET /api/elements` reads through, always. The four sanctioned key shapes
+   are the whole permitted surface and T-081 asserts nothing else is written.
+
+2. **`visualSimilarity` is `null` — and scores as `1.0` — when there was no wireframe
+   (§18.1).** Scoring a missing image as zero would penalise prompt mode, which is the one
+   input mode the brief marks *required*. It is the obvious way to get the formula wrong,
+   so T-091 asserts it directly.
+
+3. **No §18 gate fails a generation.** They record, warn, and inform the score. §9 remains
+   the only assertion that decides, and it stays separate, mandatory, and never disabled.
+   A quality score that could block a demo is a quality score that gets switched off at
+   hour 40.
+
+**§14's canonical `.env.example` block extended** with `REDIS_URL`, the four `S3_*`
+variables, the two `EMBEDDING_*` variables and `OTEL_EXPORTER_OTLP_ENDPOINT`, and
+`.env.example` itself updated to match. Every new value is placeholder-shaped under §14's
+own rule; verified against the `pre-push` gate's placeholder check line by line, and
+`sh .githooks/pre-push` exits `0`.
+
+**Board:** 13 tasks added, T-079 through T-091, all Phase 4 and all tracked to
+`api-glassbox`, `generation` or `perception`. Phase 4 is deliberate — every one of these is
+additive and optional, so none may sit in front of the spine (Phases 1–2) or the Gate 3
+split. T-076's dependencies extended so the pre-submit gate does not rehearse a system
+about to change. Total 79 → 92.
+
+---
+
+## 2026-08-20 · The architecture diagram named three models we cannot use
+
+`IMG_3214.PNG` stage 3 reads *"Model: LayoutLMv3 / Donut / YOLOv8"*. All three are already
+rejected by name in `docs/html/stages/01-vision-understanding.html`, with reasons — YOLOv8
+is AGPL with a network clause our hosted architecture triggers and carries COCO classes
+only; LayoutLMv3's published weights are CC-BY-NC-SA even though its code repo is MIT; Donut
+emits structured text where we need coordinates.
+
+So the reasoning was done and recorded. **The diagram was never updated to match it**, and
+the diagram is the artifact most likely to be put in front of a judge, because it is the one
+that fits on a slide. A judge reading it would see us advertising an AGPL dependency in a
+project deliverable that runs as a service under evaluation.
+
+**Fixed by replacing the diagram rather than annotating it.** `docs/html/architecture.html`
+is now the canonical architecture page: the same seven stages and thirteen subsystems, with
+stage 3 showing what we actually build — **OpenCV contour and rectangle detection, then
+PaddleOCR**, with Florence-2 demoted to optional captioning — and the three rejected models
+kept visible, struck through, each with its one-line reason. Keeping them visible is
+deliberate: the rejection is evidence that a licence audit happened, which is worth more to
+a professional judge than a diagram that never mentioned them.
+
+The page also marks the four supporting layers as contract sections §15–§18 rather than
+unscheduled boxes, and states the fallback for each, so the "runs with the GPU off, the key
+unset and the network down" claim is checkable from the diagram itself.
+
+Linked from `docs/html/index.html`. The raster original is kept untracked as the source
+sketch; it is superseded and should not be shown.

@@ -830,7 +830,7 @@
     {
       "id": "T-042",
       "phase": 3,
-      "title": "Implement zip export of a generated section",
+      "title": "Implement zip export of a generated section (FR-G09)",
       "track": "api-glassbox",
       "size": "30m",
       "contract": [
@@ -907,7 +907,7 @@
     {
       "id": "T-046",
       "phase": 3,
-      "title": "Build the Generator Studio\u2019s pageName/sectionName fields and accent colour picker (FR-G09, FR-G05)",
+      "title": "Build the Generator Studio\u2019s pageName/sectionName fields and accent colour picker (FR-G07)",
       "track": "studio-preview",
       "size": "30m",
       "contract": [
@@ -926,9 +926,9 @@
     {
       "id": "T-047",
       "phase": 3,
-      "title": "Build the Generator Studio\u2019s plain-language error surfacing (FR-G06)",
+      "title": "Build the Generator Studio\u2019s generation progress and plain-language error surfacing (FR-G05)",
       "track": "studio-preview",
-      "size": "30m",
+      "size": "40m",
       "contract": [
         "\u00a713"
       ],
@@ -936,15 +936,16 @@
         "T-033"
       ],
       "files": [
+        "client/src/studio/GenerationProgress.jsx",
         "client/src/studio/ErrorBanner.jsx"
       ],
-      "verify": "npm test -- error-banner",
-      "doneWhen": "Each of \u00a713's status codes (400, 413, 422, 500) maps to a distinct, non-technical message; the raw error.code is never shown to the user as the primary text."
+      "verify": "npm test -- studio-progress-errors",
+      "doneWhen": "A submitted job shows live progress against \u00a711.0's seven stages until it settles, and each of \u00a713's status codes (400, 413, 422, 500) maps to a distinct, non-technical message; the raw error.code is never shown to the user as the primary text."
     },
     {
       "id": "T-048",
       "phase": 3,
-      "title": "Build the Generator Studio\u2019s job history (FR-G07)",
+      "title": "Build the Generator Studio\u2019s job history (FR-G08)",
       "track": "studio-preview",
       "size": "35m",
       "contract": [
@@ -959,12 +960,12 @@
         "client/src/studio/JobHistory.jsx"
       ],
       "verify": "npm test -- job-history",
-      "doneWhen": "Every jobId returned from a generate or regenerate call is retained client-side and each row is hydrated via GET /api/jobs/:jobId."
+      "doneWhen": "At least the last 5 jobIds returned from a generate or regenerate call are retained client-side and each row is hydrated via GET /api/jobs/:jobId."
     },
     {
       "id": "T-049",
       "phase": 3,
-      "title": "Build the Generator Studio\u2019s read-only generated JSX view (FR-G08)",
+      "title": "Build the Generator Studio\u2019s read-only generated JSX view and preview link (FR-G06)",
       "track": "studio-preview",
       "size": "25m",
       "contract": [
@@ -977,7 +978,7 @@
         "client/src/studio/GeneratedSourceView.jsx"
       ],
       "verify": "npm test -- generated-source-view",
-      "doneWhen": "The view fetches from GET /api/jobs/:jobId/component and renders it read-only; there is no path that mounts a static file directly."
+      "doneWhen": "The view fetches from GET /api/jobs/:jobId/component and renders it read-only, alongside a link to /preview/:pageName for the generated section; there is no path that mounts a static file directly."
     },
     {
       "id": "T-050",
@@ -1489,7 +1490,9 @@
       ],
       "deps": [
         "T-071",
-        "T-070"
+        "T-070",
+        "T-085",
+        "T-091"
       ],
       "files": [
         "docs/DEMO-REHEARSAL-LOG.md"
@@ -1527,11 +1530,274 @@
       ],
       "deps": [
         "T-059",
-        "T-018"
+        "T-018",
+        "T-080",
+        "T-084",
+        "T-088"
       ],
       "files": [],
       "verify": null,
-      "doneWhen": "Prompt mode, code mode, and the CMS contract \u2014 including the \u00a79 assertion \u2014 all pass on a machine that never ran the Python service."
+      "doneWhen": "The full demo runs with the perception service stopped, LLM_API_KEY unset, and REDIS_URL, S3_ENDPOINT, EMBEDDING_BASE_URL and OTEL_EXPORTER_OTLP_ENDPOINT all unset. Every \u00a715\u2013\u00a717 fallback is exercised in that one run."
+    },
+    {
+      "id": "T-079",
+      "phase": 4,
+      "title": "Implement the cache adapter interface and the in-process TTL cache (\u00a715.1)",
+      "track": "api-glassbox",
+      "size": "40m",
+      "contract": [
+        "\u00a715.1"
+      ],
+      "deps": [
+        "T-004"
+      ],
+      "files": [
+        "server/src/cache/index.js",
+        "server/src/cache/memoryCache.js"
+      ],
+      "verify": "npm test -- cache-memory",
+      "doneWhen": "cacheGet/cacheSet/cacheDel behave per \u00a715.1, entries expire at their TTL, and a miss returns null rather than throwing. An element or section document written through this adapter fails the test \u2014 \u00a715.1 forbids caching them."
+    },
+    {
+      "id": "T-080",
+      "phase": 4,
+      "title": "Implement the Redis cache backend with boot-time fallback to the in-process cache (\u00a715.1)",
+      "track": "api-glassbox",
+      "size": "40m",
+      "contract": [
+        "\u00a715.1"
+      ],
+      "deps": [
+        "T-079"
+      ],
+      "files": [
+        "server/src/cache/redisCache.js"
+      ],
+      "verify": "npm test -- cache-redis",
+      "doneWhen": "REDIS_URL set and reachable selects Redis; unset selects the in-process cache; set but unreachable logs exactly one warning and falls back without failing the boot. The full demo runs with Redis stopped."
+    },
+    {
+      "id": "T-081",
+      "phase": 4,
+      "title": "Wire the four sanctioned cache keys into the IR, render, embedding and perceive paths (\u00a715.1)",
+      "track": "generation",
+      "size": "35m",
+      "contract": [
+        "\u00a715.1"
+      ],
+      "deps": [
+        "T-079",
+        "T-033",
+        "T-058"
+      ],
+      "files": [
+        "server/src/cache/keys.js"
+      ],
+      "verify": "npm test -- cache-keys",
+      "doneWhen": "Only ir:, render:, embed: and perceive: keys are ever written, each at its stated TTL. GET /api/elements reads through to the store on every request \u2014 asserted, because caching it reintroduces the \u00a79 failure."
+    },
+    {
+      "id": "T-082",
+      "phase": 4,
+      "title": "Implement the object storage adapter and the local-disk backend (\u00a715.2)",
+      "track": "api-glassbox",
+      "size": "40m",
+      "contract": [
+        "\u00a715.2",
+        "\u00a711.2",
+        "\u00a713.1"
+      ],
+      "deps": [
+        "T-024"
+      ],
+      "files": [
+        "server/src/storage/index.js",
+        "server/src/storage/localDisk.js"
+      ],
+      "verify": "npm test -- storage-local",
+      "doneWhen": "putObject/getObject/deleteObject use exactly the keys \u00a711.2 and \u00a713.1 already define, under uploads/ and artifacts/. This is the default backend and needs no environment at all."
+    },
+    {
+      "id": "T-083",
+      "phase": 4,
+      "title": "Implement the S3-compatible storage backend, proxying reads through VITE_STORAGE_URL (\u00a715.2)",
+      "track": "api-glassbox",
+      "size": "45m",
+      "contract": [
+        "\u00a715.2",
+        "\u00a714",
+        "\u00a77 R13"
+      ],
+      "deps": [
+        "T-082"
+      ],
+      "files": [
+        "server/src/storage/s3.js"
+      ],
+      "verify": "npm test -- storage-s3",
+      "doneWhen": "A stored outputRef resolves identically under both backends. No bucket host ever appears in a response body \u2014 reads are proxied through VITE_STORAGE_URL, trailing slash intact. Asserted, because a real bucket URL is a \u00a714 and R13 violation."
+    },
+    {
+      "id": "T-084",
+      "phase": 4,
+      "title": "Implement embed() and rerank() with the deterministic lexical fallback (\u00a716.1)",
+      "track": "generation",
+      "size": "45m",
+      "contract": [
+        "\u00a716.1",
+        "\u00a76"
+      ],
+      "deps": [
+        "T-026",
+        "T-079"
+      ],
+      "files": [
+        "server/src/models/embedding.js",
+        "server/src/models/rerank.js"
+      ],
+      "verify": "npm test -- embedding-rerank",
+      "doneWhen": "embed() returns null with no service configured and every caller falls back to \u00a76\u2019s keyword scorer; rerank() still returns a full ranking via lexical overlap. Template and role selection produce identical output with the embedding service stopped."
+    },
+    {
+      "id": "T-085",
+      "phase": 4,
+      "title": "Implement the model orchestrator \u2014 one call site, one retry, schema-validated (\u00a716.2)",
+      "track": "generation",
+      "size": "50m",
+      "contract": [
+        "\u00a716.2",
+        "\u00a78",
+        "\u00a711"
+      ],
+      "deps": [
+        "T-027",
+        "T-019"
+      ],
+      "files": [
+        "server/src/models/orchestrator.js"
+      ],
+      "verify": "npm test -- model-orchestrator",
+      "doneWhen": "Every hosted-model call in the repo goes through callModel \u2014 asserted by a grep test, because a direct provider call bypasses the retry, the schema check and the trace. Exactly one retry on timeout or schema failure, never on a 4xx. LLM_API_KEY unset returns { ok: false } with no network attempt."
+    },
+    {
+      "id": "T-086",
+      "phase": 4,
+      "title": "Implement structured JSON logging, subject to \u00a714 in full (\u00a717.1)",
+      "track": "api-glassbox",
+      "size": "30m",
+      "contract": [
+        "\u00a717.1",
+        "\u00a714"
+      ],
+      "deps": [
+        "T-002"
+      ],
+      "files": [
+        "server/src/observability/log.js"
+      ],
+      "verify": "npm test -- logging",
+      "doneWhen": "One JSON line per event with ts, level, msg and jobId when in scope. An upload is logged as its <jobId>.<ext> key and never as the user\u2019s original path \u2014 asserted, because an original path is exactly the absolute-local-path leak \u00a714 names."
+    },
+    {
+      "id": "T-087",
+      "phase": 4,
+      "title": "Implement GET /api/metrics in Prometheus text format, no server required (\u00a717.2)",
+      "track": "api-glassbox",
+      "size": "35m",
+      "contract": [
+        "\u00a717.2"
+      ],
+      "deps": [
+        "T-086",
+        "T-036"
+      ],
+      "files": [
+        "server/src/observability/metrics.js",
+        "server/src/routes/metrics.js"
+      ],
+      "verify": "npm test -- metrics",
+      "doneWhen": "The four minimum series in \u00a717.2 are present and parse as Prometheus text. The endpoint is the contract; nothing needs to scrape it for the demo to work."
+    },
+    {
+      "id": "T-088",
+      "phase": 4,
+      "title": "Implement OpenTelemetry tracing, one span per stage, dropped silently when unconfigured (\u00a717.3)",
+      "track": "api-glassbox",
+      "size": "35m",
+      "contract": [
+        "\u00a717.3",
+        "\u00a711.0"
+      ],
+      "deps": [
+        "T-023"
+      ],
+      "files": [
+        "server/src/observability/tracing.js"
+      ],
+      "verify": "npm test -- tracing",
+      "doneWhen": "Span names match \u00a711.0\u2019s seven stage names exactly. With OTEL_EXPORTER_OTLP_ENDPOINT unset, spans are dropped and nothing warns, errors, or slows. The \u00a711 stage trace remains the authoritative record."
+    },
+    {
+      "id": "T-089",
+      "phase": 4,
+      "title": "Implement the pixelmatch visual gate, null when there was no wireframe (\u00a718)",
+      "track": "perception",
+      "size": "45m",
+      "contract": [
+        "\u00a718",
+        "\u00a76"
+      ],
+      "deps": [
+        "T-055",
+        "T-034"
+      ],
+      "files": [
+        "server/src/quality/visual.js"
+      ],
+      "verify": "npm test -- quality-visual",
+      "doneWhen": "Similarity is scored against the NORMALISED wireframe using stage 2\u2019s recorded transform, and is null in prompt mode. A low score appends a warning and never fails the generation."
+    },
+    {
+      "id": "T-090",
+      "phase": 4,
+      "title": "Implement the axe-core accessibility and bundle-cost gates on stage 6 (\u00a718)",
+      "track": "api-glassbox",
+      "size": "40m",
+      "contract": [
+        "\u00a718",
+        "\u00a77"
+      ],
+      "deps": [
+        "T-034",
+        "T-050"
+      ],
+      "files": [
+        "server/src/quality/accessibility.js",
+        "server/src/quality/performance.js"
+      ],
+      "verify": "npm test -- quality-a11y",
+      "doneWhen": "Violations are counted by impact against the rendered preview and recorded on the stage-6 trace. \u00a77\u2019s accessibility rules \u2014 image alt, CTA aria-label, no gray-400 body copy, no empty nested card id \u2014 are each covered. Neither gate fails a generation."
+    },
+    {
+      "id": "T-091",
+      "phase": 4,
+      "title": "Compute and surface the 0\u2013100 quality score per \u00a718.1\u2019s formula",
+      "track": "api-glassbox",
+      "size": "35m",
+      "contract": [
+        "\u00a718.1",
+        "\u00a710"
+      ],
+      "deps": [
+        "T-089",
+        "T-090",
+        "T-067"
+      ],
+      "files": [
+        "server/src/quality/score.js"
+      ],
+      "verify": "npm test -- quality-score",
+      "doneWhen": "\u00a718.1\u2019s formula is implemented literally and the number appears in the API response and on the Glass Box timeline. A prompt-mode job scores visualSimilarity as 1.0, not 0 \u2014 asserted, because penalising prompt mode for having no image is the obvious way to get this wrong. Nothing in the system branches on the score."
     }
   ]
 }

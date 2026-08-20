@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Architecture — Framewright</title>
+<link rel="stylesheet" href="/stages/_card.css">
+<style>
+  /* Supplements _card.css for this page's diagram layout. Does not redefine
+     anything _card.css already owns. */
+  .wrap{max-width:1180px}
+
+  .board{overflow-x:auto;padding:4px 2px 10px;-webkit-overflow-scrolling:touch}
+  .pipeline{display:grid;grid-template-columns:repeat(7,minmax(178px,1fr));gap:11px;min-width:1080px}
+
+  .col{display:flex;flex-direction:column;gap:9px}
+  .colhead{font-family:var(--hand);font-size:12.5px;border:2.4px solid var(--ink);border-radius:999px;
+           padding:4px 10px;background:var(--yellow);text-align:center;line-height:1.25}
+  .colhead b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+
+  .box{background:#fff;border:2.4px solid var(--ink);border-radius:10px;padding:8px 10px;
+       box-shadow:2.5px 3px 0 rgba(26,26,26,.12);font-size:12px}
+  .box .t{font-family:var(--hand);font-size:13px;display:block;margin-bottom:2px;line-height:1.2}
+  .box .m{color:var(--ink2);font-size:11.4px;display:block;line-height:1.35}
+  .box.y{background:var(--yellow)} .box.g{background:var(--green)} .box.b{background:var(--blue)}
+  .box.p{background:var(--purple)} .box.o{background:var(--orange)} .box.r{background:var(--red)}
+  .box.gr{background:var(--grey)}
+
+  .cardno{float:right;font-family:var(--hand);font-size:10.5px;border:1.8px solid var(--ink);
+          border-radius:999px;padding:0 5px;background:var(--paper);margin-left:5px}
+
+  .kill{text-decoration:line-through;text-decoration-thickness:2px;color:var(--ink2)}
+
+  .bands{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px;margin-top:6px}
+  .band{background:#fff;border:2.4px solid var(--ink);border-radius:12px;padding:11px 13px;
+        box-shadow:3px 4px 0 rgba(26,26,26,.12)}
+  .band h3{font-family:var(--hand);font-size:15px;margin:0 0 1px;line-height:1.15}
+  .band .sec{font-family:var(--mono);font-size:11px;color:var(--ink2);display:block;margin-bottom:7px}
+  .band ul{margin:0;padding-left:17px;font-size:12.2px}
+  .band li{margin:3px 0}
+  .band li i{font-style:normal;color:var(--ink2)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:9px;font-size:11.8px;margin-top:8px}
+  .legend span{border:1.8px solid var(--ink);border-radius:999px;padding:1px 9px}
+  .legend .y{background:var(--yellow)} .legend .g{background:var(--green)}
+  .legend .b{background:var(--blue)} .legend .p{background:var(--purple)}
+  .legend .o{background:var(--orange)} .legend .r{background:var(--red)}
+  .legend .gr{background:var(--grey)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb"><a href="/">← Framewright docs</a> &nbsp;·&nbsp; the whole system on one page &nbsp;·&nbsp; contract v1.5</p>
+  <span class="stage">Architecture</span>
+  <h1>Seven stages, thirteen subsystems, four supporting layers</h1>
+  <p class="lede" style="color:var(--ink2);max-width:70ch;margin:4px 0 0">
+    Every box below is either a contract section or a stage card. Nothing here is aspirational —
+    where the original hand-drawn diagram named a component we cannot use or had not scheduled,
+    this page says what we actually build and why.
+  </p>
+
+  <div class="note warn">
+    <b>What changed from the original diagram.</b> Stage 3 named <span class="kill">LayoutLMv3</span>,
+    <span class="kill">Donut</span> and <span class="kill">YOLOv8</span>. All three are out — one is
+    AGPL with a network clause our architecture triggers, one ships non-commercial weights, and one
+    emits text where we need coordinates. The real stack is below, and it was chosen on a measurement,
+    not a preference. See <a href="/stages/01-vision-understanding.html">card 1</a> and
+    <a href="/GPU-BENCHMARK.html">the benchmark</a>.
+  </div>
+
+  <h2>The pipeline</h2>
+  <p style="margin:4px 0 0;color:var(--ink2)">
+    Stage numbering is canonical — <code>§11.0</code> fixes it, and <code>replay.fromStage</code>
+    uses exactly these numbers. Stages <b>5, 6 and 7 replay without the GPU machine</b>; stages 2, 3
+    and 4 require it, and a replay targeting stage ≤ 4 with perception down returns <code>422</code>
+    rather than hanging.
+  </p>
+
+  <div class="board">
+  <div class="pipeline">
+
+    <div class="col">
+      <div class="colhead"><b>Stage 1 · Node</b>Input Acquisition</div>
+      <div class="box g"><span class="t">Wireframe image</span><span class="m">PNG, JPEG, WebP. Over 8 MB is <code>413</code>. Written to <code>uploads/&lt;jobId&gt;.&lt;ext&gt;</code></span></div>
+      <div class="box g"><span class="t">Source code</span><span class="m">JSX pasted as text. Parsed to an AST, never executed</span></div>
+      <div class="box g"><span class="t">Natural-language prompt</span><span class="m">The one required input mode</span></div>
+      <div class="box gr"><span class="t">Input metadata</span><span class="m">pageName (case-sensitive, default <code>Home</code>), sectionName, mode, accent</span></div>
+    </div>
+
+    <div class="col">
+      <div class="colhead"><b>Stage 2 · Python</b>Preprocessing &amp; Normalization</div>
+      <div class="box b"><span class="t">OpenCV normalise</span><span class="m">Denoise, deskew, contrast, resize</span></div>
+      <div class="box r"><span class="t">Records its transform</span><span class="m"><code>{scale, offsetX, offsetY, width, height}</code> — every <code>bbox</code> is in <b>normalised</b> space, so without this the boxes are unusable by anyone who did not write the normaliser</span></div>
+    </div>
+
+    <div class="col">
+      <div class="colhead"><b>Stage 3 · Python</b>Multi-Modal Understanding</div>
+      <div class="box b"><span class="cardno">card 1</span><span class="t">Vision understanding</span><span class="m"><b>OpenCV contour + rectangle detection</b>, then PaddleOCR for text. Florence-2 only for optional captioning</span></div>
+      <div class="box r"><span class="t">Rejected here</span><span class="m"><span class="kill">YOLOv8</span> AGPL network clause, COCO classes only · <span class="kill">LayoutLMv3</span> non-commercial weights, forms model · <span class="kill">Donut</span> emits text, not coordinates</span></div>
+      <div class="box b"><span class="cardno">card 2</span><span class="t">Code understanding</span><span class="m">@babel/parser, <code>jsx</code>+<code>typescript</code>, errorRecovery. AST only — never <code>eval</code>, <code>new Function</code>, or <code>vm</code></span></div>
+      <div class="box b"><span class="cardno">card 3</span><span class="t">Prompt understanding</span><span class="m">Keyword + template extraction first. A hosted model is an upgrade, never a requirement</span></div>
+      <div class="box b"><span class="cardno">card 4</span><span class="t">Cross-modal alignment</span><span class="m">Prompt wins copy &amp; colour · wireframe wins layout · code wins patterns. Every firing recorded in <code>warnings</code></span></div>
+      <div class="box b"><span class="cardno">card 5</span><span class="t">Confidence scoring</span><span class="m">≥0.85 accept · 0.60–0.85 verify · &lt;0.60 escalate. <code>null</code> when the source was not an image — never a fabricated number</span></div>
+    </div>
+
+    <div class="col">
+      <div class="colhead"><b>Stage 4 · Python → Node</b>Semantic Planning &amp; IR</div>
+      <div class="box p"><span class="cardno">card 6</span><span class="t">Component planning engine</span><span class="m">Regions → the reference element set: heroImage, brandBadge, headlineMain, headlineSub, description, statBadges, ctaButton</span></div>
+      <div class="box p"><span class="cardno">card 7</span><span class="t">Layout planner</span><span class="m">Regions, order, breakpoints, accents. <code>order</code> is explicit — bbox order and prompt order do not agree</span></div>
+      <div class="box p"><span class="cardno">card 8</span><span class="t">Content binding planner</span><span class="m">Which fields are editable, and what each falls back to</span></div>
+      <div class="box p"><span class="cardno">card 9</span><span class="t">IR finalisation</span><span class="m">IR v1.0, Ajv-validated. <b>No field ID appears in the IR at all</b> — the API attaches them after it is final</span></div>
+      <div class="box r"><span class="t">Human in the loop</span><span class="m">Below 0.60 and opted in, the job halts at <code>awaiting-input</code>. Headless never blocks</span></div>
+    </div>
+
+    <div class="col">
+      <div class="colhead"><b>Stage 5 · Node</b>Code Generation &amp; Assembly</div>
+      <div class="box o"><span class="cardno">card 11</span><span class="t">Deterministic emitter</span><span class="m">IR → JSX with no key, no GPU, no network. <b>This is the path that always works</b></span></div>
+      <div class="box o"><span class="t">R1–R14 by construction</span><span class="m"><code>ids</code> map · mount fetch incl. nested card IDs · <code>dangerouslySetInnerHTML</code> · <code>dynamicStyle</code>/<code>dynamicStyle2</code> · <code>Array.isArray &amp;&amp; length &gt; 0</code>, never <code>=== 3</code></span></div>
+      <div class="box o"><span class="t">Written per section &amp; variation</span><span class="m"><code>&lt;Name&gt;-&lt;sectionId&gt;-v&lt;n&gt;.jsx</code> — a fixed filename means variation 2 destroys variation 1</span></div>
+    </div>
+
+    <div class="col">
+      <div class="colhead"><b>Stage 6 · Node</b>Validation &amp; QA</div>
+      <div class="box g"><span class="cardno">card 12</span><span class="t">Static analysis</span><span class="m">ESLint against a <b>fixed inline</b> config — a config path built from user input is code execution at lint time</span></div>
+      <div class="box g"><span class="t">Structure</span><span class="m">Ajv against §2, §3, §4, §6 · duplicate-ID check</span></div>
+      <div class="box g"><span class="t">Visual · a11y · cost</span><span class="m">pixelmatch vs the normalised wireframe (<code>null</code> in prompt mode) · axe-core · bundle size</span></div>
+      <div class="box r"><span class="t">§9 store liveness</span><span class="m"><b>Separate, mandatory, never disabled.</b> No gate above can fail a generation; this one decides. PATCH a nested card field and watch it move</span></div>
+    </div>
+
+    <div class="col">
+      <div class="colhead"><b>Stage 7 · Node</b>Output &amp; Delivery</div>
+      <div class="box y"><span class="cardno">card 13</span><span class="t">Live preview</span><span class="m"><code>/preview/:pageName</code>, mounted by Vite eager glob, hydrated from the store</span></div>
+      <div class="box y"><span class="t">Section + element records</span><span class="m">Persisted, retrievable, IDs in the sanctioned ranges</span></div>
+      <div class="box y"><span class="t">Zip export</span><span class="m">Component + section.json + elements.json</span></div>
+      <div class="box y"><span class="t">Quality score</span><span class="m">0–100, displayed. <b>Nothing branches on it</b></span></div>
+    </div>
+
+  </div>
+  </div>
+
+  <div class="legend">
+    <span class="g">Input / delivery</span>
+    <span class="b">Perception (Python, GPU)</span>
+    <span class="p">Planning</span>
+    <span class="o">Generation</span>
+    <span class="y">Output</span>
+    <span class="r">The thing most likely to be got wrong</span>
+    <span class="gr">Data</span>
+  </div>
+
+  <h2>The four supporting layers</h2>
+  <p style="margin:4px 0 0;color:var(--ink2)">
+    Added to the contract as <code>§15</code>–<code>§18</code> in v1.5. <b>Every one is optional and
+    every one has a named fallback that needs no environment at all</b>, because Standing Rule 3 says
+    the deterministic path always works. The demo runs with all of them switched off — T-078 asserts
+    exactly that, in a single rehearsal.
+  </p>
+
+  <div class="bands">
+
+    <div class="band">
+      <h3>Data layer</h3>
+      <span class="sec">§2.1 store · §15.1 cache</span>
+      <ul>
+        <li><b>Section &amp; element store</b> — Mongo or a JSON file store behind one interface. <code>allocateId</code> is the only ID source and must be atomic</li>
+        <li><b>Cache</b> — in-process TTL map by default; Redis when <code>REDIS_URL</code> is set <i>and</i> reachable. Unreachable warns once and falls back</li>
+        <li><i>Four cacheable keys only:</i> <code>ir:</code>, <code>render:</code>, <code>embed:</code>, <code>perceive:</code></li>
+        <li><b>Elements and sections are never cached.</b> A cache in front of the live store reopens the exact §9 failure — the PATCH lands, the store is right, the preview does not move</li>
+      </ul>
+    </div>
+
+    <div class="band">
+      <h3>ML / AI services</h3>
+      <span class="sec">§16 · card 10</span>
+      <ul>
+        <li><b>Model orchestrator</b> — every hosted call goes through <code>callModel</code>. One retry on timeout or schema failure, never on a 4xx. Output validated against Ajv before it is returned</li>
+        <li><b>Embeddings + reranker</b> — <code>embed()</code> returns <code>null</code> with nothing configured; callers fall back to the §6 keyword scorer. <code>rerank()</code> falls back to lexical overlap and is always callable</li>
+        <li><b>No key means no network attempt</b> — <code>{ ok: false }</code> immediately. A supported state, not an error</li>
+        <li><i>Model output is untrusted input:</i> schema-validated, then sanitised write-side per §8</li>
+      </ul>
+    </div>
+
+    <div class="band">
+      <h3>Storage layer</h3>
+      <span class="sec">§11.2 · §13.1 · §15.2</span>
+      <ul>
+        <li><b>Local disk by default</b> — <code>uploads/&lt;jobId&gt;.&lt;ext&gt;</code> and <code>artifacts/&lt;jobId&gt;/&lt;stage&gt;-&lt;name&gt;.&lt;ext&gt;</code></li>
+        <li><b>S3 / MinIO optional</b> — same keys, different backend, so a stored <code>outputRef</code> resolves under either</li>
+        <li><b>Artifacts are owned by Node.</b> The Python service never writes a file — it returns stage outputs inline and Node persists them, because a relative path written on the GPU laptop resolves to nothing anywhere else</li>
+        <li><b>Reads are proxied through <code>VITE_STORAGE_URL</code></b>, trailing slash intact. A bucket host in a response body is a §14 and R13 violation</li>
+      </ul>
+    </div>
+
+    <div class="band">
+      <h3>Observability</h3>
+      <span class="sec">§17</span>
+      <ul>
+        <li><b>Logs</b> — one JSON line per event. Subject to §14 in full: an upload is logged as its <code>&lt;jobId&gt;.&lt;ext&gt;</code> key, never the user's original path</li>
+        <li><b>Metrics</b> — <code>GET /api/metrics</code> in Prometheus text format. The endpoint is the contract; scraping it is optional and no server is required</li>
+        <li><b>Tracing</b> — one span per stage, names matching §11.0 exactly. Dropped silently with no collector configured</li>
+        <li><b>Alerts</b> — out of scope. <code>/api/health</code> is the liveness surface; the job's <code>status</code> is the failure surface. Nothing pages anyone</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="note good">
+    <b>The one sentence.</b> We do not ask a model for a webpage. We convert inputs into a validated
+    structured representation, then generate React and CMS metadata from it, and validate both
+    independently — which is why the whole thing still runs with the GPU off, the key unset and the
+    network down.
+  </div>
+
+  <div class="foot">
+    <span>Contract: <b>§11.0 · §12 · §15 · §16 · §17 · §18</b></span>
+    <span>Source: <code>docs/CONTRACT.md</code> v1.5</span>
+    <span><a href="/stages/index.html">all 13 stage cards</a></span>
+  </div>
+
+</div>
+</body>
+</html>

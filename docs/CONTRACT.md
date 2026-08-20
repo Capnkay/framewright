@@ -1,6 +1,6 @@
 # Framewright — The Contract
 
-**Status: FROZEN — both verification gates passed.** Version 1.4, 2026-08-20.
+**Status: FROZEN — both verification gates passed.** Version 1.5, 2026-08-20.
 
 *v1.0 drafted. **v1.1** after a cold-boot re-derivation from the brief: full wire shapes
 for every endpoint, the `fetchElementsByIds` signature, regeneration semantics, the store
@@ -12,6 +12,12 @@ generated-component mounting seam.*
 
 **v1.3** after the golden component was built against it: the §14 environment block and
 placeholder rule now match what is actually built, tested, and enforced by the gate.*
+
+**v1.5** reconciles the architecture diagram's four unbuilt layers into the contract:
+§15 caching and object storage, §16 model services, §17 observability, §18 automated
+quality gates. Additive only — nothing in §1–§14 changed. Every addition is optional and
+degrades to nothing when its dependency is absent, because Standing Rule 3 says the
+deterministic path always works.*
 
 *All changes and why each mattered: `docs/corrections/REGISTER.md`.*
 
@@ -927,7 +933,20 @@ PERCEPTION_SERVICE_URL=http://localhost:8000
 MONGODB_URI=mongodb://localhost:27017/framewright_dev
 LLM_API_KEY=YOUR_LLM_API_KEY_HERE
 LLM_BASE_URL=https://api.example.com/v1
+REDIS_URL=redis://localhost:6379
+S3_ENDPOINT=http://localhost:9000
+S3_BUCKET=framewright-sample
+S3_ACCESS_KEY_ID=YOUR_S3_ACCESS_KEY_ID_HERE
+S3_SECRET_ACCESS_KEY=YOUR_S3_SECRET_ACCESS_KEY_HERE
+EMBEDDING_BASE_URL=https://api.example.com/v1
+EMBEDDING_API_KEY=YOUR_EMBEDDING_API_KEY_HERE
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 ```
+
+The block from `REDIS_URL` down is v1.5, and **every one of those variables is optional**.
+Unset means the deterministic fallback named in §15, §16 and §17 — the in-process cache,
+local disk, the keyword scorer, dropped spans. A machine with none of them set runs the
+full demo.
 
 A right-hand side is a valid placeholder if it is empty, or contains any of:
 `YOUR_` / `YOUR-`, `placeholder`, `xxx`, `changeme` / `change_me`, `dummy`, `redacted`,
@@ -945,3 +964,197 @@ read-modify-write counter issues duplicates that are perfectly in range, so a ra
 alone is blind to the exact failure the atomicity rule in §2.1 exists to prevent. The
 check asserts that every `fieldId` in the element store is unique, and that every nested
 `fieldIdN` across every loop of every element is unique.
+
+---
+
+## 15. Caching and object storage
+
+Added in v1.5 from the architecture diagram's data and storage layers. Both are
+**optional accelerators behind the interfaces that already exist**, and Standing Rule 3
+governs them absolutely: with Redis stopped, the object store unreachable and no network,
+every behaviour in §1–§14 still works. A dependency that can stop the deterministic path
+is not permitted here, whatever it accelerates.
+
+### 15.1 Cache adapter
+
+```
+cacheGet(key)                 -> value | null
+cacheSet(key, value, ttlMs)   -> void
+cacheDel(key)                 -> void
+```
+
+Two implementations behind that interface, selected by environment exactly as the store
+is in §2.1: an in-process `Map` with TTL (the default, always available) and Redis
+(`REDIS_URL`). **The in-process implementation is the reference.** Redis is chosen only
+when `REDIS_URL` is set *and* reachable at boot; an unreachable Redis logs one warning and
+falls back to the in-process cache rather than failing the boot.
+
+What may be cached, and nothing else:
+
+| Key shape | Holds | TTL |
+|---|---|---|
+| `ir:<jobId>` | the finalised IR for a job | 1 h |
+| `render:<sectionId>:v<variation>` | emitted component source | 1 h |
+| `embed:<sha256 of text>` | an embedding vector (§16.1) | 24 h |
+| `perceive:<sha256 of upload bytes>` | a `/perceive` response body | 24 h |
+
+**Element and section documents are never cached.** They are the live CMS store, and a
+cache in front of them reintroduces exactly the failure §9 exists to catch: a PATCH lands,
+the store is correct, and the preview does not move. `GET /api/elements` reads through to
+the store on every request, always.
+
+A cache miss is never an error. Every key above is recomputable from persisted state.
+
+### 15.2 Object storage adapter
+
+```
+putObject(key, bytes, contentType) -> { key, url }
+getObject(key)                     -> { bytes, contentType } | null
+deleteObject(key)                  -> void
+```
+
+Two implementations: local disk under `uploads/` and `artifacts/` (the default, and what
+§11.2 and §13.1 already mandate) and S3-compatible object storage — MinIO or equivalent —
+selected by `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
+
+Rules that do not move:
+
+1. **§11.2 stands unchanged.** Artifacts are owned by Node. The Python service still never
+   writes an artifact, whatever storage backend Node is using.
+2. **Keys are the paths §11.2 and §13.1 already define** — `uploads/<jobId>.<ext>`,
+   `artifacts/<jobId>/<stage>-<name>.<ext>`. The backend changes; the key does not, so a
+   stored `outputRef` resolves under either backend.
+3. **`VITE_STORAGE_URL` remains the single read root**, trailing slash intact (§14). When
+   the S3 backend is active, Node proxies reads through the same URL rather than handing
+   out a bucket URL — a real bucket host in a response body is a §14 violation and an
+   R13 violation.
+4. Credentials are `.env` only, and every value in `.env.example` stays a placeholder.
+
+---
+
+## 16. Model services
+
+Added in v1.5 from the architecture diagram's ML/AI services layer. As with §15, every
+service here is optional and every one has a deterministic fallback. **No model call is on
+the critical path of prompt mode** — §6's keyless prompt-to-IR path is what that means in
+practice, and it does not change.
+
+### 16.1 Embedding and reranking
+
+Used for one thing: choosing which section template and which element role best matches a
+described or detected region, when more than one candidate scores close.
+
+```
+embed(texts)                    -> number[][] | null
+rerank(query, candidates)       -> [{ index, score }]
+```
+
+- `embed` returns `null` when no embedding service is configured. Every caller must handle
+  `null` by falling back to the deterministic keyword scorer in §6's keyless path. A caller
+  that cannot proceed without an embedding is a contract violation.
+- `rerank` falls back to lexical overlap scoring when `embed` returns `null`. It is
+  therefore always callable and always returns a full ranking.
+- Embeddings are cached under `embed:<sha256>` per §15.1.
+- Licence rules from the README's forbidden table apply to embedding models exactly as
+  they apply to vision models.
+
+### 16.2 Model orchestrator
+
+Every hosted-model call in the system goes through one orchestrator. Stage 5 does not call
+a provider directly, and neither does anything else.
+
+```
+callModel({ purpose, input, schema, timeoutMs }) -> { ok, value, meta } | { ok: false, error }
+```
+
+| Rule | |
+|---|---|
+| Timeout | Default 30 s, hard ceiling 60 s — NFR-02's budget, inherited from the brief |
+| Retries | **Exactly one**, on timeout or a schema-validation failure. Never on a 4xx |
+| Validation | Output is validated against the caller's Ajv schema before it is returned. An invalid response is a failure, not a value |
+| Fallback | On final failure the orchestrator returns `{ ok: false }`. **The caller falls back to the deterministic path** — it never propagates the failure to the user as a crash |
+| Trace | Every call appends `{ purpose, model, ms, attempts, ok }` to the job's stage-5 record. §11's append-only rule applies |
+| Keys | `LLM_API_KEY` unset means every `callModel` returns `{ ok: false }` immediately, without a network attempt. This is a supported state, not an error |
+
+**Model output is untrusted input.** It is validated against a schema, and any string that
+reaches an element's `content` is sanitised write-side per §8. A model never supplies a
+field ID (§1, §6).
+
+---
+
+## 17. Observability
+
+Added in v1.5 from the architecture diagram's observability layer. All four are additive
+and none may fail a request.
+
+### 17.1 Structured logging
+
+One JSON line per event, to stdout. Fields: `ts`, `level`, `msg`, and `jobId` whenever a
+job is in scope. Levels `debug | info | warn | error`.
+
+**A log line is subject to §14 in full.** No key, no credential, no absolute local path, no
+real host. Upload filenames are logged as the `<jobId>.<ext>` key, never the user's
+original path — an original path is exactly the leak §14 names.
+
+### 17.2 Metrics
+
+Counters and histograms held in-process and exposed at `GET /api/metrics` in Prometheus
+text format. **No Prometheus server is required** — the endpoint is the contract; scraping
+it is optional.
+
+Minimum set: `framewright_jobs_total{status}`, `framewright_stage_duration_ms{stage}`,
+`framewright_model_calls_total{purpose,ok}`, `framewright_perception_up`.
+
+### 17.3 Tracing
+
+One trace per job, one span per stage, span names matching §11.0's seven stage names
+exactly. Emitted via OpenTelemetry when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, and
+**dropped silently when it is not**. The stage trace in §11 is the authoritative record
+either way; tracing is a second view of it, never a replacement.
+
+### 17.4 Alerts
+
+Out of scope for the event. `GET /api/health` (§13.4) is the liveness surface, and the
+job's `status` (§11.1) is the failure surface. Nothing pages anyone.
+
+---
+
+## 18. Automated quality gates
+
+Added in v1.5 from the architecture diagram's validation layer. These extend stage 6,
+`validation-qa` (§11.0). They **add** checks; they do not replace the §9 store-liveness
+assertion, which remains mandatory, separate, and never disabled.
+
+Each gate records a result on the stage-6 trace and, on failure, appends to the job's
+`warnings`. **No gate below fails a generation.** A component that lints clean, validates
+against its schemas and hydrates a live store is a success even if it scores poorly here —
+these gates inform, and §9 decides.
+
+| Gate | Tool | Records |
+|---|---|---|
+| Static analysis | ESLint, fixed hermetic inline config (§8 — a config path derived from user input is code execution at lint time) | error and warning counts |
+| Structure | Ajv against §2, §3, §4, §6, plus the duplicate-ID check from §14 | pass/fail per schema |
+| Visual | pixelmatch, generated preview against the normalised wireframe | similarity 0.0–1.0, `null` when there was no wireframe |
+| Accessibility | axe-core against the rendered preview | violation count by impact |
+| Performance | bundle size and render cost of the generated section only | bytes, ms |
+
+### 18.1 The quality score
+
+One number, 0–100, surfaced in the API response and on the Glass Box timeline.
+
+```
+score = 40 * structurePass
+      + 25 * (1 - min(1, eslintErrors / 10))
+      + 15 * (visualSimilarity ?? 1.0)
+      + 15 * (1 - min(1, axeSeriousViolations / 5))
+      +  5 * confidenceMean
+```
+
+- `structurePass` is `1` or `0`. Nothing else can move it, because a document that fails
+  its schema is not a partially good document.
+- `visualSimilarity` is `null` — and therefore scored as `1.0` — when no wireframe was
+  supplied. **Prompt mode must not be penalised for having no image to compare against.**
+- The formula is stated here so two people cannot compute two different scores from the
+  same job, and so a judge can check the arithmetic.
+
+**The score is not a gate.** It is displayed. Nothing branches on it.
