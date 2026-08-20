@@ -64,3 +64,10 @@
 - Device: LAPTOP-PUPG5T28
 - Files: client/src/utils/image.js, tests/image.test.mjs
 
+## T-015 — Implement GET /api/elements per §13 and §13.4
+- Started: 2026-08-20T18:34:07.194Z
+- Finished: 2026-08-20T18:40:08.019Z
+- Duration: 6m
+- Device: LAPTOP-PUPG5T28
+- Files: server/src/routes/elements.js, tests/get-elements.test.mjs
+
