@@ -1956,6 +1956,26 @@
       ],
       "verify": "npm test -- validation-recovery",
       "doneWhen": "A parse error or an ESLint ERROR (not a warning) triggers exactly one retry from the same IR; a second structural failure falls back to the deterministic emitter, records stage 6 as degraded per \u00a711.1, appends a warning, and the JOB SUCCEEDS. Asserted that the total attempt count is two, not four \u2014 \u00a716.2 has its own single retry for a schema-invalid model response and the two must not compose. No rule-based auto-repair."
+    },
+    {
+      "id": "T-095",
+      "phase": 0,
+      "title": "Phase 0 review pass \u2014 audit the board and the contract against the committed code, file findings",
+      "track": "any",
+      "size": "60m",
+      "contract": [
+        "\u00a74",
+        "\u00a75.0",
+        "\u00a75.2",
+        "\u00a77"
+      ],
+      "deps": [],
+      "files": [
+        "_build/findings/",
+        "docs/corrections/REGISTER.md"
+      ],
+      "verify": null,
+      "doneWhen": "Every defect found is written to _build/findings/F-nnn.md in the docs/REVIEW-PROTOCOL.md format, with a reproduce command that has actually been run rather than assumed, and is logged in docs/corrections/REGISTER.md. A finding that proposes changing a frozen document or the board says explicitly that the decision is the team lead's, per the precedent set by F-001."
     }
   ]
 }

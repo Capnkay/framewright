@@ -437,6 +437,80 @@ sketch; it is superseded and should not be shown.
 
 ---
 
+## 2026-08-20 · Three defects found preparing the client spine — F-002, F-003, F-004
+
+Found by reading §5.0 and §5.2 against the code T-000 actually committed, before claiming
+anything on the studio-preview track. All three are filed as findings and **none is fixed
+here** — two require a board change and one a contract change, which F-001 established is
+the team lead's call, not a reviewer's.
+
+| # | Finding | Severity | What |
+|---|---|---|---|
+| 1 | [F-002](../../_build/findings/F-002.md) | MAJOR | Six `files` paths in `_build/tasks.json` for the Phase 1 client tasks do not match what T-000 committed — the board says `client/src/store/`, `client/src/utils/getSectionTextContrastClass.js`, `client/src/utils/getHtml.js` and `client/src/sections/HeroSection.jsx`; the tested files are at `client/src/redux/`, `sectionContrast.js`, `html.js` and `sections/generated/`. Building to the board literally would create a second copy of each module while the ones `tests/golden.test.mjs` imports go unused |
+| 2 | [F-003](../../_build/findings/F-003.md) | MAJOR | **A nested card field's `css` has nowhere to be stored.** §4's loop item defines `fieldN`/`fieldTypeN`/`fieldIdN` and no css slot, and the reducer writes `css[el.fieldId]` only — yet §5.0, §7 R10, T-014 and T-053 all require per-card overlay. Measured: hydrating the seed produces 13 content keys and exactly **one** css key, an element-level id; every nested id is `undefined`. Proposes an additive `cssN` per loop item |
+| 3 | [F-004](../../_build/findings/F-004.md) | MINOR | `state.cms.sectionNames` is declared by §5.2 and written by nothing — the sole occurrence in the repository is its own initialiser. An unowned seam between T-035 (api-glassbox) and T-050 (studio-preview), which is the class `docs/GIT-PROTOCOL.md` warns about by name |
+
+**Why F-002 was time-critical rather than merely wrong.** T-001 was in flight while this was
+written. Had it wired the store to `client/src/store/` per the board, the repository would
+carry both directory trees with nothing stating which is real. Verified at the time of
+filing and again after a `git pull --rebase`: `client/src/store/` still does not exist, so
+the collision has not happened.
+
+**A correction to my own first reading, recorded because it changes the fix.** I initially
+read T-008, T-009, T-010 and T-012 as *already satisfied* by T-000. That is wrong, and the
+distinction matters: their `doneWhen` conditions are met, but the outstanding work is a
+**dependency swap the titles do not describe** — a real `createSlice` for the hand-built
+wrapper, real thunk middleware, and above all replacing the hand-rolled regex sanitiser in
+`html.js` with `isomorphic-dompurify`. That last one is not an inference: `html.js` says in
+capitals that production code should use a vetted library, §8's allow-list is written in
+DOMPurify's own config vocabulary (`ALLOWED_TAGS`, `ALLOWED_ATTR`, `ALLOW_DATA_ATTR`,
+`ALLOW_ARIA_ATTR`), and `isomorphic-dompurify` is already on README's approved licence table.
+Calling those tasks done because their assertions pass would have shipped a regex tag
+scanner as the read-side XSS chokepoint.
+
+**Also recorded, not filed:** R8 is the one open rule in the golden component — it renders a
+plain `<button>`, not PrimeReact's `<Button>`, because the package is not installed. The file
+documents this and T-014 already carries §7 R8, so no board change is needed; noted so
+nobody reads the component as R8-complete. And §6's `layout.accents` has no consumer
+anywhere — the deterministic emitter (T-025) will be the first thing that must render accent
+bars, with no reference implementation to copy.
+
+### Board change: T-095 added
+
+There was no task on the board covering a review pass, and `.githooks/pre-commit` requires
+the committer to hold a claim — so a finding could not be committed by anyone at all. Rather
+than claim a task that would not be built, or bypass the hook, **T-095 was added** (phase 0,
+track `any`, `verify: null`), claimed, and closed with a note. `AGENTS.md` sanctions exactly
+this — "either the task is wrong (fix `tasks.json` and log it) or you are doing someone
+else's task" — and this is the log. Phase 0 reads 2/2.
+
+**It was originally numbered T-092, and that collided.** While this branch was open, the
+§6.1/§18.2 work landed on `main` and took T-092, T-093 and T-094 for `designTokens`, the
+emitter's token read, and validation recovery. Two people had picked the same next id from
+two different views of the board — the exact race `docs/BATON.md` says surfaces as a git
+conflict rather than hiding, and it did: `_build/tasks.json` conflicted on merge.
+
+The dangerous half was not the number. **The claim file was `_build/claims/T-092.json` with
+`status: "done"`**, so merging it would have marked *someone else's* `designTokens` task
+complete, by a person who never touched it — and `baton status` would have reported it done
+to everybody. Renumbered to T-095, claim file moved rather than deleted, and every reference
+in the journal and in this register updated. Upstream's own register entry for T-092–T-094 is
+left exactly as they wrote it.
+
+Worth stating as a lesson rather than a footnote: **a claim file is a stronger assertion than
+a task entry.** A duplicate id in `tasks.json` is caught by `validateTasks`, which fails
+loudly on a duplicate. A claim file pointing at an id whose *meaning* changed under it is
+caught by nothing — it is well-formed, it validates, and it silently reassigns credit and
+completion. Anyone adding a task to the board from a long-running branch should re-derive the
+next free id at merge time, not at branch time.
+
+Delivered as a branch and a pull request rather than a commit to `main`, per
+`docs/GIT-PROTOCOL.md`: `main` takes no direct commits but claim files, and producer and
+verifier are never the same. The board and contract changes proposed in F-002 and F-003 are
+therefore awaiting a second reader, not applied.
+
+---
+
 ## 2026-08-20 · The board's `verify` filter was a no-op — every task's verification passed on someone else's tests
 
 Found while claiming T-002 and reading its verify command before building.
