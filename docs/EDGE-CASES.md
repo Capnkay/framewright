@@ -132,3 +132,29 @@ prompting.
 rectangles, and train a detector on data you generate yourself. Record the measurement —
 it is worth more to a judge than a working model would have been, because it explains why
 the architecture is shaped the way it is.
+
+---
+
+## EC-010 · Vercel refuses to deploy, and the cause is the commit author
+**Date:** 2026-08-20 · **Status:** fixed
+
+Four deployments failed in a row. The build was never the problem. Vercel rejected them
+because the commit author email was `team@example.local`, which is not a deliverable
+address, so Vercel could not identify the author and declined to deploy at all.
+
+**How to tell:** the GitHub commit shows a failed check, the site returns 404 rather than
+a broken page, and Vercel's own message says *"the commit author email is not a valid
+email address."* The absence of a *build* error is the tell — if the build had run and
+failed, there would be a build log.
+
+**Why it happened here:** an automated commit used a deliberately fake address to avoid
+committing a real one. The `.local` TLD is reserved and unroutable, which is exactly why
+it looked safe and exactly why Vercel rejected it.
+
+**Do:** commit as a real person. `git config user.email` should be the address on the
+GitHub account, and automated commits must use it too rather than inventing a placeholder.
+A commit author is not the same kind of secret as an API key.
+
+**Cost of getting this wrong:** roughly an hour, and three fixes to things that were never
+broken. When a deploy fails and there is no build log, look at the commit metadata before
+looking at the build configuration.

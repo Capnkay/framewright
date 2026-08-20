@@ -273,3 +273,35 @@ confirm empirically and record it in `docs/EDGE-CASES.md`.
 **Deliberately not done:** no file restates build progress. `_build/STATE.md` is generated
 from the task board, and a hand-written summary alongside it would drift within hours and
 then quietly lie. The new files are routers, not second sources of truth.
+
+---
+
+## 2026-08-20 · The docs deploy — four failures, one cause
+
+The documentation site returned 404 through four attempted fixes. **None of the fixes was
+addressing the real fault**, and the real fault was in this session's own commits.
+
+**Cause:** every automated commit was authored `Framewright <team@example.local>`. Vercel
+will not deploy a commit whose author it cannot identify as a real address, so no
+deployment ever ran. The site 404'd because nothing had ever been published to it.
+
+**Why it was missed:** the failure presented as a build problem — a red check on the commit
+and a 404 on the domain — so it was diagnosed as a build problem three times over. The tell
+was there and was not read: there was no build log, because there was no build. A failing
+build produces output. A rejected commit produces nothing.
+
+**What the three earlier fixes actually did.** They were not wasted, but they were not the
+fix either:
+
+| Change | Was it needed? |
+|---|---|
+| Added `docs/html/index.html` | Yes — the directory genuinely had no landing page |
+| No-op `build` / `vercel-build` scripts | Yes — the root `package.json` would have failed `npm run build` once a deploy ran |
+| Build now produces `public/` | Defensive — Vercel's "Other" preset defaults to `public/` and the dashboard overrides `vercel.json` |
+| Root `index.html` redirect | Defensive, kept |
+
+**The lesson, recorded because it was avoidable.** The instruction was to read the build log
+before changing configuration again. That was said and then not done; the next two fixes
+were reasoned from probability instead of evidence. **When a deployment fails and there is
+no build output to read, the fault is upstream of the build** — in the commit, the
+integration, or the permissions. Filed as `EC-010`.
