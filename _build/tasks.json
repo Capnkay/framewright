@@ -150,7 +150,8 @@
         "T-005"
       ],
       "files": [
-        "server/src/ids/allocateId.js"
+        "server/src/ids/allocateId.js",
+        "tests/allocate-id.test.mjs"
       ],
       "verify": "npm test -- allocate-id",
       "doneWhen": "allocateId('section'|'element'|'cardField') returns a 10-digit string starting 1/2/3 respectively; Math.random, Date.now, uuid and nanoid appear nowhere in the file."

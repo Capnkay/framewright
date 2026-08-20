@@ -21,3 +21,10 @@
 - Device: Jainam
 - Files: server/src/store/mongoStore.js, tests/mongo-store.test.mjs
 
+## T-006 — Implement the ID allocator's three sanctioned ranges (§1) on top of the store adapter
+- Started: 2026-08-20T16:14:30.825Z
+- Finished: 2026-08-20T16:16:12.535Z
+- Duration: 2m
+- Device: Jainam
+- Files: server/src/ids/allocateId.js, tests/allocate-id.test.mjs
+

@@ -613,3 +613,4 @@ sides must agree on the name. Whoever closes it: do not rename `artifact` withou
 both sides in the same commit.`n| T-004 missing test | The json-store test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
 
 | T-005 missing test | The mongo-store test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
+| T-006 missing test | The allocate-id test did not exist in tests/ and was missing from the task files array. Added the test and edited tasks.json to track it. | AI Executor |
