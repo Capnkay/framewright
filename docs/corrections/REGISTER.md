@@ -792,6 +792,8 @@ over the network. `LAW-MANIFEST.sha256`'s `.githooks/pre-push` entry regenerated
 
 No contract change — `.githooks/pre-push` isn't a frozen document, but it is hook-floor law
 (CLAUDE.md), so the same append-only, state-the-why discipline applies.
+---
+
 ## 2026-08-20 · The verify/files defect swept off the whole board — 77 of 95 tasks
 
 Fixed per `docs/BATON.md`: *"The verification is wrong, not the code. Fix the verification in
@@ -850,3 +852,26 @@ was broken, which is precisely the case `BATON.md` names.
 
 Suite now **44 passing, 0 failing, 0 skipped**, and the skip message says to install at the
 root and explains why `cd server && npm install` will not help.
+---
+
+## 2026-08-20 · SUPERSEDED — the same `files`-list defect, counted independently at 73
+
+**Superseded by the entry immediately above, which did the real work.** Kept because the
+register is append-only and a pruned register lies — and because two people counting the same
+defect within the same hour is itself worth knowing.
+
+T-026 hit the defect for the sixth time. Not having seen the sweep land (it was committed
+while T-026 was being built), I wrote the same four-line detector and got **73 of 95** —
+against the 77 above, the difference being the sixteen tasks that entry's author had added
+themselves plus my own three, all corrected in flight. Same defect, same conclusion, same
+recommendation: script it, wire it into pre-commit.
+
+Only T-007, T-019 and T-026 were patched here — my own three — on the reasoning that
+rewriting seventy other people's task definitions under a T-026 claim is the "tidy-up outside
+your task's scope" AGENTS.md warns creates a merge conflict for someone who is asleep. That
+reasoning was sound and the outcome was still a duplicated effort, which is the honest lesson:
+**the register is only a coordination tool if you re-read its tail before acting on it.** The
+recommendation to sweep had been sitting in the T-005 entry for hours; two people picked it up
+independently rather than one claiming it.
+
+`tools/check-verify-files.mjs` is the surviving artifact. This entry adds nothing to it.

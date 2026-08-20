@@ -14,3 +14,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/schemas/ir.schema.json, server/src/validate/irValidator.js
 
+## T-026 — Implement the keyless prompt-to-IR path — keyword and template extraction, no model call
+- Started: 2026-08-20T16:35:45.438Z
+- Finished: 2026-08-20T16:42:01.524Z
+- Duration: 6m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/promptToIrKeyless.js, tests/prompt-to-ir-keyless.test.mjs
+
