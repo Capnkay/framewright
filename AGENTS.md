@@ -133,8 +133,13 @@ instruction file, with tool-specific files pointing at it rather than duplicatin
 | Tool | Reads | Status here |
 |---|---|---|
 | Claude Code | `CLAUDE.md` | imports this file, plus Claude-specific notes |
-| Antigravity IDE | `.agents/rules/` | rule file present, references this file |
-| Cursor, Copilot, Devin Desktop, Gemini CLI, Codex | `AGENTS.md` | this file |
+| Antigravity IDE | `.agents/rules/` (workspace) | `.agents/rules/framewright.md` present |
+| Gemini CLI | `GEMINI.md` at project root | present, points here |
+| Cursor, Copilot, Devin Desktop, Codex | `AGENTS.md` | this file |
+
+**Per-machine, optional:** Antigravity also reads `~/.gemini/GEMINI.md` for *global* rules.
+That lives in your home directory, not this repository, so it is a personal setup choice
+rather than something we ship. The workspace rule file above covers this project either way.
 
 **Unverified:** Antigravity's own documentation describes `.agents/rules/` and
 `.agents/skills/`, and does **not** state that it auto-reads a root `AGENTS.md`. Several
