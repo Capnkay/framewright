@@ -21,3 +21,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/promptToIrKeyless.js, tests/prompt-to-ir-keyless.test.mjs
 
+## T-027 — Implement the hosted-model prompt-to-IR path, falling back to the keyless path on any failure
+- Started: 2026-08-20T16:51:10.609Z
+- Finished: 2026-08-20T16:54:36.577Z
+- Duration: 3m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/promptToIrHosted.js, tests/prompt-to-ir-hosted.test.mjs
+
