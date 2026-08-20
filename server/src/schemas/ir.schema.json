@@ -95,16 +95,17 @@
     },
 
     "designTokens": {
-      "description": "§6.1 — optional. Absent means the emitter uses DEFAULT_TOKENS and the deterministic path is unaffected.",
+      "description": "§6.1 — OPTIONAL. Absent means the emitter uses DEFAULT_TOKENS and produces byte-identical output, so the deterministic path is unaffected and a pre-v1.6 IR stays valid. additionalProperties stays true here and in every group below, deliberately: §6.1 rule 4 says a token the emitter does not recognise is ignored, not an error — perception and a hosted model can both propose tokens, and an unknown key must never fail a generation. Rules 1 and 2 (Tailwind classes only, no colour literals) are asserted in server/src/generate/designTokens.js rather than here, because a violating token is declined by the resolver in favour of the default, not rejected as invalid IR.",
       "type": "object",
+      "additionalProperties": true,
       "properties": {
-        "colors": { "type": "object" },
-        "typography": { "type": "object" },
-        "spacing": { "type": "object" },
-        "shadows": { "type": "object" },
-        "borderRadius": { "type": "object" },
-        "breakpoints": { "type": "object" },
-        "components": { "type": "object" }
+        "colors": { "type": "object", "additionalProperties": true },
+        "typography": { "type": "object", "additionalProperties": true },
+        "spacing": { "type": "object", "additionalProperties": true },
+        "shadows": { "type": "object", "additionalProperties": true },
+        "borderRadius": { "type": "object", "additionalProperties": true },
+        "breakpoints": { "type": "object", "additionalProperties": true },
+        "components": { "type": "object", "additionalProperties": true }
       }
     },
 

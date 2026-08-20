@@ -1910,8 +1910,8 @@
         "T-019"
       ],
       "files": [
-        "server/src/ir/designTokens.js",
-        "server/src/ir/schema.js",
+        "server/src/generate/designTokens.js",
+        "server/src/schemas/ir.schema.json",
         "tests/design-tokens.test.mjs"
       ],
       "verify": "npm test -- design-tokens",

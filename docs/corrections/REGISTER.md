@@ -875,3 +875,42 @@ recommendation to sweep had been sitting in the T-005 entry for hours; two peopl
 independently rather than one claiming it.
 
 `tools/check-verify-files.mjs` is the surviving artifact. This entry adds nothing to it.
+
+---
+
+## 2026-08-20 · T-092's `files` list pointed at a second, competing IR schema
+
+T-092 declared `server/src/ir/designTokens.js` and **`server/src/ir/schema.js`**. Neither
+existed, and `server/src/ir/` did not exist either — but the IR schema did, at
+`server/src/schemas/ir.schema.json`, written at T-019 with its validator at
+`server/src/validate/irValidator.js`.
+
+Building T-092 as declared would have created **a second source of truth for the IR schema**:
+one file the validator reads, another the token work edits, silently disagreeing the moment
+either changed. `docs/REVIEW-PROTOCOL.md` names this exact shape — "a seam quietly acquires
+two incompatible halves" — and it would have surfaced as an IR that validates in one place
+and fails in another, which is the worst kind of bug to find at hour 40.
+
+**Fixed:** T-092's `files` now reads
+
+| Declared | Actual |
+|---|---|
+| `server/src/ir/designTokens.js` | `server/src/generate/designTokens.js` |
+| `server/src/ir/schema.js` | `server/src/schemas/ir.schema.json` (the existing one, extended) |
+
+`server/src/generate/` because §6.1 says DEFAULT_TOKENS "is checked in beside the emitter",
+and the emitter's own tasks put it in `server/src/generate/`.
+
+**A related defect, flagged and NOT fixed — the emitter has two names.** T-025 declares
+`server/src/generate/emitComponent.js`; T-093 declares `server/src/generate/emitter.js`. Same
+subsystem, two filenames, two different tasks. Whoever takes T-025 picks one and T-093
+inherits the mismatch. Not corrected here because T-025 is unclaimed and unbuilt — changing
+its `files` list under a T-092 claim is the scope violation AGENTS.md warns about — but it
+needs settling **before** T-025 is built, not after.
+
+Both are the same underlying issue as the `files`-list sweep above: `_build/tasks.json` was
+written before the tree existed, so its paths are predictions, not observations.
+`tools/check-verify-files.mjs` proves the test-file half of each task; nothing yet proves the
+source-file half. A second sweep asserting that every non-test path in a `files` list either
+exists or has no sibling task claiming a different path for the same thing would have caught
+both of these.

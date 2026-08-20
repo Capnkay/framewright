@@ -28,3 +28,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/promptToIrHosted.js, tests/prompt-to-ir-hosted.test.mjs
 
+## T-092 — Add designTokens to the IR schema with DEFAULT_TOKENS (§6.1)
+- Started: 2026-08-20T16:57:14.244Z
+- Finished: 2026-08-20T17:03:08.539Z
+- Duration: 6m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/designTokens.js, server/src/schemas/ir.schema.json, tests/design-tokens.test.mjs
+
