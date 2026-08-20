@@ -1205,3 +1205,44 @@ keeps failing. Third distinct instance of the hostname gate biting a legitimate 
 right to be narrow and none of the three is an argument for widening it; the recurring cost
 is the ten minutes each one takes to diagnose from a push failure. Worth a line in `SETUP.md`
 if a fourth appears.
+
+---
+
+## 2026-08-20 · GAP: §11's append-only retry and §11.2's artifact path cannot both hold
+
+Found by building T-023 against them, and caught by its own test rather than by reading.
+
+- **§11 rule 1** — "Stage records are append-only. A retry appends; it never overwrites."
+- **§11 rule 2** — "Every stage persists its input and output as artifacts, referenced by path."
+- **§11.2** — that path is `artifacts/<jobId>/<stage>-<name>.<ext>`.
+
+A second attempt at stage 3 derives **the same path** as the first, because the path is built
+only from jobId, stage and name. So the retry overwrites the first attempt's artifacts. The
+first stage record is faithfully preserved, exactly as rule 1 requires — and it now points at
+the second attempt's data.
+
+**That is worse than losing the record.** A missing record is visibly missing. A preserved
+record whose artifacts have been silently replaced still renders in the timeline, still
+opens in the stage inspector, and shows the wrong thing with full confidence. It defeats the
+purpose of append-only while appearing to satisfy it — the same shape as §9's dead store
+looking pixel-identical to a live one.
+
+**Resolved in code, minimally.** Attempt 1 keeps §11.2's documented shape byte for byte,
+matching the contract's own example (`s2-normalised.png`). Only a retry adds a
+discriminator:
+
+```
+attempt 1   artifacts/job-0000000001/s3-regions.json      <- §11.2 verbatim
+attempt 2   artifacts/job-0000000001/s3a2-regions.json
+```
+
+Stage records now also carry `attempt`, so the timeline can label retries without counting
+array positions. Attempt number is read from the trace itself, not held in memory, so a retry
+issued after a restart or by another process still numbers correctly — asserted by a test.
+
+**Why the code changed and not the contract.** §11.2's path is quoted in the §11.1 example
+job record and read by T-037's artifact endpoint and T-039's stage inspector, neither of
+which is built yet. Preserving the documented shape for the common case keeps both of those
+tasks' assumptions true. If whoever owns §11.2 would rather the attempt appear in every path,
+that is a one-line change in `artifactRef` — but it should be decided rather than drifted
+into, which is why it is written down here instead of just done.

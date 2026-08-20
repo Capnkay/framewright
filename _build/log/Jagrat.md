@@ -42,3 +42,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/models/orchestrator.js, server/src/generate/promptToIrHosted.js, server/src/validate/irValidator.js, tests/model-orchestrator.test.mjs
 
+## T-023 — Implement the append-only stage-trace writer per §11.0 and §11's three rules
+- Started: 2026-08-20T17:16:12.787Z
+- Finished: 2026-08-20T17:25:27.667Z
+- Duration: 9m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/jobs/stageTrace.js, tests/stage-trace.test.mjs
+
