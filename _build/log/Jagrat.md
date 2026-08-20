@@ -77,3 +77,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/writeComponentFile.js, tests/write-component-file.test.mjs
 
+## T-034 — Run ESLint against every emitted component with a fixed hermetic inline config
+- Started: 2026-08-20T19:18:39.817Z
+- Finished: 2026-08-20T19:21:05.669Z
+- Duration: 2m
+- Device: LAPTOP-E9HORJ7M
+- Files: tools/lint-generated.mjs, .eslintrc.generated.json
+
