@@ -1,11 +1,9 @@
 {
   "taskId": "T-001",
-  "who": "Antigravity",
-  "device": "Jainam",
-  "claimedAt": "2026-08-20T14:51:38.276Z",
-  "status": "dropped",
+  "who": "Khushi Singh",
+  "device": "LAPTOP-PUPG5T28",
+  "claimedAt": "2026-08-20T16:23:13.966Z",
+  "status": "active",
   "takenFrom": null,
-  "takenAt": null,
-  "why": "Switching to T-071 per user request",
-  "droppedAt": "2026-08-20T16:19:55.878Z"
+  "takenAt": null
 }
