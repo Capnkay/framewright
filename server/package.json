@@ -1,0 +1,17 @@
+{
+  "name": "framewright-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Framewright API — generation, persistence, and the Glass Box job trace. Scaffolded at T-002 (docs/ROADMAP.md Phase 1). The route table and its handlers are dependency-free by design; only src/app.js imports Express, so ../tests/api-skeleton.test.mjs runs with no npm install.",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

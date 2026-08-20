@@ -434,3 +434,77 @@ unset and the network down" claim is checkable from the diagram itself.
 
 Linked from `docs/html/index.html`. The raster original is kept untracked as the source
 sketch; it is superseded and should not be shown.
+
+---
+
+## 2026-08-20 · The board's `verify` filter was a no-op — every task's verification passed on someone else's tests
+
+Found while claiming T-002 and reading its verify command before building.
+
+Every task on the board declares `verify` as `npm test -- <filter>`. The root script was
+`node --test tests/**/*.mjs`, and the filter did nothing:
+
+```
+$ npm test -- zzz-does-not-exist
+ℹ tests 13   ℹ pass 13   ℹ fail 0   EXIT: 0
+```
+
+So `baton done T-002` would have passed **with no `server/` directory and no test written**,
+because the golden component's 13 tests pass and the runner never looked at the filter. The
+same was true of all 91 open tasks.
+
+**Why this is the worst class of harness defect.** `docs/BATON.md` says the verification
+"cannot be skipped" and that "one command decides done. Not an opinion, not a feeling."
+`AGENTS.md` rule 6 says producer and verifier are never the same. Both were false in
+practice, and neither would have announced it — every `baton done` printed a green suite and
+marked the task complete. BATON.md's own words for this: *a verification nobody trusts is
+worse than none, because people route around it.* This one was worse still, because nobody
+had reason to distrust it.
+
+**Fixed** by replacing the root script with `tools/test.mjs`, a zero-dependency runner:
+
+| | |
+|---|---|
+| `npm test` | runs every `tests/**/*.test.mjs` |
+| `npm test -- api-skeleton` | runs only the matching file, and says which it selected |
+| `npm test -- nonsense` | **exits 1**, naming the file it expected and listing what exists |
+
+The third row is the whole fix. A task whose verify names a test nobody has written must
+fail, not inherit a green suite. Zero dependencies is not incidental either — `npm test`
+works on a fresh clone with no `npm install`, and the runner must not be the thing that
+breaks that.
+
+`tools/baton.mjs` needed no change: `cmdDone` already propagates a non-zero exit correctly.
+The fault was entirely in what it was running.
+
+---
+
+## 2026-08-20 · T-002's `files` list was missing the file its own verification needs
+
+`AGENTS.md` tells an executor that needs an undeclared file to stop, and that one of two
+things is true: the task is wrong, or you are doing someone else's task. The task was wrong.
+
+T-002 declared three files — `server/package.json`, `server/src/app.js`,
+`server/src/routes/index.js` — and a verify command of `npm test -- api-skeleton`. **It did
+not declare `tests/api-skeleton.test.mjs`**, so the task as written could not be verified by
+anyone who obeyed its own scope rule.
+
+Amended to eight files, and the size raised 40m → 60m to match:
+
+- `server/src/http/envelope.js` — §13.4's convention in one place. Four people are about to
+  write handlers, and §9 names `{ data: [...] }` where the reducer expects `[...]` as a
+  cause of total store death. That shape gets decided once, not per handler.
+- `server/src/server.js` — the entrypoint, split from `app.js` so the app can be built and
+  exercised without binding a port.
+- `tests/api-skeleton.test.mjs` — the verification.
+- `tools/test.mjs` and root `package.json` — the runner fix above, which T-002 cannot be
+  honestly verified without.
+
+**One design decision worth recording.** The route table and every handler import nothing;
+`app.js` is a thin map from that table onto Express. So the verification runs on a fresh
+clone with no `npm install`, preserving the property in SETUP.md step 5. The cost is a rule
+that must be held: contract logic goes in the table, never in `app.js`. If it drifts up into
+the Express layer it escapes the test silently, which is why `app.js` says so in its header.
+
+Root `package.json` also gains `npm run server`, which README's run-command table has
+promised since Phase 1 was written.

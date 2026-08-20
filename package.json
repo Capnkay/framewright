@@ -8,7 +8,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test tests/**/*.mjs",
+    "test": "node tools/test.mjs",
+    "server": "node server/src/server.js",
     "build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/",
     "vercel-build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/"
   }
