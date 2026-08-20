@@ -29,3 +29,10 @@
 - Files: perception/benchmarks/detr_wireframe.py, docs/BENCHMARK-RESULTS.md
 - Note: DETR measured 0 of 7 on the real wireframe: one box, 'cell phone', 64% of frame, identical at thresholds 0.5 down to 0.05, and COCO has no UI classes at all. Recorded as B-002; matches B-001's Florence-2 result. F-006's DETR half confirmed.
 
+## T-056 — Implement stage 3a, contour and rectangle region detection (OpenCV)
+- Started: 2026-08-20T17:49:07.715Z
+- Finished: 2026-08-20T18:32:12.529Z
+- Duration: 43m
+- Device: Mohits_Victus
+- Files: perception/stages/detect_regions.py, perception/tests/test_detect_regions.py, perception/benchmarks/contours_wireframe.py, docs/BENCHMARK-RESULTS.md
+

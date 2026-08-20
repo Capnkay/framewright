@@ -1175,7 +1175,9 @@
       ],
       "files": [
         "perception/stages/detect_regions.py",
-        "perception/tests/test_detect_regions.py"
+        "perception/tests/test_detect_regions.py",
+        "perception/benchmarks/contours_wireframe.py",
+        "docs/BENCHMARK-RESULTS.md"
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_detect_regions.py",
       "doneWhen": "Contour/rectangle detection returns candidate regions with bboxes in NORMALISED space (§6), each carrying a real confidence rather than a fabricated one (§10). Scored against the same 7 reference targets B-001 and B-002 used, on the same wireframe, and the number recorded in docs/BENCHMARK-RESULTS.md as B-003 — a classical-CV result that cannot be compared against the two model results is not evidence of anything."

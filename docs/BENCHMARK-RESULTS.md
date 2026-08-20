@@ -199,3 +199,103 @@ of that from a reasoned expectation into a number.
 
 **It changes the two committed diagrams**, which still show DETR as the primary detector.
 See F-006.
+
+---
+
+## B-003 · OpenCV contour detection on the same wireframe
+
+**Date:** 2026-08-20 · **Status:** DEFINITIVE — T-056's measured result · **VERIFIED** (run on our hardware)
+
+Run because T-056's `doneWhen` requires it: "scored against the same 7 reference targets
+B-001 and B-002 used, on the same wireframe, and the number recorded … as B-003 — a
+classical-CV result that cannot be compared against the two model results is not evidence
+of anything."
+
+### Machine
+
+Same as B-001 and B-002. RTX 3050 Laptop, 6.00 GB — **but this run used the CPU only.**
+No GPU, no model weights, no network access.
+
+`perception/.venv`, Python 3.10, OpenCV 5.0.0. Reproduced with:
+
+```
+perception/.venv/Scripts/python -m perception.benchmarks.contours_wireframe ../gpu-test/wireframe.png
+```
+
+Same image as B-001 and B-002: `gpu-test/wireframe.png`, 1600×1168, hand-drawn. Fed through
+stage 2 first — normalised to a 1024×1024 letterboxed canvas with scale=0.64, offsetY=138.
+
+### What we measured
+
+| | |
+|---|---|
+| Device | **CPU** |
+| Model weights | **None** |
+| Network | **None** |
+| Detection time | **0.04 s** |
+| Regions returned | **35** |
+| **Targets located correctly** | **7 of 7** |
+| IoU range | **0.69 – 0.88** |
+
+### Per-target results
+
+| Target | IoU | Located |
+|---|---|---|
+| `heroImage` | 0.88 | ✓ |
+| `brandBadge` | 0.78 | ✓ |
+| `headlineMain` | 0.83 | ✓ |
+| `headlineSub` | 0.80 | ✓ |
+| `description` | 0.69 | ✓ |
+| `statBadges` | 0.72 | ✓ |
+| `ctaButton` | 0.76 | ✓ |
+
+### How it works
+
+Three detectors over one illumination-corrected ink mask:
+
+1. **Drawn rectangles** — contours scored by measured per-side edge support
+2. **Handwriting clusters** — after whole-connected-component structure removal
+3. **Regular series** — aligned, similar, evenly-spaced siblings
+
+The series detector is the only reason `description` (four ruled lines) and `statBadges`
+(three squares) are findable at all — individually they are four lines and three squares;
+the series detector recognises them as one paragraph and one stat row.
+
+Every confidence is a geometric measurement. Components are carried in `Region.evidence`
+so a reader can check the arithmetic. §10 forbids fabricated numbers and that cuts both
+ways: a region from an image must carry a number that came from the image.
+
+### The honesty problem, stated again
+
+**The person who annotated the ground-truth boxes also wrote the detector.** Three
+constraints against that, from the benchmark harness's own docstring:
+
+1. The boxes are in the **original** image's coordinates and were read off a 100px grid,
+   not off the detector's output.
+2. Every target's **actual IoU** is printed, not just pass/fail. A hit at 0.69 and a hit
+   at 0.88 are different claims, and hiding the difference behind a boolean is how a
+   fitted threshold stays invisible.
+3. `regions_returned` is printed beside the score. Locating 7 of 7 by returning 400 boxes
+   is not detection, it is enumeration — 35 regions on a 7-target image is the ratio
+   that tells the two apart.
+
+### Read alongside B-001 and B-002
+
+| | Florence-2 (B-001) | DETR (B-002) | OpenCV contours (B-003) |
+|---|---|---|---|
+| **Targets located** | **0 of 7** | **0 of 7** | **7 of 7** |
+| Boxes returned | 1 | 1 | 35 |
+| IoU range | — | — | 0.69 – 0.88 |
+| Label | `"whiteboard"` | `"cell phone"` | geometry only |
+| Device | GPU | GPU | **CPU** |
+| Weights | 1.1 GB | 167 MB | **None** |
+| Network | None | None | None |
+| Time | 98.6 s (load) + 0.3 s | 41.8 s (load) + 1.5 s | **0.04 s** |
+| Peak VRAM | 0.60 GB | 0.34 GB | **0 GB** |
+
+**Three architectures, two training distributions, the same input.** The two learned
+detectors each saw one object covering most of the frame. The contour detector found all
+seven, at sub-second speed, on the CPU, with nothing downloaded.
+
+This is the pivot. A wireframe is rectangles and text — the worst case for a detector
+trained on photographs and close to the best case for contour detection.
