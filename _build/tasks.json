@@ -111,7 +111,8 @@
       ],
       "files": [
         "server/src/store/jsonStore.js",
-        "server/data/store.json"
+        "server/data/store.json",
+        "tests/json-store.test.mjs"
       ],
       "verify": "npm test -- json-store",
       "doneWhen": "50 concurrent allocateId('element') calls return 50 unique, strictly increasing, 10-digit string IDs."

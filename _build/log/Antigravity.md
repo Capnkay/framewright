@@ -7,3 +7,10 @@
 - Device: Jainam
 - Files: server/src/store/adapter.js, server/src/store/index.js, tests/store-adapter-interface.test.mjs
 
+## T-004 — Implement the JSON file store with an atomic allocateId (single-writer queue, not read-modify-write)
+- Started: 2026-08-20T15:42:56.891Z
+- Finished: 2026-08-20T15:51:20.282Z
+- Duration: 8m
+- Device: Jainam
+- Files: server/src/store/jsonStore.js, server/data/store.json, tests/json-store.test.mjs
+

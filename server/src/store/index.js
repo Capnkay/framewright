@@ -1,4 +1,5 @@
 import { createAdapter } from './adapter.js';
+import { createJsonStore } from './jsonStore.js';
 
 export function createStore(env = {}) {
   const type = env.STORE_TYPE || 'json';
@@ -7,8 +8,7 @@ export function createStore(env = {}) {
     // To be implemented in T-005
     return createAdapter(createStubStore('mongo'));
   } else if (type === 'json') {
-    // To be implemented in T-004
-    return createAdapter(createStubStore('json'));
+    return createAdapter(createJsonStore('./server/data/store.json'));
   }
   
   return createAdapter(createStubStore(type));
