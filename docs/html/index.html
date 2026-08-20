@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Framewright</title>
+<link rel="stylesheet" href="stages/_card.css">
+<style>
+  .wrap{max-width:900px}
+  .hero{margin:6px 0 26px}
+  .hero h1{font-size:36px;margin:0 0 4px}
+  .lede{font-size:15.5px;color:var(--ink2);margin:0;max-width:62ch}
+  .start{
+    display:block;text-decoration:none;color:inherit;
+    background:var(--green);border:2.6px solid var(--ink);border-radius:13px;
+    padding:16px 20px;margin:0 0 18px;
+    box-shadow:4px 5px 0 rgba(26,26,26,.14);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .start:hover{transform:translate(-1px,-1px);box-shadow:5px 6px 0 rgba(26,26,26,.16)}
+  .start:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+  .start .k{font-family:var(--hand);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    display:block;margin-bottom:3px}
+  .start .t{font-family:var(--hand);font-size:23px;display:block;line-height:1.15}
+  .start .d{font-size:13.5px;margin-top:5px;display:block}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:13px}
+  a.tile{
+    display:block;text-decoration:none;color:inherit;
+    background:#fff;border:2.4px solid var(--ink);border-radius:12px;padding:13px 15px;
+    box-shadow:3px 4px 0 rgba(26,26,26,.12);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  a.tile:hover{transform:translate(-1px,-1px);box-shadow:4px 5px 0 rgba(26,26,26,.14)}
+  a.tile:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+  a.tile .t{font-family:var(--hand);font-size:16px;display:block;margin-bottom:3px}
+  a.tile .d{font-size:13px;color:var(--ink2);display:block}
+  a.tile.y{background:var(--yellow)} a.tile.b{background:var(--blue)}
+  a.tile.p{background:var(--purple)} a.tile.o{background:var(--orange)}
+  .cmd{font-family:var(--mono);background:#1f2430;color:#e6e9ef;border:2.4px solid var(--ink);
+       border-radius:8px;padding:4px 11px;display:inline-block;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Framewright</h1>
+    <p class="lede">A generator that turns a wireframe, existing React code, or a written prompt into a
+    CMS-ready React section &mdash; component, metadata, element records, and a live preview.</p>
+  </div>
+
+  <a class="start" href="ONBOARDING.html">
+    <span class="k">New here? Start with this</span>
+    <span class="t">Your first hour &rarr;</span>
+    <span class="d">Machine setup, what to read, your track, and the four things that cost us points
+    if you get them wrong. Ten minutes.</span>
+  </a>
+
+  <div class="grid">
+    <a class="tile y" href="TEAM-RULES.html">
+      <span class="t">Team rules</span>
+      <span class="d">One page. Print it and keep it visible while you work.</span>
+    </a>
+    <a class="tile b" href="HARNESS-BRIEF.html">
+      <span class="t">The harness</span>
+      <span class="d">What exists, how the pieces connect, and what's proven rather than claimed.</span>
+    </a>
+    <a class="tile p" href="stages/index.html">
+      <span class="t">The 13 stages</span>
+      <span class="d">One page per stage: what goes in, what comes out, why this approach, how it fails.</span>
+    </a>
+    <a class="tile" href="JUDGE-CARDS.html">
+      <span class="t">Judge cards</span>
+      <span class="d">What each of us says, and the three questions we'll be asked about our track.</span>
+    </a>
+    <a class="tile o" href="GPU-BENCHMARK.html">
+      <span class="t">GPU benchmark</span>
+      <span class="d">Hardware brief for the perception machine, with the measured result.</span>
+    </a>
+  </div>
+
+  <h2>Every session, one command</h2>
+  <div class="card g">
+    <span class="cmd">continue build</span>
+    <p style="margin:9px 0 0">It pulls, shows you the board, and hands you the next task whose
+    dependencies are met &mdash; along with the contract sections that task has to satisfy. You claim it,
+    build it, and mark it done, at which point a real check runs and decides. Then commit with the task
+    id and push.</p>
+  </div>
+
+  <h2>Two rules that decide our score</h2>
+  <div class="row">
+    <div class="card r">
+      <p style="font-family:var(--hand);font-size:15px;margin:0 0 5px">The store has to be alive</p>
+      <p style="margin:0">Every field renders as <code>value || "DEFAULT"</code>, so a page with a dead
+      data store looks <b>identical to a working one</b>. It only fails when someone changes a value and
+      nothing moves &mdash; which is exactly what a judge is told to do. <b>Caps us at 40 out of 100.</b>
+      An automated check catches it. Never disable it.</p>
+    </div>
+    <div class="card y">
+      <p style="font-family:var(--hand);font-size:15px;margin:0 0 5px">Some code looks wrong and is graded</p>
+      <p style="margin:0">Don't tidy <code>dangerouslySetInnerHTML</code>, the <code>dynamicStyle</code>
+      classes, the <code>const ids</code> map, or CSS applied via <code>getElementById</code>. Every one
+      is inspected by a judge. <b>Tidying them costs 25 points.</b></p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>The full specification lives in the repository at <code>docs/CONTRACT.md</code></span>
+    <span>React + Node, mandatory</span>
+  </div>
+
+</div>
+</body>
+</html>
