@@ -54,6 +54,7 @@ Total: 51/98 done
 - T-038 — Build the Job Timeline UI — seven stages, real timings, per-stage status per §11.1 — done by Antigravity at 2026-08-20T20:41:23.599Z
 - T-040 — Implement POST /api/jobs/:jobId/replay per §11's Replay section — done by Antigravity at 2026-08-20T19:43:24.430Z
 - T-041 — Implement POST /api/sections/:sectionId/regenerate per §13.3 (base semantics) — done by Antigravity at 2026-08-20T20:23:06.481Z
+- T-042 — Implement zip export of a generated section (FR-G09) — done by Antigravity at 2026-08-20T20:48:01.274Z
 - T-054 — Scaffold the Python perception service exposing POST /perceive and GET /health per §12 — done by Mohit Gupta at 2026-08-20T15:40:27.969Z
 - T-055 — Implement stage 2, preprocessing-normalization (OpenCV), recording the normalisation transform — done by Mohit Gupta at 2026-08-20T17:03:34.506Z
 - T-056 — Implement stage 3a, contour and rectangle region detection (OpenCV) — done by Mohit Gupta at 2026-08-20T18:32:12.529Z

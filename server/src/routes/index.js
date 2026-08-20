@@ -165,7 +165,7 @@ export function getQuestions(ctx = {}) {
   if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
     return badRequest('jobId must match job-<10 digits> (§11.1).');
   }
-  return { status: STATUS.OK, body: collection([]) };
+  return { status: 200, body: [] };
 }
 
 /** POST /api/jobs/:jobId/answers — §11.3. */
@@ -183,26 +183,25 @@ export function postAnswers(ctx = {}) {
   return notImplemented('T-065', 'POST /api/jobs/:jobId/answers');
 }
 
-// --- the table -------------------------------------------------------------
+import { getExportZip } from './exportZip.js';
+export { getExportZip };
 
 /**
- * `kind` records which half of §13.4's envelope convention a route obeys, so the
- * test can assert it mechanically rather than by reading each handler:
- *
- *   action     -> { ok, ... } on success
+ * The full route map. `kind` tells the Express adapter how to unwrap the result:
+ *   action     -> { ok: true, ... } envelope
  *   collection -> a bare array
  *   document   -> a bare document, or 404
- *   raw        -> its own content type (§11.2's artifact and component reads)
+ *   raw        -> its own content type (§11.2's artifact and component reads, ZIP export)
  */
 export const routes = [
   { method: 'GET', path: '/api/health', kind: 'action', contract: '§13.4', handler: getHealth },
   { method: 'GET', path: '/api/metrics', kind: 'raw', contract: '§17.2', handler: getMetrics },
 
   { method: 'POST', path: '/api/generate', kind: 'action', contract: '§13.1', handler: postGenerate },
-
   { method: 'GET', path: '/api/sections', kind: 'collection', contract: '§13.4', handler: getSections },
   { method: 'GET', path: '/api/sections/:sectionId', kind: 'document', contract: '§13.4', handler: getSection },
   { method: 'POST', path: '/api/sections/:sectionId/regenerate', kind: 'action', contract: '§13.3', handler: postRegenerate },
+  { method: 'GET', path: '/api/sections/:sectionId/export', kind: 'raw', contract: '§7', handler: getExportZip },
 
   { method: 'GET', path: '/api/elements', kind: 'collection', contract: '§13.4', handler: getElements },
   { method: 'PATCH', path: '/api/elements/:fieldId', kind: 'action', contract: '§13.2', handler: patchElement },

@@ -112,3 +112,10 @@
 - Device: Jainam
 - Files: client/src/studio/JobTimeline.jsx, tests/job-timeline-ui.test.mjs
 
+## T-042 — Implement zip export of a generated section (FR-G09)
+- Started: 2026-08-20T20:42:38.809Z
+- Finished: 2026-08-20T20:48:01.274Z
+- Duration: 5m
+- Device: Jainam
+- Files: server/src/routes/exportZip.js, tests/export-zip.test.mjs
+
