@@ -77,10 +77,22 @@ function main() {
     }
   }
 
+  // Listed only when nothing is FAILING, or when explicitly asked. When the
+  // pre-commit hook denies a commit, the operator needs one actionable line —
+  // not 75 lines of "no test written yet" scrolling the real message off the
+  // screen. An unreadable hook message is how a hook stops being read at all.
+  const verbose = process.argv.includes('--verbose');
   if (absent.length) {
-    console.log(`\n${absent.length} implied test file(s) do not exist on disk yet.`);
-    console.log('That is expected for an unclaimed task and a failure for a done one:');
-    for (const { task, implied } of absent) console.log(`  ${task.id}  ${implied}`);
+    if (missing.length === 0 || verbose) {
+      console.log(`\n${absent.length} implied test file(s) do not exist on disk yet.`);
+      console.log('That is expected for an unclaimed task and a failure for a done one:');
+      for (const { task, implied } of absent) console.log(`  ${task.id}  ${implied}`);
+    } else {
+      console.log(
+        `\n(${absent.length} implied test files also do not exist on disk yet — ` +
+          'expected for unclaimed tasks. Re-run with --verbose to list them.)',
+      );
+    }
   }
 
   if (fix && missing.length) {

@@ -17,7 +17,7 @@ fail() {
 
 # --- required tools, checked up front so a missing tool fails closed -------
 
-for tool in git grep sha256sum; do
+for tool in git grep sha256sum node; do
   command -v "$tool" >/dev/null 2>&1 || fail "required tool not found on PATH: $tool"
 done
 
@@ -147,6 +147,33 @@ if [ -f "$COMMIT_MSG_FILE" ]; then
   if [ $? -ne 0 ]; then
     fail "commit message must contain a task id matching T-[0-9]{3} (e.g. \"T-018: automate the store-liveness assertion\")"
   fi
+fi
+
+# --- 5. board integrity: every verify names a test the task declares ------
+#
+# 77 of 95 tasks once declared a `verify` command naming a test file their own
+# `files` list omitted. AGENTS.md tells an executor that needs an undeclared file
+# to STOP, so each of those was a scope violation before it could be verified at
+# all -- and two builders hit it independently, four times, in one afternoon
+# before anyone swept it.
+#
+# The board is clean as of the sweep. This keeps it clean: a task added or edited
+# with a verify command that names a test it does not declare cannot be committed.
+#
+# Deliberately NARROW. It fails only on the files-list mismatch, which is always
+# fixable on the spot with `node tools/check-verify-files.mjs --fix`. It does NOT
+# fail because an implied test file is absent from disk -- an unclaimed task
+# legitimately has no test written yet, and blocking on that would deny the normal
+# act of planning work ahead. See EC-005 on floors that block legitimate work.
+
+[ -f "_build/tasks.json" ] || fail "_build/tasks.json is missing -- the board cannot be checked"
+[ -f "tools/check-verify-files.mjs" ] || fail "tools/check-verify-files.mjs is missing"
+
+SWEEP_OUTPUT=$(node tools/check-verify-files.mjs 2>&1)
+SWEEP_STATUS=$?
+if [ "$SWEEP_STATUS" -ne 0 ]; then
+  echo "$SWEEP_OUTPUT" >&2
+  fail "a task's verify command names a test file its files list does not declare. Fix: node tools/check-verify-files.mjs --fix"
 fi
 
 exit 0
