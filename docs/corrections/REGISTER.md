@@ -914,3 +914,68 @@ written before the tree existed, so its paths are predictions, not observations.
 source-file half. A second sweep asserting that every non-test path in a `files` list either
 exists or has no sibling task claiming a different path for the same thing would have caught
 both of these.
+## 2026-08-20 · Perception verify commands could not run on the perception interpreter
+
+Found by `baton done T-055` refusing to close a task whose tests pass.
+
+T-055's verify was `python -m pytest perception/tests/test_normalise.py`. `baton done` runs
+it through `execSync`, `python` resolves to whatever is first on `PATH` — here the system
+3.14 — and that interpreter has no OpenCV. The tests pass on
+`perception/.venv/Scripts/python`, which is the only interpreter that can run them, because
+the CUDA torch build is `cp310` and the system one is not (`EC-012`).
+
+**Hard-coding the venv path into `tasks.json` was not available.** It differs by platform
+(`Scripts/` on Windows, `bin/` on POSIX), and an absolute local path in a tracked file is a
+§14 violation — it leaks a real username.
+
+**Fixed** with `tools/pytest.mjs`, which resolves the interpreter and runs pytest through it.
+All four perception verify commands rewritten:
+
+```
+python -m pytest perception/tests/test_x.py
+node tools/pytest.mjs perception/tests/test_x.py
+```
+
+**It fails rather than falling back to the system interpreter.** A perception test run
+against an interpreter with no OpenCV does not report "perception is broken" — it reports an
+`ImportError` three frames deep, and the person reading it goes hunting a bug that does not
+exist. The failure message names the paths it looked for and points at SETUP.md section 7.
+
+`tools/check-verify-files.mjs`'s pytest pattern widened to match the new command form, and
+the manifest regenerated for it. Verified the sweep still resolves all four perception tasks
+to their test files.
+
+---
+
+## 2026-08-20 · GAP: §6's normalisation transform cannot express a rotation
+
+Found while implementing T-055.
+
+Both architecture diagrams show **deskew** in preprocessing — `model_architecture.jpg`'s
+"Image Processor", `model_detailed_architecture.jpg`'s "Layout Standardization" — and
+`docs/html/architecture.html` repeated it as "denoise, deskew, contrast, resize".
+
+**§6 fixes the transform as `{scale, offsetX, offsetY, width, height}`.** That is a
+similarity transform *without rotation*. A deskew rotates the image, and a rotation cannot be
+expressed in those five numbers.
+
+So a deskewing normaliser produces boxes that the recorded transform maps back to **the wrong
+place** on the original upload — silently, with every field present, well-formed, and passing
+schema validation. §6 already warns that "a bbox without a recorded transform is unusable by
+anyone who did not write the normaliser"; a bbox with a transform that *cannot describe what
+was done to it* is worse, because it looks usable.
+
+That is the same failure shape §9 exists to catch: everything validates and the answer is
+quietly wrong.
+
+**T-055 therefore does not deskew.** Stage 2 does only what the transform can describe:
+decode, denoise, contrast, scale, letterbox. The enhancement steps are geometry-preserving on
+purpose — they cannot move a pixel to a different coordinate, so they cannot affect the
+mapping, and they are safe to tune later without re-deriving anything.
+`test_no_rotation_is_applied` guards it: it fails the moment someone adds a rotation and
+points them at the contract rather than at a debugger.
+
+**To close this**, rotation needs an additive §6 field — an angle plus the centre it was
+applied about — before any deskew is implemented. Wireframes arriving as PNG exports or
+screenshots, which is the case the brief describes, are not skewed. A photograph of a
+whiteboard is, and that is the case that would need it.

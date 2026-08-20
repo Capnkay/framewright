@@ -1136,7 +1136,7 @@
         "perception/tests/test_health.py",
         ".gitignore"
       ],
-      "verify": "python -m pytest perception/tests/test_health.py",
+      "verify": "node tools/pytest.mjs perception/tests/test_health.py",
       "doneWhen": "GET /health returns { ok, models, device } with the device DETECTED at runtime rather than hardcoded, and POST /perceive returns the exact \u00a712 response shape on a stub payload, with the \u00a712 422 envelope on bad input. Asserted directly: no fieldId anywhere in the response (\u00a712), stages 2\u20134 only (\u00a711.0), no file written (\u00a711.2), and confidence null rather than a fabricated number (\u00a710)."
     },
     {
@@ -1156,7 +1156,7 @@
         "perception/stages/normalise.py",
         "perception/tests/test_normalise.py"
       ],
-      "verify": "python -m pytest perception/tests/test_normalise.py",
+      "verify": "node tools/pytest.mjs perception/tests/test_normalise.py",
       "doneWhen": "The recorded transform {scale, offsetX, offsetY, width, height} correctly maps a normalised-image bbox back onto the original upload."
     },
     {
@@ -1175,7 +1175,7 @@
         "perception/stages/understand.py",
         "perception/tests/test_understand.py"
       ],
-      "verify": "python -m pytest perception/tests/test_understand.py",
+      "verify": "node tools/pytest.mjs perception/tests/test_understand.py",
       "doneWhen": "Each detected region produces an IR element entry (without fieldId) carrying confidence, sourceOf: wireframe, and a bbox in the normalised image\u2019s coordinate space."
     },
     {
@@ -1195,7 +1195,7 @@
         "perception/stages/fuse.py",
         "perception/tests/test_fuse.py"
       ],
-      "verify": "python -m pytest perception/tests/test_fuse.py",
+      "verify": "node tools/pytest.mjs perception/tests/test_fuse.py",
       "doneWhen": "Fed the organiser's sample wireframe, the response's elements cover the reference set \u2014 heroImage, brandBadge, headlineMain, headlineSub, description, statBadges, ctaButton."
     },
     {

@@ -39,8 +39,13 @@ export function impliedTestFile(verify) {
   const npm = verify.match(/npm\s+test\s+--\s+([\w-]+)/);
   if (npm) return `tests/${npm[1]}.test.mjs`;
 
-  const pytest = verify.match(/pytest\s+([\w./-]+\.py)\b/);
-  if (pytest) return pytest[1];
+  // Any command that mentions pytest — including `node tools/pytest.mjs <path>`,
+  // which is how perception tasks invoke it so the venv interpreter is used
+  // rather than whatever `python` resolves to (see tools/pytest.mjs).
+  if (/pytest/.test(verify)) {
+    const target = verify.match(/([\w./-]+\.py)\b/);
+    if (target) return target[1];
+  }
 
   return null;
 }

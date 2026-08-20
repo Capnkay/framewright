@@ -14,3 +14,10 @@
 - Device: Mohits_Victus
 - Files: perception/__init__.py, perception/app.py, perception/server.py, perception/requirements.txt, perception/tests/__init__.py, perception/tests/test_health.py, .gitignore
 
+## T-055 — Implement stage 2, preprocessing-normalization (OpenCV), recording the normalisation transform
+- Started: 2026-08-20T16:57:30.015Z
+- Finished: 2026-08-20T17:03:34.506Z
+- Duration: 6m
+- Device: Mohits_Victus
+- Files: perception/stages/normalise.py, perception/tests/test_normalise.py
+
