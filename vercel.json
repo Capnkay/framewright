@@ -1,6 +1,6 @@
 {
-  "buildCommand": "echo \"no build step: docs/html is static\"",
-  "installCommand": "echo \"no dependencies to install\"",
+  "buildCommand": "echo \"no build step\"",
+  "installCommand": "echo \"no dependencies\"",
   "outputDirectory": "docs/html",
   "framework": null,
   "cleanUrls": true,
