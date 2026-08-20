@@ -1355,3 +1355,46 @@ would have been unable to write either file without stopping to fix the record f
 someone else's task." The task was wrong.
 
 **Fixed:** `files` now carries all four paths. No other field changed.
+
+---
+
+## 2026-08-21 · T-098 scope correction — the optional-dependency guard was wrong in three places
+
+T-098 declared three files: `perception/stages/extract_text.py`, its test, and
+`perception/requirements.txt`. Installing PaddleOCR to satisfy the `doneWhen` broke
+`GET /health`, and fixing that required two files the task did not name.
+
+**What happened.** torch and `paddlepaddle-gpu` cannot coexist in one process — either
+import order fails, with an error naming neither library. Full account in
+docs/EDGE-CASES.md EC-014. `/health` touches both: it reads the device from torch and the
+model list from paddleocr. So installing the dependency T-098 requires turned the liveness
+endpoint into a 500.
+
+**The actual defect, which is more general than this one conflict.** Three optional-import
+guards used `except ImportError`. A library that is installed but cannot LOAD raises
+`OSError`, not `ImportError`, so all three let a DLL failure escape:
+
+- `perception/app.py` `detect_device` — 500 on an endpoint documented as "reports state,
+  it does not fail"
+- `perception/app.py` `detect_models` — same
+- `perception/tests/test_health.py` — the test carried the same narrow except
+
+The third is the interesting one: the guards were not untested. They were tested with the
+dependency ABSENT, where `ImportError` genuinely is what gets raised. Nothing exercised
+present-but-unloadable until a real install produced it.
+
+`perception/stages/extract_text.py` had the identical bug, in the file T-098 does own. It
+was written with `except ImportError` and caught by the same install.
+
+**Fixed:** all four now catch `Exception`. T-098's `files` list expanded to include
+`perception/app.py`, `perception/tests/test_health.py` and `docs/EDGE-CASES.md`. 75/75
+perception tests pass.
+
+**Reported, not fixed — OCR does not run on this machine.** `load_reader()` returns None
+and stage 3b degrades to regions-without-text, which §12 makes the mandatory behaviour
+rather than a fallback, so the pipeline is correct and the demo is unaffected. Making OCR
+actually run means choosing one of EC-014's three exits, and each touches a file or a
+decision outside this task: dropping torch from the perception venv is the cheapest and
+matches what the stack actually is, since torch's only production use in `perception/` is
+reporting the device on `/health`. That is a call for whoever owns T-054, not for T-098.
+

@@ -75,8 +75,12 @@ def test_health_reports_the_real_device_not_a_hardcoded_one() -> None:
 
     try:
         import torch
-    except ImportError:
-        assert device == "cpu", "no torch means cpu, not a guess"
+    except Exception:
+        # Not ImportError: torch raises OSError when its DLLs will not load,
+        # which is what happens once paddle has been initialised in the same
+        # process (EC-014). Unloadable torch and absent torch are the same fact
+        # as far as this endpoint is concerned -- neither can report a device.
+        assert device == "cpu", "torch unavailable means cpu, not a guess"
         return
 
     assert (device != "cpu") == torch.cuda.is_available(), (

@@ -2034,7 +2034,10 @@
       "files": [
         "perception/stages/extract_text.py",
         "perception/tests/test_extract_text.py",
-        "perception/requirements.txt"
+        "perception/requirements.txt",
+        "perception/app.py",
+        "perception/tests/test_health.py",
+        "docs/EDGE-CASES.md"
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_extract_text.py",
       "doneWhen": "Text is extracted per detected region and attached to that region, not to the page — an element needs its own copy, not a bag of strings. PaddleOCR is installed with -c perception/constraints.txt (EC-013), and its absence degrades to regions-without-text rather than failing the stage (§12). OCR confidence is carried through as the element confidence, never replaced by a constant."

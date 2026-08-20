@@ -321,3 +321,77 @@ enforces it rather than relying on anyone reading anything.
 **One thing not to do:** never paste `pip freeze` output into a tracked file. It records this
 venv's torch as a `file:///D:/...` URL — an absolute local path, which §14 forbids because it
 leaks a real username. `constraints.txt` uses plain version specifiers for that reason.
+
+---
+
+## EC-014 · torch and paddlepaddle-gpu cannot share a process, in either order
+**Date:** 2026-08-21 · **Status:** stage 3b degrades; `/health` guarded
+
+Installing PaddleOCR for T-098 produced a hard conflict with the CUDA torch this venv
+already had. Both are installed, both work **alone**, and they cannot be used together:
+
+```
+import paddle                  ->  paddle 2.6.2, gpu True        OK
+import torch                   ->  torch 2.6.0+cu124, cuda True  OK
+import torch;  import paddle   ->  ImportError: generic_type: type
+                                   "_gpuDeviceProperties" is already registered!
+import paddle; import torch    ->  OSError: [WinError 127] ... Error loading
+                                   ...	orch\lib\shm.dll or one of its dependencies
+```
+
+Both libraries bind CUDA device properties into the same process-global pybind11 type
+registry. Whichever loads second finds the name taken. There is no import order that
+works, so this is not something to sequence around.
+
+**The two error messages are both misleading, which is the expensive part.** Neither
+names the other library. `_gpuDeviceProperties is already registered` reads like a
+duplicate-install problem, and `WinError 127 ... shm.dll` reads exactly like the broken
+CUDA install of EC-012 and EC-013 — a trap this repository has now fallen into twice.
+**Check whether paddle is in `sys.modules` before you rebuild the venv again.**
+
+**Do not "fix" it by removing the constraints file.** It is not the CPU-wheel problem.
+torch is intact throughout: `2.6.0+cu124`, `cuda True`, `torchvision.ops.nms` imports.
+`perception/constraints.txt` did its job — the install added paddle without touching
+torch, which is exactly what it exists to guarantee.
+
+### A second finding, which is the one that actually bit
+
+**`except ImportError` is too narrow for an optional dependency.** Three places guarded
+an optional import that way, and all three broke, because *a library that is installed
+but cannot load raises `OSError`, not `ImportError`*:
+
+| Site | Was | Effect of the narrow except |
+|---|---|---|
+| `app.py` `detect_device` | `except ImportError` | `GET /health` returned 500 — on a liveness endpoint whose own docstring says it "reports state, it does not fail" |
+| `app.py` `detect_models` | `except ImportError` | same |
+| `extract_text.load_reader` | `except ImportError` | a DLL failure escaped as a stage crash, the outcome §12 forbids |
+
+All three now catch `Exception`. The rule worth carrying: **an optional dependency's
+guard must catch failure to LOAD, not merely failure to FIND.** Absent and
+present-but-broken are the same fact to a caller, and only the broad except treats them
+that way.
+
+Note this was invisible until PaddleOCR was really installed. Every one of these guards
+was tested — with the dependency absent, where `ImportError` is exactly what is raised.
+
+### Consequence for stage 3b, stated plainly
+
+**OCR does not currently run on this machine.** `load_reader()` returns `None`,
+`extract_text` degrades to regions-without-text, and §12's degradation path — which is
+mandatory, not a fallback — carries the pipeline. Region detection is unaffected: T-056
+is pure OpenCV and scores B-003's 7/7 regardless.
+
+**torch's only production use in `perception/` is reporting the device on `/health`**
+(`app.py:50`). Its other two uses are `benchmarks/detr_wireframe.py`, the B-002
+benchmark that scored 0 of 7, and a test. So the conflict is between an OCR engine the
+pipeline wants and a device-reporting convenience it does not need. Three ways out, none
+taken here because none is T-098's to take:
+
+1. **Drop torch from `perception/.venv`.** Paddle then loads, OCR runs, and
+   `detect_device` reads the device from `paddle.device` instead. Cheapest, and it
+   matches what the perception stack actually is: OpenCV plus PaddleOCR. Costs the
+   ability to re-run B-002 in this venv.
+2. **CPU `paddlepaddle`.** Untested here — it plausibly never registers the GPU type at
+   all. Stage 3b runs slower; nothing else changes.
+3. **Run OCR out of process.** Correct, and the most work.
+

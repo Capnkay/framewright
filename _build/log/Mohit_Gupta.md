@@ -50,3 +50,10 @@
 - Device: Mohits_Victus
 - Files: server/src/sanitise/sanitiseWrite.js, server/src/routes/elements.js, server/src/routes/index.js, tests/sanitise-write.test.mjs
 
+## T-098 — Implement stage 3b, text extraction with PaddleOCR, bound to detected regions
+- Started: 2026-08-20T19:38:45.222Z
+- Finished: 2026-08-20T20:14:14.097Z
+- Duration: 35m
+- Device: Mohits_Victus
+- Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, perception/requirements.txt, perception/app.py, perception/tests/test_health.py, docs/EDGE-CASES.md
+

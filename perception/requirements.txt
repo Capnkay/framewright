@@ -46,7 +46,30 @@ opencv-python-headless>=4.10
 numpy>=1.26
 pillow>=10.0
 
-# T-056 — stage 3, multimodal-understanding. Apache-2.0, approved in README.
-# Heavy; install when T-056 is claimed, not before.
+# T-098 — stage 3b, text extraction. Apache-2.0, approved in README.
+#
+# NOT INSTALLED BY DEFAULT, AND THE PIPELINE DOES NOT REQUIRE IT. Section 12:
+# "Prompt mode and the CMS contract must remain fully demonstrable with the Python
+# service stopped, the GPU absent, and no network." perception/stages/extract_text.py
+# degrades to regions-without-text when these are missing, and its whole test suite
+# runs without them — so a machine that never installs these still passes.
+#
+# INSTALL IT WITH THE CONSTRAINTS FILE. Not optional, not advisory:
+#
+#     perception/.venv/Scripts/python -m pip install -c perception/constraints.txt #         paddleocr paddlepaddle-gpu
+#
+# paddleocr depends on torch-adjacent packages, and ANY install that lets pip
+# resolve torch from PyPI replaces the cu124 build with the CPU one — silently,
+# with a success message. That has already happened here once. docs/EDGE-CASES.md
+# EC-013 is the full account; perception/constraints.txt is what actually prevents
+# it, because pip enforces a constraint and does not enforce a comment.
+#
+# Verify afterwards, in this order:
+#     python -c "import torch; print(torch.__version__)"   # must end +cu124
+#     GET /health                                          # must list paddleocr
+#
+# paddlepaddle-gpu is CUDA-version specific. If the GPU wheel will not resolve,
+# plain `paddlepaddle` is a supported fallback — stage 3b runs on CPU, slower, and
+# nothing else changes.
 # paddleocr>=2.8
 # paddlepaddle-gpu>=2.6

@@ -48,7 +48,19 @@ def detect_device() -> str:
     """
     try:
         import torch  # noqa: PLC0415 - optional, and absence is a supported state
-    except ImportError:
+    except Exception:
+        # NOT `except ImportError`. torch raises OSError -- not ImportError --
+        # when its DLLs will not load, and on this repository's GPU machine that
+        # happens whenever paddle has been initialised first:
+        #
+        #     OSError: [WinError 127] ... Error loading ... torch\lib\shm.dll
+        #
+        # torch and paddlepaddle-gpu cannot share a process (EC-014), and /health
+        # touches both -- it reports the device from torch and the models from
+        # paddleocr. A narrower except here turned a known coexistence problem
+        # into a 500 on the liveness endpoint. This function's own contract is
+        # "health reports state, it does not fail"; an unloadable torch is a
+        # state, and the honest report of it is "cpu".
         return "cpu"
 
     try:
@@ -73,12 +85,12 @@ def detect_models() -> list[str]:
     try:
         import cv2  # noqa: F401, PLC0415
         available.append("opencv-contours")
-    except ImportError:
+    except Exception:  # not ImportError -- see detect_device, and EC-014
         pass
     try:
         import paddleocr  # noqa: F401, PLC0415
         available.append("paddleocr")
-    except ImportError:
+    except Exception:  # not ImportError -- see detect_device, and EC-014
         pass
     return available
 
