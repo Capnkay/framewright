@@ -98,9 +98,30 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #   agents.md               the AGENTS.md standard, cited as a source in AGENTS.md
 #   download.pytorch.org    the official PyTorch wheel index, in the GPU brief
 #
+# Added at T-002, when the first npm lockfile was committed. A package-lock.json
+# is machine-generated and records where each dependency came from and how its
+# author asks to be funded. None of it is ours, none of it is secret, and none of
+# it is the thing this check exists to catch -- a REAL production host of OURS.
+#
+#   registry.npmjs.org      npm's public registry. Every "resolved" line in every
+#                           lockfile points at it; 68 of them in server/. Exactly
+#                           as legitimate as download.pytorch.org above.
+#   github.com              "funding" metadata, and GitHub Sponsors URLs
+#   www.patreon.com         "funding" metadata -- e.g. feross, author of several
+#                           transitive Express dependencies
+#   opencollective.com      "funding" metadata
+#   tidelift.com            "funding" metadata
+#   feross.org              "funding" metadata -- feross's own site
+#
+# NOTE for whoever hits this next: funding hosts are an OPEN set. A new dependency
+# can introduce one we have not listed, and this gate will stop the push. That is
+# the gate working. Add the host here with a line saying what it is -- do not
+# broaden the pattern, and do not exempt lockfiles as a file class. A carve-out
+# for a whole kind of file is how a floor stops being a floor (EC-005).
+#
 # Adding a host here is a deliberate act: say what it is and why a reader should
 # not be alarmed by it. If you cannot write that sentence, do not add it.
-ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org)$'
+ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org)$'
 
 if [ -n "$URL_HOSTS" ]; then
   FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv "$ALLOWED_HOST_RE")
