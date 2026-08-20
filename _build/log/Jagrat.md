@@ -49,3 +49,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/jobs/stageTrace.js, tests/stage-trace.test.mjs
 
+## T-012 — Implement R6 — text nodes via a getHtml(value, fallback) helper, sanitised read-side per §8
+- Started: 2026-08-20T18:21:39.755Z
+- Finished: 2026-08-20T18:55:34.336Z
+- Duration: 34m
+- Device: LAPTOP-E9HORJ7M
+- Files: client/src/utils/getHtml.js, client/src/sections/HeroSection.jsx, tests/get-html-r6.test.mjs
+
