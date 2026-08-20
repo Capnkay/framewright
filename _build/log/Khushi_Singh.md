@@ -57,3 +57,10 @@
 - Device: LAPTOP-PUPG5T28
 - Files: client/src/sections/HeroSection.jsx, client/src/routes/PreviewPage.jsx, tests/hero-section-mount.test.mjs
 
+## T-013 — Implement R7 — getImage and errorImage helpers
+- Started: 2026-08-20T18:29:21.419Z
+- Finished: 2026-08-20T18:31:56.793Z
+- Duration: 3m
+- Device: LAPTOP-PUPG5T28
+- Files: client/src/utils/image.js, tests/image.test.mjs
+
