@@ -108,3 +108,10 @@
 - Device: Mohits_Victus
 - Files: server/data/seed/sections.json, server/data/seed/elements.json, tools/check-contract.mjs
 
+## T-075 — Commit the checked-in reference generated component and diff it against the golden component
+- Started: 2026-08-20T21:09:42.415Z
+- Finished: 2026-08-20T21:14:48.225Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: client/src/sections/generated/reference/HeroSection-reference.jsx, tests/reference-component-diff.test.mjs, tools/emit-reference.mjs
+

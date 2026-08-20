@@ -1570,7 +1570,8 @@
       ],
       "files": [
         "client/src/sections/generated/reference/HeroSection-reference.jsx",
-        "tests/reference-component-diff.test.mjs"
+        "tests/reference-component-diff.test.mjs",
+        "tools/emit-reference.mjs"
       ],
       "verify": "npm test -- reference-component-diff",
       "doneWhen": "The deterministic emitter's output for the reference IR matches the hand-written golden component on every R1-R14 property; a future contract drift breaks this test first."
