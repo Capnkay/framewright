@@ -1106,3 +1106,102 @@ dependency turning `npm test` red on a fresh clone. The suite uses a hand-rolled
 harness instead, matching `makeMockStore()` in `golden.test.mjs`. `apiBaseUrl()` already
 reads `import.meta.env.VITE_API_URL` when present; hardening its precedence would have meant
 editing the implementation and then verifying my own edit, which rule 6 forbids.
+
+---
+
+## 2026-08-20 · T-010 · Board correction, and what mutation testing actually proved
+
+### 1. The board correction, per F-002
+
+`_build/tasks.json`:
+
+| Field | Was | Now |
+|---|---|---|
+| `files[0]` | `client/src/utils/getSectionTextContrastClass.js` | `client/src/utils/sectionContrast.js` |
+| `title` | "Write getSectionTextContrastClass by hand per §2's sectionTextMode and §7's accessibility note" | "Pin getSectionTextContrastClass' §2 modes and §7 accessibility floor with a dedicated suite" |
+
+Same defect and same reasoning as the T-009 entry above: the declared path does not exist,
+the helper was written in T-000, and a task titled "write it by hand" invites either a
+duplicate module at the phantom path or a done-marking on somebody else's work.
+
+F-002 also proposed folding T-010 into T-011 on the grounds that the helper "is complete and
+covered". **Not done.** It is covered only incidentally — `tests/golden.test.mjs` spends four
+lines on it and never inspects the colour weight, which is the one thing §7 actually
+constrains. Folding it in would also have marked a task done with no artifact at the path its
+own `verify` names, and the pre-commit board sweep added by T-054 now enforces exactly that
+link. `doneWhen` left unchanged; it was already accurate.
+
+### 2. The `dark` / "gray-500 or darker" trap in the doneWhen
+
+The `doneWhen` reads "auto/light/dark each resolve to a class of gray-500 or darker on a
+white surface, never gray-400". Taken at face value that condemns the implementation, because
+`sectionTextMode: "dark"` returns `text-white`, which is not a gray at all.
+
+It is not a defect. §2's `sectionTextMode` describes the **background**, so `dark` means dark
+background and light text is the readable answer; the `doneWhen`'s "on a white surface"
+qualifier is what scopes the floor to the `light` and `auto` paths. Recorded here because the
+obvious reading is the wrong one, and "fixing" `dark` to return a gray would put dark text on
+a dark background — the precise failure §7's accessibility note exists to prevent. The suite
+encodes the distinction explicitly, with the reason inline, rather than leaving the next
+reader to re-derive it.
+
+### 3. What was actually verified, and one claim that did not survive
+
+The suite passes: 22 tests, 22 passing. That fact alone is close to worthless — a suite
+asserting nothing passes too. So each of these was checked by **mutating the implementation
+and confirming the suite goes red**:
+
+| Mutation | Result | Reading |
+|---|---|---|
+| `text-gray-800` → `text-gray-400` (the exact class §7 forbids) | **12 of 22 fail** | The §7 floor has teeth |
+| Mid-luminance third state: `lum` in [0.4, 0.6) → `text-gray-600` | **1 fails** — the two-answer test | The "no medium-grey compromise" property is real |
+| `sectionColor === 'medium'` → `text-gray-600` | **0 fail** | See below |
+
+The third mutation caught nothing, and on first look that reads as a hole in the suite. It is
+not. That branch is guarded by a magic string no test supplies, so **no** black-box suite
+could reach it; the mutation was unfair and the conclusion drawn from it would have been
+wrong. Recorded because the honest version of "I verified this" includes the check that
+misled me, and because the fair version of the same mutation — the mid-luminance band, which
+is the compromise state the implementation's own header warns against — **is** caught.
+
+The same discipline applied to T-009: removing step 2 of the §5.0 flattening from
+`hydrateElements` fails 9 of its 28 tests. A §5.0 suite that stayed green under that mutation
+would have been worthless, because a dead store renders pixel-identical (§9).
+
+### 4. The no-install guarantee, measured rather than assumed
+
+`node_modules` **does not exist in this clone**, and the full suite runs: 206 tests, 205
+passing, 0 failing, 1 documented skip. That is direct measurement of the promise F-005 was
+filed over, in the only form worth anything — not "no new dependencies were added", but the
+whole suite observed passing with the directory absent.
+
+### 5. Two behaviours pinned by reading rather than by contract
+
+Neither is a defect and neither was acted on; both are now pinned as current behaviour so a
+change to either fails loudly rather than silently.
+
+- **Out-of-enumeration `sectionTextMode` degrades to `auto`.** `'Dark'`, `'medium'` and `7`
+  all fall through to the luminance path. That is the safe direction — it lands on the
+  readable default, which is where a seed-data typo should land — but §2 enumerates
+  `auto | light | dark` without saying what happens to a fourth value. If rejection is meant
+  to happen, it belongs to whoever owns the §2 schema (T-020), not to a render-time helper.
+- **`sectionColor` is hex-only.** `'rgb(0,0,0)'` and named colours are unparseable and fall
+  back to dark-on-white — which for `rgb(0,0,0)` means dark text on a black background. §2
+  types the field only as `""` or "a CSS colour string", so this is within contract, and the
+  implementation's header is honest about it. **Worth a finding the moment real seed data
+  carries a non-hex colour** (T-017 owns seed data); flagged now so it is not a surprise then.
+
+### 6. Process note — `.test` is not an allow-listed hostname either
+
+T-009's suite first used a base URL on an `api` host under the reserved `.test` TLD, and the
+§14 pre-push gate rejected it, correctly: `.test` is absent from `ALLOWED_HOST_RE` even though RFC 6761
+reserves it, exactly as `.invalid` is. Fixed by using `localhost`, which is both allow-listed
+and what `DEFAULT_API_URL` already uses.
+
+The fix required a **soft reset and a clean recommit**, not a follow-up commit, because the
+gate scans `git log -p --all` — a later removal leaves the string in history and the gate
+keeps failing. Third distinct instance of the hostname gate biting a legitimate change, after
+`$schema` (F-006) and `client/package-lock.json`'s `paulmillr.com` funding URL. The gate is
+right to be narrow and none of the three is an argument for widening it; the recurring cost
+is the ten minutes each one takes to diagnose from a push failure. Worth a line in `SETUP.md`
+if a fourth appears.

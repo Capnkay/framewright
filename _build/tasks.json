@@ -224,7 +224,7 @@
     {
       "id": "T-010",
       "phase": 1,
-      "title": "Write getSectionTextContrastClass by hand per \u00a72's sectionTextMode and \u00a77's accessibility note",
+      "title": "Pin getSectionTextContrastClass' \u00a72 modes and \u00a77 accessibility floor with a dedicated suite",
       "track": "any",
       "size": "25m",
       "contract": [
@@ -235,7 +235,7 @@
         "T-001"
       ],
       "files": [
-        "client/src/utils/getSectionTextContrastClass.js",
+        "client/src/utils/sectionContrast.js",
         "tests/text-contrast.test.mjs"
       ],
       "verify": "npm test -- text-contrast",
