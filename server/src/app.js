@@ -34,9 +34,14 @@ export function createApp({ env = process.env } = {}) {
 
   for (const route of routes) {
     const method = route.method.toLowerCase();
-    app[method](route.path, (req, res, next) => {
+    app[method](route.path, async (req, res, next) => {
       try {
-        const { status, body } = route.handler(toContext(req, env));
+        // AWAITED. Handlers were all synchronous when this table was written, and
+        // several are now async — POST /api/generate allocates IDs, writes a job and
+        // calls a model. Destructuring the returned Promise gave `status` and `body`
+        // of undefined, so express answered the demo's main endpoint with an empty
+        // 200. `await` is correct for both kinds, so the table can hold either.
+        const { status, body } = await route.handler(toContext(req, env));
         res.status(status).json(body);
       } catch (err) {
         next(err);
