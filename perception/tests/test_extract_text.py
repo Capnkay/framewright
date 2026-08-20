@@ -23,12 +23,16 @@ never could -- no single installed version emits both 2.x and 3.x shapes.
 
 from __future__ import annotations
 
+import os
+
+import cv2
 import numpy as np
 import pytest
 
 from perception.stages.detect_regions import Region
 from perception.stages.extract_text import (
     Extraction,
+    SubprocessReader,
     RegionText,
     TextLine,
     bind_lines,
@@ -277,8 +281,13 @@ def test_a_reader_that_throws_degrades_rather_than_propagating():
     assert len(result.regions) == 1
 
 
-def test_load_reader_returns_none_when_paddleocr_is_absent(monkeypatch):
-    """Absence is a supported state, not an exception."""
+def test_load_reader_in_process_returns_none_when_paddleocr_is_absent(monkeypatch):
+    """Absence is a supported state, not an exception.
+
+    Tests the IN-PROCESS path explicitly. load_reader() now defaults to
+    out_of_process=True (EC-014), which never imports paddleocr in this
+    interpreter, so patching the import would prove nothing about it.
+    """
     import builtins
 
     real_import = builtins.__import__
@@ -289,7 +298,30 @@ def test_load_reader_returns_none_when_paddleocr_is_absent(monkeypatch):
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", no_paddle)
-    assert load_reader() is None
+    assert load_reader(out_of_process=False) is None
+
+
+def test_load_reader_out_of_process_returns_none_when_the_worker_cannot_run(monkeypatch):
+    """The probe asks the worker to read; an unusable worker means no reader."""
+    import perception.stages.extract_text as mod
+
+    monkeypatch.setattr(mod, "_worker_is_usable", lambda *a, **k: False)
+    assert mod.load_reader() is None
+
+
+def test_load_reader_probes_by_reading_not_by_importing(monkeypatch):
+    """A module that imports but cannot run must not be reported as available.
+
+    This is the exact shape of EC-014 on this machine, so a find_spec-style check
+    would return a reader that then reads nothing.
+    """
+    import perception.stages.extract_text as mod
+
+    calls = []
+    monkeypatch.setattr(mod.SubprocessReader, "ocr",
+                        lambda self, image, cls=None: calls.append(1) or [None])
+    assert mod.load_reader() is None
+    assert calls, "availability must be decided by actually running the worker"
 
 
 # ---------------------------------------------------------------------
@@ -402,3 +434,95 @@ def test_no_region_is_the_whole_canvas_claim_by_default():
 
     assert result.regions == (), "no regions in, no regions out"
     assert len(result.unbound) == 1, "the text is reported, not attached to a page"
+
+
+# ---------------------------------------------------------------------
+# The out-of-process reader -- EC-014
+# ---------------------------------------------------------------------
+
+
+def _worker_payload(monkeypatch, payload, *, returncode=0):
+    """Stand in for the subprocess so these stay fast and CI-safe."""
+    import subprocess as sp
+    import json as js
+
+    class Result:
+        stdout = payload if isinstance(payload, str) else js.dumps(payload)
+        returncode = 0
+
+    monkeypatch.setattr(sp, "run", lambda *a, **k: Result())
+
+
+def test_subprocess_reader_translates_worker_output_into_the_2x_shape(monkeypatch):
+    """The worker's JSON must arrive as something _lines_from_result already parses."""
+    _worker_payload(monkeypatch, {
+        "ok": True,
+        "lines": [{"text": "HELLO", "bbox": [10, 20, 60, 18], "confidence": 0.96}],
+    })
+    lines = read_lines(BLANK, SubprocessReader())
+
+    assert [ln.text for ln in lines] == ["HELLO"]
+    assert lines[0].bbox == (10, 20, 60, 18)
+    assert lines[0].confidence == pytest.approx(0.96)
+
+
+def test_subprocess_reader_degrades_when_the_worker_reports_failure(monkeypatch):
+    _worker_payload(monkeypatch, {"ok": False, "error": "paddle exploded"})
+    assert read_lines(BLANK, SubprocessReader()) == []
+
+
+def test_subprocess_reader_degrades_on_unparseable_worker_output(monkeypatch):
+    _worker_payload(monkeypatch, "not json at all")
+    assert read_lines(BLANK, SubprocessReader()) == []
+
+
+def test_subprocess_reader_degrades_when_the_worker_crashes(monkeypatch):
+    import subprocess as sp
+
+    def boom(*a, **k):
+        raise sp.TimeoutExpired(cmd="worker", timeout=1)
+
+    monkeypatch.setattr(sp, "run", boom)
+    assert read_lines(BLANK, SubprocessReader()) == []
+
+
+def test_subprocess_reader_leaves_no_temp_directory_behind(monkeypatch, tmp_path):
+    """It writes a temp image; two identical calls must still be identical."""
+    import tempfile
+
+    made = []
+    real = tempfile.mkdtemp
+    monkeypatch.setattr(tempfile, "mkdtemp", lambda **k: made.append(real(**k)) or made[-1])
+    _worker_payload(monkeypatch, {"ok": True, "lines": []})
+
+    read_lines(BLANK, SubprocessReader())
+
+    assert made, "a temp dir was expected"
+    assert not os.path.exists(made[0]), "the temp dir must be removed"
+
+
+# --- the real thing, when the machine can actually run it ------------------
+
+def test_worker_reads_real_text_end_to_end():
+    """The only test that proves OCR genuinely works. Skips where it cannot run.
+
+    Deliberately NOT skipped on "paddleocr imports" -- on this repository's GPU
+    machine paddleocr imports in-process and then cannot run (EC-014), so an
+    import-based skip would run this test exactly where it is guaranteed to fail.
+    Availability is what load_reader() reports, which asks the worker.
+    """
+    reader = load_reader()
+    if reader is None:
+        pytest.skip("no usable OCR worker on this machine (EC-014)")
+
+    image = np.full((160, 560, 3), 255, dtype=np.uint8)
+    cv2.putText(image, "TRAIN WITHOUT LIMITS", (25, 90),
+                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 3)
+
+    result = extract_text(image, [region(15, 40, 520, 70)], reader=reader)
+
+    assert result.ocr_available is True
+    assert result.regions[0].text is not None
+    assert "LIMITS" in result.regions[0].text.upper()
+    assert 0.0 < result.regions[0].confidence <= 1.0
+

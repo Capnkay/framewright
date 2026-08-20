@@ -395,3 +395,44 @@ taken here because none is T-098's to take:
    all. Stage 3b runs slower; nothing else changes.
 3. **Run OCR out of process.** Correct, and the most work.
 
+### RESOLVED 2026-08-21 — OCR runs out of process
+
+Stage 3b now reads text. `perception/stages/ocr_worker.py` runs PaddleOCR in its own
+interpreter and `SubprocessReader` in `extract_text.py` drives it, so the service keeps
+real torch for `/health` and the worker keeps paddle to itself.
+
+Verified end to end with real torch loaded in the parent:
+
+```
+parent torch: 2.6.0+cu124 cuda True
+reader: SubprocessReader
+  region -> 'TRAIN WITHOUT LIMITS'  0.988
+  region -> 'FIND A WORKOUT'        0.968
+```
+
+**A process boundary alone was not enough, and this is the part worth remembering.** A
+clean interpreter running `from paddleocr import PaddleOCR` *still* fails: paddleocr
+2.10 imports paddle in its own `__init__` and then reaches albumentations, which imports
+torch. The collision happens inside paddleocr's own import chain. The worker therefore
+installs a stub module under the name `torch` before that chain starts. Safe only
+because nothing in the worker wants real torch — which is exactly why it is confined to
+a worker instead of done in the service.
+
+**Two more things the install taught, neither of which was guessable:**
+
+1. **A working torch CUDA install proves nothing about paddle's.** With `use_gpu=True`
+   the worker died on `Could not locate cudnn_ops_infer64_8.dll` — torch bundles its own
+   cuDNN, paddle expects system libraries. The worker runs **CPU** inference. A
+   wireframe carries a few dozen words, it costs well under a second, and §12 wants the
+   pipeline to run with the GPU absent anyway.
+2. **Availability must be probed by RUNNING, not by importing.** `import paddleocr`
+   succeeds in the service and then cannot run. `load_reader()` asks the worker to read
+   a 1×1 image and believes the answer. A `find_spec` check would hand back a reader
+   that reports success and returns nothing, which is worse than no reader at all.
+
+**Known limitation.** `GET /health` still probes paddleocr in-process, so it omits
+`paddleocr` from `models` even though OCR now works. It under-reports rather than
+over-reports, which is the right direction to be wrong in, and fixing it means giving
+`detect_models` a cached worker probe rather than an import — a `perception/app.py`
+change belonging to whoever owns T-054.
+

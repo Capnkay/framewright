@@ -69,6 +69,13 @@ plain geometric comparison rather than a transform.
 
 from __future__ import annotations
 
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+import tempfile
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Sequence
 
@@ -171,7 +178,9 @@ class Extraction:
 # --- the reader ------------------------------------------------------------
 
 
-def load_reader(*, lang: str = "en", use_gpu: bool | None = None) -> Any | None:
+def load_reader(
+    *, lang: str = "en", use_gpu: bool | None = None, out_of_process: bool = True
+) -> Any | None:
     """Build a PaddleOCR reader, or return None if PaddleOCR is not installed.
 
     Returns None rather than raising because absence is a SUPPORTED STATE here,
@@ -182,6 +191,14 @@ def load_reader(*, lang: str = "en", use_gpu: bool | None = None) -> Any | None:
     hold a large model alive for the life of the process even when a single
     request wanted it; the service layer owns that decision, not this stage.
     """
+    if out_of_process:
+        # THE DEFAULT, per EC-014. In-process PaddleOCR cannot work anywhere torch
+        # is loaded, and it is loaded in the service. Availability is probed by
+        # asking the worker to read a 1x1 image: importable-here says nothing about
+        # runnable-there, and a reader that constructs but cannot read is worse than
+        # no reader, because it reports success and returns nothing.
+        return SubprocessReader() if _worker_is_usable() else None
+
     try:
         from paddleocr import PaddleOCR  # noqa: PLC0415 - optional by design
     except Exception:
@@ -216,6 +233,98 @@ def load_reader(*, lang: str = "en", use_gpu: bool | None = None) -> Any | None:
         # A present-but-broken install (a missing paddle backend, a bad model
         # download) degrades exactly like an absent one. Section 12 again.
         return None
+
+
+class SubprocessReader:
+    """A reader that runs PaddleOCR in a separate interpreter. EC-014.
+
+    Duck-types the part of PaddleOCR that `read_lines` uses -- a single `.ocr(image)`
+    returning the 2.x shape -- so nothing downstream knows or cares that the work
+    happened in another process.
+
+    WHY THIS EXISTS. torch and paddle cannot share an interpreter, and the perception
+    service loads torch to report its device on /health. A process boundary is the
+    only place both can exist in one pipeline. `perception/stages/ocr_worker.py`
+    carries the full account, including why being a separate process is necessary but
+    not sufficient.
+
+    THE IMAGE GOES VIA A TEMPORARY FILE, which is worth defending because this module
+    is otherwise careful to touch no filesystem. Section 11 rule 3 binds the STAGE --
+    `extract_text` is a pure function of its persisted input -- and the reader is an
+    injected collaborator, exactly like a real PaddleOCR instance that reads model
+    weights off disk. The temp file is created, used and removed inside one call, so
+    it is not state: two identical calls still produce identical output.
+
+    Never raises. A worker that dies, hangs, or prints something unparseable yields no
+    lines, and `extract_text` degrades to regions-without-text per section 12.
+    """
+
+    def __init__(self, *, python: str | None = None, timeout: float = 180.0) -> None:
+        # sys.executable by default: the interpreter running the service is the one
+        # with paddleocr installed. Overridable so a future dedicated OCR venv is a
+        # constructor argument rather than a rewrite.
+        self.python = python or sys.executable
+        self.timeout = timeout
+
+    def ocr(self, image, cls=None):  # noqa: ARG002 - signature parity with PaddleOCR 2.x
+        import cv2  # noqa: PLC0415 - only needed on this path
+
+        tmp = tempfile.mkdtemp(prefix="framewright-ocr-")
+        path = os.path.join(tmp, "page.png")
+        try:
+            if not cv2.imwrite(path, image):
+                return [None]
+            proc = subprocess.run(
+                [self.python, "-m", "perception.stages.ocr_worker", path],
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                # cwd is the repo root so `-m perception.stages...` resolves. Derived
+                # from this file's location rather than the caller's cwd, because a
+                # service started from another directory must still find the worker.
+                cwd=str(pathlib.Path(__file__).resolve().parents[2]),
+            )
+            payload = json.loads((proc.stdout or "").strip().splitlines()[-1])
+        except Exception:
+            # Timeout, crash, empty stdout, unparseable JSON -- all the same fact to
+            # the caller: this page was not read.
+            return [None]
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+        if not payload.get("ok"):
+            return [None]
+
+        # Back into PaddleOCR's 2.x shape so _lines_from_result stays the one parser.
+        return [[
+            [
+                [
+                    [b[0], b[1]], [b[0] + b[2], b[1]],
+                    [b[0] + b[2], b[1] + b[3]], [b[0], b[1] + b[3]],
+                ],
+                (line["text"], line["confidence"]),
+            ]
+            for line in payload.get("lines", [])
+            for b in [line["bbox"]]
+        ]]
+
+
+def _worker_is_usable(python: str | None = None) -> bool:
+    """Can the worker actually read? Asked once, by giving it a tiny real image.
+
+    Not `importlib.util.find_spec("paddleocr")`. On this machine paddleocr imports
+    cleanly in the parent and then fails to run, which is precisely the case a
+    presence check calls available. The probe costs one subprocess and buys a true
+    answer.
+    """
+    import numpy as _np  # noqa: PLC0415
+
+    reader = SubprocessReader(python=python, timeout=240.0)
+    probe_image = _np.full((32, 96, 3), 255, dtype=_np.uint8)
+    try:
+        return reader.ocr(probe_image) != [None]
+    except Exception:
+        return False
 
 
 def _poly_to_bbox(points: Iterable[Sequence[float]]) -> tuple[int, int, int, int]:
