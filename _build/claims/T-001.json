@@ -3,7 +3,9 @@
   "who": "Antigravity",
   "device": "Jainam",
   "claimedAt": "2026-08-20T14:51:38.276Z",
-  "status": "active",
+  "status": "dropped",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "why": "Switching to T-071 per user request",
+  "droppedAt": "2026-08-20T16:19:55.878Z"
 }
