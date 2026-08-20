@@ -3,7 +3,9 @@
   "who": "Khushi Singh",
   "device": "LAPTOP-PUPG5T28",
   "claimedAt": "2026-08-20T16:23:13.966Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-20T16:30:52.174Z",
+  "durationMs": 458208
 }

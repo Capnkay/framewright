@@ -3,7 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Framewright client — React app hosting the generated CMS sections and the Generator Studio. Scaffolded in Phase 1 (see ../docs/ROADMAP.md); these dependencies are declared now so Phase 1 can install them, but nothing in ../tests/ requires them to be present.",
+  "description": "Framewright client — React app hosting the generated CMS sections and the Generator Studio. Scaffolded at T-001 (docs/ROADMAP.md Phase 1). Run `npm install` here, then `npm run dev` for http://localhost:5173. Nothing in ../tests/ requires these dependencies to be installed: the app-shell verification asserts the §5.2 reducer map and the route table statically, so `npm test` still runs on a fresh clone with no install.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -13,6 +18,10 @@
     "primereact": "^10.8.3"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.10"
+    "vite": "^5.4.2",
+    "@vitejs/plugin-react": "^4.3.1",
+    "tailwindcss": "^3.4.10",
+    "postcss": "^8.4.41",
+    "autoprefixer": "^10.4.20"
   }
 }

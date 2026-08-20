@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Framewright</title>
+    <!-- Framewright is a local studio, not a public site (see robots.txt at the
+         repository root). Nothing here should be indexed. -->
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <!-- main.jsx throws if this element is missing, rather than rendering into
+         nothing — a silent no-op looks identical to a build failure. -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
