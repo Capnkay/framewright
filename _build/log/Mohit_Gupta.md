@@ -57,3 +57,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, perception/requirements.txt, perception/app.py, perception/tests/test_health.py, docs/EDGE-CASES.md
 
+## T-057 — Implement fusion and hierarchy — assemble the IR's layout/theme/cards sub-objects for the /perceive response
+- Started: 2026-08-20T20:23:21.299Z
+- Finished: 2026-08-20T20:28:59.845Z
+- Duration: 6m
+- Device: Mohits_Victus
+- Files: perception/stages/fuse.py, perception/tests/test_fuse.py
+
