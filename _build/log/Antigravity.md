@@ -42,3 +42,10 @@
 - Device: Jainam
 - Files: server/src/schemas/element.schema.json, server/src/validate/elementValidator.js, tests/element-schema.test.mjs
 
+## T-035 — Implement GET /api/sections and GET /api/sections/:sectionId per §13.4
+- Started: 2026-08-20T19:32:41.724Z
+- Finished: 2026-08-20T19:35:32.012Z
+- Duration: 3m
+- Device: Jainam
+- Files: server/src/routes/sections.js, tests/get-sections.test.mjs
+

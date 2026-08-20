@@ -107,20 +107,8 @@ export function postGenerate(ctx = {}) {
   return notImplemented('T-033', 'POST /api/generate');
 }
 
-/** GET /api/sections?pageName= — §13.4. Bare array, [] if none. */
-export function getSections() {
-  return { status: STATUS.OK, body: collection([]) };
-}
-
-/** GET /api/sections/:sectionId — §13.4. Bare document, or 404. */
-export function getSection(ctx = {}) {
-  const { sectionId } = ctx.params || {};
-  if (!isSectionId(sectionId)) {
-    return badRequest('sectionId must be a 10-digit string in the 1… range (§1).');
-  }
-  // T-035 replaces null with a real store lookup; the 404 path is already correct.
-  return document(null, `section ${sectionId}`);
-}
+import { getSections, getSection } from './sections.js';
+export { getSections, getSection };
 
 /**
  * GET /api/elements — §13.4. Bare array.
