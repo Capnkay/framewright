@@ -1246,3 +1246,17 @@ which is built yet. Preserving the documented shape for the common case keeps bo
 tasks' assumptions true. If whoever owns §11.2 would rather the attempt appear in every path,
 that is a one-line change in `artifactRef` — but it should be decided rather than drifted
 into, which is why it is written down here instead of just done.
+
+---
+
+## 2026-08-21 · T-017 store interface gap and scope correction
+
+T-017 (Seed sample-brand data) requires seeding both a Section and its Elements. However, the store adapter interface in §2.1 defined `insertSection(doc)` and `updateElement(fieldId, patch)`, but lacked `insertElement(doc)`. The JSON and Mongo store implementations both missed this method as well. 
+
+Since §9 requires elements to be properly inserted and updated, the lack of an insertion method for elements makes seeding them impossible without bypassing the store adapter interface. Under the "contradiction repair is explicitly permitted" rule, I have added `insertElement(doc)` to the store adapter and all underlying store implementations.
+
+T-017's `files` list was also missing the store adapter files and the `server/src/server.js` file necessary to hook the seed logic into the server startup.
+
+**Fixed:** 
+1. Added `insertElement(doc) -> ElementDoc` to §2.1 of `CONTRACT.md`.
+2. Expanded T-017's `files` list to include `server/src/server.js`, `server/src/store/index.js`, `server/src/store/adapter.js`, `server/src/store/jsonStore.js`, `server/src/store/mongoStore.js`, and `docs/CONTRACT.md`.

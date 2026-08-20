@@ -61,6 +61,7 @@ function createLazyMongoStore(uri) {
     insertSection: async (doc) => (await real()).insertSection(doc),
     updateSection: async (sectionId, patch) => (await real()).updateSection(sectionId, patch),
     findElements: async (args) => (await real()).findElements(args),
+    insertElement: async (doc) => (await real()).insertElement(doc),
     updateElement: async (fieldId, patch) => (await real()).updateElement(fieldId, patch),
     allocateId: async (range) => (await real()).allocateId(range),
     close: async () => {
@@ -76,6 +77,7 @@ function createStubStore(type) {
     insertSection: () => { throw new Error('Not implemented'); },
     updateSection: () => { throw new Error('Not implemented'); },
     findElements: () => { throw new Error('Not implemented'); },
+    insertElement: () => { throw new Error('Not implemented'); },
     updateElement: () => { throw new Error('Not implemented'); },
     allocateId: () => { throw new Error('Not implemented'); },
   };

@@ -74,15 +74,15 @@
         "field1": "40+",
         "fieldType1": "Text",
         "fieldId1": "3000000003",
-        "field2": "Fitness<br />Programmes",
+        "field2": "Fitness<br />Programs",
         "fieldType2": "Text",
         "fieldId2": "3000000004"
       },
       {
-        "field1": "150+",
+        "field1": "24/7",
         "fieldType1": "Text",
         "fieldId1": "3000000005",
-        "field2": "Fitness<br />Channels",
+        "field2": "Access to<br />Trainers",
         "fieldType2": "Text",
         "fieldId2": "3000000006"
       }

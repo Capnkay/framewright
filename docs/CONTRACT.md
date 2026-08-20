@@ -1,6 +1,6 @@
 # Framewright — The Contract
 
-**Status: FROZEN — both verification gates passed.** Version 1.6, 2026-08-20.
+**Status: FROZEN — both verification gates passed.** Version 1.7, 2026-08-21.
 
 *v1.0 drafted. **v1.1** after a cold-boot re-derivation from the brief: full wire shapes
 for every endpoint, the `fetchElementsByIds` signature, regeneration semantics, the store
@@ -20,6 +20,8 @@ degrades to nothing when its dependency is absent, because Standing Rule 3 says 
 deterministic path always works.*
 
 **v1.6** closes the last two places the architecture diagram and this document disagreed: `designTokens` in the IR (§6.1), and a validation-failure policy that matches the brief's own risk table (§18.2). Additive only.*
+
+**v1.7** adds `insertElement(doc)` to the store adapter interface in §2.1, required to seed or save generated elements without bypassing the store.*
 
 *All changes and why each mattered: `docs/corrections/REGISTER.md`.*
 
@@ -128,6 +130,7 @@ findSection(sectionId)               -> SectionDoc | null
 insertSection(doc)                   -> SectionDoc
 updateSection(sectionId, patch)      -> SectionDoc
 findElements({ pageName?, sectionId?, fieldIds? }) -> ElementDoc[]
+insertElement(doc)                   -> ElementDoc
 updateElement(fieldId, patch)        -> ElementDoc | null
 allocateId(range)                    -> string      // range: "section" | "element" | "cardField"
 ```

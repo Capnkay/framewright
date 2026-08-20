@@ -76,6 +76,16 @@ export function createJsonStore(filePath = './server/data/store.json') {
       return elements;
     },
     
+    insertElement: (doc) => {
+      return enqueue(async () => {
+        const data = await readData();
+        data.elements = data.elements || [];
+        data.elements.push(doc);
+        await writeData(data);
+        return doc;
+      });
+    },
+    
     updateElement: (fieldId, patch) => {
       return enqueue(async () => {
         const data = await readData();

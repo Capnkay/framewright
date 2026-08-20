@@ -1,0 +1,21 @@
+[
+  {
+    "sectionName": "Custom",
+    "sectionId": "1000000001",
+    "variations": "2",
+    "path": "/client/sample-brand/Custom/CustomHero",
+    "sectionStatus": "Pending",
+    "wireframes": "sample/wireframes/hero-section.png",
+    "platform": "Website",
+    "pageName": "Home",
+    "isGenerated": true,
+    "cardGridColumns": 3,
+    "cardLayoutMode": "grid",
+    "sectionTextMode": "auto",
+    "sectionColor": "",
+    "sectionPaddingTop": "",
+    "sectionPaddingBottom": "",
+    "sectionPaddingLeft": "",
+    "sectionPaddingRight": ""
+  }
+]

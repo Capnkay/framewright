@@ -36,3 +36,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/detect_regions.py, perception/tests/test_detect_regions.py, perception/benchmarks/contours_wireframe.py, docs/BENCHMARK-RESULTS.md
 
+## T-017 — Seed the Pulse Fit sample-brand section and element documents into the active store on server start
+- Started: 2026-08-20T18:41:57.055Z
+- Finished: 2026-08-20T18:57:03.606Z
+- Duration: 15m
+- Device: Mohits_Victus
+- Files: server/data/seed/sections.json, server/data/seed/elements.json, server/src/store/seed.js, tests/seed-data.test.mjs, server/src/server.js, server/src/store/index.js, server/src/store/adapter.js, server/src/store/jsonStore.js, server/src/store/mongoStore.js, docs/CONTRACT.md, docs/corrections/REGISTER.md
+

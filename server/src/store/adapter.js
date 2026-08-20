@@ -30,6 +30,7 @@ export function createAdapter(rawStore) {
     insertSection: async (doc) => stripStorageKeys(await rawStore.insertSection(doc)),
     updateSection: async (sectionId, patch) => stripStorageKeys(await rawStore.updateSection(sectionId, patch)),
     findElements: async (args) => stripStorageKeys(await rawStore.findElements(args)),
+    insertElement: async (doc) => stripStorageKeys(await rawStore.insertElement(doc)),
     updateElement: async (fieldId, patch) => stripStorageKeys(await rawStore.updateElement(fieldId, patch)),
     allocateId: async (range) => await rawStore.allocateId(range)
   };

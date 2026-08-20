@@ -48,6 +48,12 @@ export function createMongoStore(uri = 'mongodb://localhost:27017/framewright') 
       return col.find(query).toArray();
     },
     
+    insertElement: async (doc) => {
+      const col = await getCollection('elements');
+      await col.insertOne(doc);
+      return doc;
+    },
+    
     updateElement: async (fieldId, patch) => {
       const col = await getCollection('elements');
       const result = await col.findOneAndUpdate(
