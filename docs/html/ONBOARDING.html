@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Framewright — Your First Hour</title>
+<link rel="stylesheet" href="stages/_card.css">
+<style>
+  .wrap{max-width:940px}
+  .big{font-family:var(--hand);font-size:19px;display:block;margin-bottom:4px}
+  .q{font-family:var(--hand);font-size:15px;margin:0 0 4px}
+  .step{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+  .n{flex:0 0 38px;height:38px;border:2.6px solid var(--ink);border-radius:50%;
+     font-family:var(--hand);font-size:18px;display:flex;align-items:center;justify-content:center;
+     background:#fff;box-shadow:2.5px 3px 0 rgba(26,26,26,.12)}
+  .step .card{flex:1;margin:0}
+  .ok{color:#1a7f37;font-weight:600} .bad{color:#b42318;font-weight:600}
+  @media print{@page{margin:10mm}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="crumb">Framewright &nbsp;·&nbsp; read this once, on day one</p>
+  <h1>Your first hour</h1>
+  <p style="margin:0 0 6px;color:var(--ink2)">Twenty minutes of reading, ten minutes of setup, then you
+  are building. Everything else arrives when you need it.</p>
+
+  <h2>Part 1 &mdash; Get your machine working (10 min)</h2>
+
+  <div class="step"><div class="n">1</div><div class="card">
+    <b>Clone and enter</b>
+<pre>git clone &lt;repo-url&gt; framewright
+cd framewright</pre>
+  </div></div>
+
+  <div class="step"><div class="n">2</div><div class="card r">
+    <b>Turn the safety gates on &mdash; do not skip this</b>
+<pre>git config core.hooksPath .githooks</pre>
+    <p style="margin:8px 0 0">This is per-machine and nothing sets it for you. Without it you get
+    <b>no secret scanning, no integrity checks, and no commit gates</b> &mdash; silently, while everything
+    appears to work. If you forget, the board will shout at you the next time you run it.</p>
+  </div></div>
+
+  <div class="step"><div class="n">3</div><div class="card">
+    <b>Tell the tools who you are</b>
+<pre>echo "Your Name" &gt; _build/.me
+git config user.name "Your Name"
+git config user.email "you@example.com"</pre>
+    <p style="margin:8px 0 0">Your name goes on your claims and your journal. Use the same one everywhere.</p>
+  </div></div>
+
+  <div class="step"><div class="n">4</div><div class="card">
+    <b>Make your own environment file</b>
+<pre>cp .env.example .env</pre>
+    <p style="margin:8px 0 0"><code>.env</code> is ignored by git and must never be committed.
+    <code>.env.example</code> is committed on purpose and contains only placeholders.</p>
+  </div></div>
+
+  <div class="step"><div class="n">5</div><div class="card g">
+    <b>Prove it works</b>
+<pre>npm test</pre>
+    <p style="margin:8px 0 0"><span class="ok">Expect 13 passing, 0 failing.</span> No <code>npm install</code>
+    needed &mdash; these checks are zero-dependency on purpose. <span class="bad">If this fails on a clean
+    clone, stop and say so</span> before building anything on top of it.</p>
+  </div></div>
+
+  <div class="step"><div class="n">6</div><div class="card">
+    <b>Look at the board</b>
+<pre>node tools/baton.mjs status</pre>
+    <p style="margin:8px 0 0">Who holds what, what is blocked, what is next. If you skipped step 2, this
+    is where you find out.</p>
+  </div></div>
+
+  <h2>Part 2 &mdash; Read these, in this order (20 min)</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:34%">Read</th><th style="width:12%">Time</th><th>Why</th></tr>
+      <tr><td><b><a href="../../AGENTS.md">AGENTS.md</a></b></td><td>4 min</td><td>The rules. Canonical &mdash; every other instruction file points here</td></tr>
+      <tr><td><a href="TEAM-RULES.html">TEAM-RULES.html</a></td><td>5 min</td><td>One page. <b>Print it.</b> Keep it visible while you work</td></tr>
+      <tr><td><a href="HARNESS-BRIEF.html">HARNESS-BRIEF.html</a></td><td>6 min</td><td>What exists and how it fits together</td></tr>
+      <tr><td><code>docs/CONTRACT.md</code> &sect;1&ndash;&sect;9</td><td>15 min</td><td>The specification. <b>&sect;5.0, &sect;7 and &sect;9 are the three that decide our score</b> &mdash; if you read nothing else, read those</td></tr>
+      <tr><td><a href="stages/index.html">Your track's stage cards</a></td><td>10 min</td><td>How your part works, and what you'll be asked about it</td></tr>
+    </table>
+    <p style="margin:8px 0 0"><b>You do not read the contract cover to cover.</b> Every task names the
+    sections it needs and you open those. It is a reference, not a novel.</p>
+  </div>
+
+  <h2>Part 3 &mdash; Every session after that</h2>
+  <div class="card g">
+    <span class="big">Type: <code>continue build</code></span>
+    <p style="margin:0 0 8px">That's the whole thing. It pulls, shows you the board, hands you the next
+    task whose dependencies are met, and tells you which contract sections that task must satisfy.
+    You claim it, build it, mark it done &mdash; a verification runs and decides &mdash; then commit
+    with the task id and push.</p>
+    <p style="margin:0">Doing it by hand instead? <code>node tools/baton.mjs status</code> &rarr;
+    <code>next</code> &rarr; <code>claim T-0xx</code> &rarr; build &rarr; <code>done T-0xx</code>.
+    Full protocol and every failure case: <code>docs/BATON.md</code>.</p>
+  </div>
+
+  <h2>Part 4 &mdash; The tracks</h2>
+  <p style="margin:0 0 8px;color:var(--ink2)"><b>Nobody splits until the spine is green.</b> Phases 1 and 2
+  are everyone, together, on the contract and the first working round-trip. The split happens at Phase 3,
+  around hour 17.</p>
+
+  <div class="row">
+    <div class="card b">
+      <p class="q">Studio &amp; Preview &mdash; 1 person</p>
+      <p style="margin:0 0 6px"><b>Owns:</b> the Generator Studio &mdash; upload form, code and prompt
+      inputs, mode selector, accent colour, plain-language errors, job history, the read-only generated
+      JSX view. Plus the preview shell, the CMS side-editor, responsive toggle and CSS overlay.</p>
+      <p style="margin:0 0 6px"><b>Needs:</b> React, forms, Tailwind, a good eye for error states.</p>
+      <p style="margin:0"><b>Worth 10 points on its own</b>, and it is the surface a judge touches first.</p>
+    </div>
+    <div class="card y">
+      <p class="q">Generation &mdash; 2 people</p>
+      <p style="margin:0 0 6px"><b>Owns:</b> prompt&rarr;IR and the keyless fallback, code&rarr;IR via AST,
+      cross-modal alignment, the three planners, IR finalisation, and the deterministic emitter.</p>
+      <p style="margin:0 0 6px"><b>Needs:</b> Node, careful thinking about data shapes, comfort with
+      prompt engineering and with writing a small compiler.</p>
+      <p style="margin:0"><b>Eight of the thirteen subsystems.</b> This is the largest track, which is why
+      it has two people.</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card gr">
+      <p class="q">API &amp; Glass Box &mdash; 1 person</p>
+      <p style="margin:0 0 6px"><b>Owns:</b> every endpoint, the ID allocator, job records and stage
+      traces, the Job Timeline UI, replay, regeneration, the model orchestrator, zip export.</p>
+      <p style="margin:0 0 6px"><b>Needs:</b> Node/Express, data modelling, a taste for making systems
+      inspectable.</p>
+      <p style="margin:0">The Timeline is what makes our process visible to a judge instead of claimed.</p>
+    </div>
+    <div class="card">
+      <p class="q">Perception &mdash; 1 person (the GPU machine)</p>
+      <p style="margin:0 0 6px"><b>Owns:</b> the Python service &mdash; image normalisation, rectangle and
+      contour detection, OCR, fusion, spatial hierarchy, and the IR fragment it returns. Then the synthetic
+      wireframe generator that trains a detector on data we render ourselves.</p>
+      <p style="margin:0 0 6px"><b>Needs:</b> Python, OpenCV, patience with environment setup.</p>
+      <p style="margin:0"><b>Everything else must work without you.</b> That is by design, not an insult
+      &mdash; it is what lets you experiment freely.</p>
+    </div>
+  </div>
+
+  <div class="note">A sixth person floats: code-input mode first (pure AST, no GPU, and half of the
+  input-coverage criterion), then wherever a track is behind. If we are five, the float folds into
+  Generation.</div>
+
+  <h2>Part 5 &mdash; Four things that will cost us if you get them wrong</h2>
+  <div class="row">
+    <div class="card r">
+      <p class="q">1. The store has to be alive</p>
+      <p style="margin:0">Every field renders as <code>value || "DEFAULT"</code>. With a dead data store
+      the page looks <b>identical to a working one</b>. It only fails when someone changes a value and
+      nothing moves &mdash; which is exactly what a judge is told to do. <b>Caps us at 40/100.</b>
+      An automated check catches it; never disable it.</p>
+    </div>
+    <div class="card y">
+      <p class="q">2. Some code looks wrong and is graded</p>
+      <p style="margin:0">Do not tidy <code>dangerouslySetInnerHTML</code>, the <code>dynamicStyle</code> /
+      <code>dynamicStyle2</code> classes, the <code>const ids</code> map, or CSS applied via
+      <code>getElementById</code>. Every one is inspected. <b>Tidying them costs 25 points.</b></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card b">
+      <p class="q">3. The contract is the spec, not the task title</p>
+      <p style="margin:0">Your task names the sections it must satisfy. <b>Open them.</b> Building from the
+      title is how the contract gets broken by someone who believes they are complying.</p>
+    </div>
+    <div class="card gr">
+      <p class="q">4. Claim before you build</p>
+      <p style="margin:0">One person per task. Two people claiming the same one causes a git conflict
+      <i>on purpose</i> &mdash; that is the collision surfacing instead of hiding. And never mark a task
+      done because it looks right; the verification decides.</p>
+    </div>
+  </div>
+
+  <h2>Part 6 &mdash; When something goes wrong</h2>
+  <div class="card">
+    <table>
+      <tr><th style="width:38%">What happened</th><th>What to do</th></tr>
+      <tr><td>Your session died mid-task</td><td>Your claim stands with a timestamp. Reclaim it, or let someone <code>takeover</code></td></tr>
+      <tr><td>Two of you claimed the same task</td><td>Git conflicts on the claim file. Talk, keep one, the other runs <code>baton next</code></td></tr>
+      <tr><td>Your work went stale</td><td><code>node tools/baton.mjs sync</code> tells you if something that landed affects <i>your</i> task. Silence means nothing relevant moved</td></tr>
+      <tr><td>A hook blocked something legitimate</td><td><b>Fix the hook and log it.</b> Never weaken or disable one to get past it</td></tr>
+      <tr><td>Something behaved surprisingly</td><td>Check <code>docs/EDGE-CASES.md</code> first &mdash; it may already be there. If not, add it while it's fresh</td></tr>
+      <tr><td>You disagree with the contract</td><td>You may be right. Fix the contract <i>and</i> log it in <code>docs/corrections/REGISTER.md</code>. Never diverge quietly in code</td></tr>
+    </table>
+  </div>
+
+  <div class="foot">
+    <span>Next: <a href="../../AGENTS.md">AGENTS.md</a> &middot; <a href="TEAM-RULES.html">print the one-pager</a></span>
+    <span>Then: <span style="font-family:var(--mono)">continue build</span></span>
+  </div>
+
+</div>
+</body>
+</html>

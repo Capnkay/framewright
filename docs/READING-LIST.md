@@ -11,6 +11,7 @@ with honest timings.
 
 | Read | Time | Why it is here |
 |---|---|---|
+| **`docs/html/ONBOARDING.html`** | 10 min | **Start here on day one.** Machine setup, what to read, your track, and the four things that cost us if you get them wrong |
 | `AGENTS.md` | 4 min | **The canonical instruction file.** The ritual, the rules, where everything lives. Every other instruction file points here |
 | `docs/html/HARNESS-BRIEF.html` | 6 min | What the harness is and what is in it. Read once, for orientation |
 | `docs/html/TEAM-RULES.html` | 5 min | One page. Print it. The ritual, the eight rules, the trap that decides our score, and where files go |
