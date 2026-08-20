@@ -49,3 +49,10 @@
 - Device: Jainam
 - Files: server/src/routes/sections.js, tests/get-sections.test.mjs
 
+## T-036 — Implement GET /api/jobs/:jobId per §13.4 and §11
+- Started: 2026-08-20T19:36:14.356Z
+- Finished: 2026-08-20T19:38:20.652Z
+- Duration: 2m
+- Device: Jainam
+- Files: server/src/routes/jobs.js, tests/get-job.test.mjs
+

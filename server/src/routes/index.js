@@ -168,14 +168,8 @@ export function postRegenerate(ctx = {}) {
   return notImplemented('T-041', 'POST /api/sections/:sectionId/regenerate');
 }
 
-/** GET /api/jobs/:jobId — §13.4, §11. Bare document, or 404. */
-export function getJob(ctx = {}) {
-  const { jobId } = ctx.params || {};
-  if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
-    return badRequest('jobId must match job-<10 digits> (§11.1).');
-  }
-  return document(null, `job ${jobId}`);
-}
+import { getJob } from './jobs.js';
+export { getJob };
 
 /** POST /api/jobs/:jobId/replay — §11 Replay. */
 export function postReplay(ctx = {}) {
