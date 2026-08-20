@@ -101,3 +101,10 @@
 - Files: README.md
 - Note: Rewrote the run-command table against commands actually executed, documented three that never worked as written (npm run dev, npm run lint, python -m perception.server), and cross-checked the licence tables against package.json, client/package.json and requirements.txt - finding multer and @babel/parser imported but undeclared, and Ajv/dompurify/ESLint/pixelmatch listed but not installed.
 
+## T-074 — Verify seed data completeness against the Ajv schemas
+- Started: 2026-08-20T21:06:50.860Z
+- Finished: 2026-08-20T21:08:54.453Z
+- Duration: 2m
+- Device: Mohits_Victus
+- Files: server/data/seed/sections.json, server/data/seed/elements.json, tools/check-contract.mjs
+

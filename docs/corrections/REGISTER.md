@@ -1398,3 +1398,33 @@ decision outside this task: dropping torch from the perception venv is the cheap
 matches what the stack actually is, since torch's only production use in `perception/` is
 reporting the device on `/health`. That is a call for whoever owns T-054, not for T-098.
 
+---
+
+## 2026-08-21 · T-074's verify command named a tool that did not exist
+
+T-074's `verify` is `node tools/check-contract.mjs seed`. That file had never been
+written, so the task could not be closed by running its own verification — and the
+`files` list named only the two seed JSON documents, neither of which could satisfy it.
+
+**Fixed:** wrote `tools/check-contract.mjs` and added it to T-074's `files`.
+
+It reuses T-019's `validateAgainstSchema` rather than importing `ajv`. That is not a
+stylistic preference. `npm test` runs on a fresh clone with no `node_modules` — a
+deliberate property this repository maintains in the store, the envelope, the sanitiser
+and the IR validator — and `irValidator.js` exports that function for precisely this
+case, its own comment citing §16.2's "a caller that is not always the IR".
+
+The seed data itself needed no change: 1 section, 7 elements, all five §3 contentTypes,
+14 unique IDs, zero schema errors. The checker was negative-tested by corrupting a
+fieldId out of §1's ranges, duplicating another, and setting an unknown contentType —
+all three were caught, so the gate is not vacuous.
+
+**Reported, not fixed — three undeclared dependencies.** `ajv` is imported by
+`server/src/validate/elementValidator.js`, `multer` by
+`server/src/pipeline/stage1InputAcquisition.js`, and `@babel/parser` by
+`server/src/generate/codeToIr.js`. None appears in any manifest, so all three throw
+`ERR_MODULE_NOT_FOUND` on a clean checkout — which is the entire reason
+`tests/element-schema.test.mjs`, `tests/stage1.test.mjs` and `tests/code-to-ir.test.mjs`
+fail. The licences are all fine (MIT); the packaging is not. Each belongs in
+`dependencies`, and that is the owning task's call rather than this one's.
+

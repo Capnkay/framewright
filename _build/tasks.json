@@ -1549,7 +1549,8 @@
       ],
       "files": [
         "server/data/seed/sections.json",
-        "server/data/seed/elements.json"
+        "server/data/seed/elements.json",
+        "tools/check-contract.mjs"
       ],
       "verify": "node tools/check-contract.mjs seed",
       "doneWhen": "The tracked seed JSON validates with zero errors and includes at least one element of every contentType — Image, Text, Textfield, Button, Cards."
