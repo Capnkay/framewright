@@ -338,7 +338,7 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { fetchElementsByIds } from '../../redux/fetchElementsByIds.js';
-import { getHtml } from '../../utils/getHtml.js';
+import { getHtml, getTextValue${hasCards ? ', getCardFieldValue' : ''} } from '../../utils/getHtml.js';
 import { getImage, errorImage } from '../../utils/image.js';
 import { getSectionTextContrastClass } from '../../utils/sectionContrast.js';
 
@@ -354,18 +354,9 @@ ${defaultsMapLines}
 
 ${hasCards ? defaultStatCardsBlock : ''}
 
-export function getTextValue(data, fieldId, fallback) {
-  return (data && data[fieldId]) || fallback;
-}
-
-${hasCards ? `export function getStatItems(data) {
+  ${hasCards ? `export function getStatItems(data) {
   const value = data && data[ids.${cardsElName}];
   return Array.isArray(value) && value.length > 0 ? value : DEFAULT_STAT_CARDS;
-}
-
-export function getCardFieldValue(data, item, fieldIdKey, fieldValueKey) {
-  const fieldId = item && item[fieldIdKey];
-  return (data && fieldId && data[fieldId]) || (item && item[fieldValueKey]);
 }` : ''}
 
 export function getAllMountFieldIds() {

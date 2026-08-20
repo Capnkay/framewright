@@ -12,6 +12,7 @@ test('store-adapter-interface exports the exact seven functions', async (t) => {
     'updateSection',
     'findElements',
     'updateElement',
+    'insertElement',
     'allocateId'
   ];
 

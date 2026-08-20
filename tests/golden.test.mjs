@@ -21,7 +21,7 @@ import {
   initialCmsState,
 } from '../client/src/redux/cmsSlice.js';
 import { fetchElementsByIds } from '../client/src/redux/fetchElementsByIds.js';
-import { getHtml } from '../client/src/utils/html.js';
+import { getHtml } from '../client/src/utils/getHtml.js';
 import { getImage, errorImage } from '../client/src/utils/image.js';
 import { isSafeCssText } from '../client/src/utils/css.js';
 import { getSectionTextContrastClass } from '../client/src/utils/sectionContrast.js';
@@ -34,8 +34,8 @@ import {
 } from '../client/src/sections/generated/HeroSection.logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const elements = JSON.parse(readFileSync(path.join(__dirname, '../seed/elements.json'), 'utf8'));
-const section = JSON.parse(readFileSync(path.join(__dirname, '../seed/section.json'), 'utf8'));
+const elements = JSON.parse(readFileSync(path.join(__dirname, '../server/data/seed/elements.json'), 'utf8'));
+const section = JSON.parse(readFileSync(path.join(__dirname, '../server/data/seed/sections.json'), 'utf8'))[0];
 const PAGE_NAME = section.pageName; // "Home"
 const CARDS_ELEMENT = elements.find((el) => el.contentType === 'Cards');
 

@@ -25,14 +25,13 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { fetchElementsByIds } from '../../redux/fetchElementsByIds.js';
 import { getHtml } from '../../utils/getHtml.js';
+import { getTextValue, getCardFieldValue } from '../../utils/getHtml.js';
 import { getImage, errorImage } from '../../utils/image.js';
 import { getSectionTextContrastClass } from '../../utils/sectionContrast.js';
 import {
   ids,
   DEFAULTS,
   getStatItems,
-  getTextValue,
-  getCardFieldValue,
   getAllMountFieldIds,
 } from './HeroSection.logic.js';
 

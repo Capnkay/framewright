@@ -63,7 +63,7 @@ test('no two routes share a method and path', () => {
 
 // --- §13.4's envelope convention, asserted mechanically --------------------
 
-test('a collection read returns a bare array, never a wrapper object', () => {
+test('a collection read returns a bare array, never a wrapper object', async () => {
   // §9 names `{ data: [...] }` where the reducer expects `[...]` as a cause of
   // total store death. This is the assertion that stops it being introduced.
   const collections = routes.filter((r) => r.kind === 'collection');
@@ -71,19 +71,19 @@ test('a collection read returns a bare array, never a wrapper object', () => {
 
   for (const route of collections) {
     const ctx = { params: { jobId: 'job-0000000001' }, query: { pageName: 'Home' } };
-    const { status, body } = route.handler(ctx);
+    const { status, body } = await route.handler(ctx);
     assert.equal(status, STATUS.OK, `${key(route)} should read successfully`);
     assert.ok(Array.isArray(body), `${key(route)} must return a bare array, got ${typeof body}`);
   }
 });
 
-test('a document read returns 404 with the error envelope when absent', () => {
+test('a document read returns 404 with the error envelope when absent', async () => {
   const documents = routes.filter((r) => r.kind === 'document');
   assert.ok(documents.length > 0, 'expected at least one document route');
 
   for (const route of documents) {
     const ctx = { params: { sectionId: '1000000001', jobId: 'job-0000000001' } };
-    const { status, body } = route.handler(ctx);
+    const { status, body } = await route.handler(ctx);
     assert.equal(status, STATUS.NOT_FOUND, `${key(route)} should 404 on an absent document`);
     assert.ok(isErrorEnvelope(body), `${key(route)}'s 404 must carry the error envelope`);
   }
@@ -154,12 +154,13 @@ test('PATCH accepts a nested card field id in the 3… range — §13.2 says it 
   assert.notEqual(nested.status, STATUS.NOT_FOUND, '§13.2: "It does not 404."');
 });
 
-test('id-shaped params are range-checked per §1', () => {
-  assert.equal(getSection({ params: { sectionId: '2000000001' } }).status, STATUS.BAD_REQUEST);
-  assert.equal(getSection({ params: { sectionId: '123' } }).status, STATUS.BAD_REQUEST);
-  assert.equal(patchElement({ params: { fieldId: '1000000001' }, body: { content: 'x' } }).status, STATUS.BAD_REQUEST);
+test('id-shaped params are range-checked per §1', async () => {
+  assert.equal((await getSection({ params: { sectionId: '2000000001' } })).status, STATUS.BAD_REQUEST);
+  assert.equal((await getSection({ params: { sectionId: '123' } })).status, STATUS.BAD_REQUEST);
+  assert.equal((await patchElement({ params: { fieldId: '1000000001' }, body: { content: 'x' } })).status, STATUS.BAD_REQUEST);
   // Date.now() is 13 digits and uuid is not numeric — both must fail (§1 rule 3).
-  assert.equal(patchElement({ params: { fieldId: String(Date.now()) }, body: { content: 'x' } }).status, STATUS.BAD_REQUEST);
+  assert.equal((await patchElement({ params: { fieldId: String(Date.now()) }, body: { content: 'x' } })).status, STATUS.BAD_REQUEST);
+  assert.equal((await patchElement({ params: { fieldId: '00000000-0000-0000-0000-000000000000' }, body: { content: 'x' } })).status, STATUS.BAD_REQUEST);
 });
 
 test('POST /api/generate 400s with §13’s own message when no input is supplied', () => {
@@ -178,11 +179,11 @@ test('POST /api/generate 400s with §13’s own message when no input is supplie
   assert.equal(badMode.status, STATUS.BAD_REQUEST, 'mode is a closed set of four values');
 });
 
-test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (§11.0)', () => {
+test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (§11.0)', async () => {
   const params = { jobId: 'job-0000000001' };
 
   for (const fromStage of [2, 3, 4]) {
-    const res = postReplay({ params, body: { fromStage } });
+    const res = await postReplay({ params, body: { fromStage } });
     assert.equal(
       res.status,
       STATUS.UNPROCESSABLE,
@@ -192,7 +193,7 @@ test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (
   }
 
   for (const fromStage of [5, 6, 7]) {
-    const res = postReplay({ params, body: { fromStage } });
+    const res = await postReplay({ params, body: { fromStage } });
     assert.notEqual(
       res.status,
       STATUS.UNPROCESSABLE,
@@ -200,8 +201,8 @@ test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (
     );
   }
 
-  assert.equal(postReplay({ params, body: {} }).status, STATUS.BAD_REQUEST);
-  assert.equal(postReplay({ params, body: { fromStage: 9 } }).status, STATUS.BAD_REQUEST);
+  assert.equal((await postReplay({ params, body: {} })).status, STATUS.BAD_REQUEST);
+  assert.equal((await postReplay({ params, body: { fromStage: 9 } })).status, STATUS.BAD_REQUEST);
 });
 
 test('POST /api/jobs/:jobId/answers requires a non-empty answers array (§11.3)', () => {
@@ -212,13 +213,13 @@ test('POST /api/jobs/:jobId/answers requires a non-empty answers array (§11.3)'
 
 // --- errors always carry the envelope, whatever the endpoint ---------------
 
-test('every error response carries the §13 error envelope', () => {
+test('every error response carries the §13 error envelope', async () => {
   const probes = [
     getElements({ query: {} }),
     patchElement({ params: { fieldId: 'nope' }, body: { content: 'x' } }),
-    getSection({ params: { sectionId: 'nope' } }),
+    await getSection({ params: { sectionId: 'nope' } }),
     postGenerate({ body: {} }),
-    postReplay({ params: { jobId: 'nope' }, body: { fromStage: 5 } }),
+    await postReplay({ params: { jobId: 'nope' }, body: { fromStage: 5 } }),
   ];
   for (const probe of probes) {
     assert.ok(probe.status >= 400, 'this probe should be an error');
@@ -233,7 +234,7 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', () => {
   // to keep an unimplemented route loudly distinguishable from an implemented
   // one returning nothing. This count is a ratchet: it must fall to zero as
   // Phase 2 lands, and it can never rise without this assertion failing.
-  const EXPECTED_STUBS = 8;
+  const EXPECTED_STUBS = 7;
 
   const ctx = {
     params: { sectionId: '1000000001', fieldId: '2000000003', jobId: 'job-0000000001', name: 's3-regions.json' },

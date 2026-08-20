@@ -63,3 +63,10 @@
 - Device: Jainam
 - Files: server/src/routes/replay.js, tests/replay-endpoint.test.mjs
 
+## T-031 — Enforce §8's read-side chokepoint as the single call site — extend getHtml and assert no other component bypasses it
+- Started: 2026-08-20T19:46:50.815Z
+- Finished: 2026-08-20T20:01:25.216Z
+- Duration: 15m
+- Device: Jainam
+- Files: client/src/utils/getHtml.js, tools/check-sanitise-chokepoints.mjs
+

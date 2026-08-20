@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { parseSectionDoc, toSectionDoc } from '../server/src/models/sectionDoc.js';
 import { parseElementDoc, toElementDoc } from '../server/src/models/elementDoc.js';
-import sectionSeed from '../seed/section.json' with { type: 'json' };
-import elementsSeed from '../seed/elements.json' with { type: 'json' };
+import sectionsData from '../server/data/seed/sections.json' with { type: 'json' };
+import elementsData from '../server/data/seed/elements.json' with { type: 'json' };
+const sectionSeed = sectionsData[0];
+const elementsSeed = elementsData;
 
 // The source appendix's sample documents carry these extra fields. §2/§3
 // call them permitted and ignored: our reader must not choke on them, and

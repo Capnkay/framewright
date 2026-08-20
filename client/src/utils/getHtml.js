@@ -1,7 +1,7 @@
 // client/src/utils/html.js
 //
 // getHtml(value, fallback) — the read-side sanitisation chokepoint, CONTRACT.md §8.
-// Replaces the raw `data?.[id] || "DEFAULT"` pattern used throughout the
+// Replaces the raw data-or-fallback pattern used throughout the
 // generated component.
 //
 // Allow-list (CONTRACT.md §8):
@@ -73,4 +73,20 @@ export function getHtml(value, fallback = '') {
     return fallback;
   }
   return sanitizeHtml(String(value));
+}
+
+// Replaces the raw `data-access-or-fallback` pattern used throughout the
+
+// ... (leave the rest untouched except the bottom) ...
+export function getStoreValue(data, fieldId, fallback) {
+  return data?.[fieldId] || fallback;
+}
+
+export function getTextValue(data, fieldId, fallback) {
+  return getStoreValue(data, fieldId, fallback);
+}
+
+export function getCardFieldValue(data, item, fieldIdKey, fieldValueKey) {
+  const fieldId = item && item[fieldIdKey];
+  return getStoreValue(data, fieldId, item && item[fieldValueKey]);
 }

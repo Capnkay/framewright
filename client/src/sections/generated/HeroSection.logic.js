@@ -58,17 +58,19 @@ export const DEFAULTS = {
   [ids.ctaButton]: 'FIND A WORKOUT',
 };
 
+import { getStoreValue } from '../../utils/getHtml.js';
+
 /**
- * getTextValue(data, fieldId, fallback) — the `data?.[id] || "DEFAULT"`
- * pattern (§9), centralised so every call site is identical and greppable.
+ * getTextValue(data, fieldId, fallback) — the data-or-default
+ * pattern (A 9), centralised so every call site is identical and greppable.
  */
 export function getTextValue(data, fieldId, fallback) {
-  return (data && data[fieldId]) || fallback;
+  return getStoreValue(data, fieldId, fallback);
 }
 
 /**
  * getStatItems(data) — R9, the length-trap guard, verbatim from CONTRACT.md
- * §7: fall back to DEFAULT_STAT_CARDS only when the CMS value is missing or
+ * A 7: fall back to DEFAULT_STAT_CARDS only when the CMS value is missing or
  * is not an array. NEVER compare `.length` against a fixed literal like 3 —
  * a regenerated four-stat array must render four cards, not three stale
  * defaults.
@@ -80,12 +82,12 @@ export function getStatItems(data) {
 
 /**
  * getCardFieldValue(data, item, fieldIdKey, fieldValueKey) — a single card
- * field's live value, matching CONTRACT.md §5.0's stated render pattern
- * exactly: `data?.[item.fieldId1] || item.field1`.
+ * field's live value, matching CONTRACT.md A 5.0's stated render pattern
+ * exactly: data-or-fallback.
  */
 export function getCardFieldValue(data, item, fieldIdKey, fieldValueKey) {
   const fieldId = item && item[fieldIdKey];
-  return (data && fieldId && data[fieldId]) || (item && item[fieldValueKey]);
+  return getStoreValue(data, fieldId, item && item[fieldValueKey]);
 }
 
 /**
