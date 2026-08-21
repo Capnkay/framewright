@@ -212,3 +212,10 @@
 - Device: Jainam
 - Files: server/src/storage/s3.js, tests/storage-s3.test.mjs
 
+## T-090 — Implement the axe-core accessibility and bundle-cost gates on stage 6 (§18)
+- Started: 2026-08-21T17:57:52.503Z
+- Finished: 2026-08-21T18:04:29.068Z
+- Duration: 7m
+- Device: Jainam
+- Files: server/src/quality/accessibility.js, server/src/quality/performance.js, tests/quality-a11y.test.mjs
+
