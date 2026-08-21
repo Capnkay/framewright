@@ -4,6 +4,8 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [uploadUrl, setUploadUrl] = useState(null);
+  const [normalisation, setNormalisation] = useState(null);
 
   useEffect(() => {
     if (status !== 'awaiting-input') return;
@@ -11,10 +13,26 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
     let isMounted = true;
     const fetchQuestions = async () => {
       try {
-        const res = await fetch(`/api/jobs/${jobId}/questions`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (isMounted) setQuestions(data || []);
+        const [res, jobRes, normRes] = await Promise.all([
+          fetch(`/api/jobs/${jobId}/questions`),
+          fetch(`/api/jobs/${jobId}`),
+          fetch(`/api/jobs/${jobId}/artifacts/s2-preprocessing-normalization.json`)
+        ]);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) setQuestions(data || []);
+        }
+        if (jobRes.ok) {
+          const jobData = await jobRes.json();
+          const s1 = jobData.stages?.find(s => s.stage === 1);
+          if (s1 && s1.outputRef && isMounted) {
+            setUploadUrl(`/storage/${s1.outputRef}`);
+          }
+        }
+        if (normRes.ok) {
+          const normData = await normRes.json();
+          if (isMounted) setNormalisation(normData);
+        }
       } catch (err) {
         console.error(err);
       }
@@ -62,45 +80,63 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
       <h3 className="font-semibold text-lg text-amber-700">Action Required: Awaiting Input</h3>
       <p className="text-sm text-gray-600">The model has low confidence on some elements. Please help identify them.</p>
       
-      {questions.map((q, idx) => (
-        <div key={q.questionId} className="border-t pt-4 mt-2">
-          <p className="font-medium mb-2">{q.prompt} (Confidence: {q.confidence})</p>
-          
-          <div className="relative inline-block border border-gray-200 rounded overflow-hidden">
-            <img 
-              src={`/api/jobs/${jobId}/artifacts/2-normalised.png`} 
-              alt="Source context"
-              className="max-w-full h-auto"
-            />
-            {q.bbox && (
-              <div 
-                className="absolute border-2 border-red-500 bg-red-500 bg-opacity-20 pointer-events-none"
-                style={{
-                  left: `${q.bbox[0]}px`,
-                  top: `${q.bbox[1]}px`,
-                  width: `${q.bbox[2]}px`,
-                  height: `${q.bbox[3]}px`
-                }}
+      {questions.map((q, idx) => {
+        let overlayStyle = {};
+        if (q.bbox && normalisation) {
+          const scale = normalisation.scale;
+          if (scale > 0) {
+            const origX = (q.bbox[0] - normalisation.offsetX) / scale;
+            const origY = (q.bbox[1] - normalisation.offsetY) / scale;
+            const origW = q.bbox[2] / scale;
+            const origH = q.bbox[3] / scale;
+
+            const origImgW = (normalisation.width - 2 * normalisation.offsetX) / scale;
+            const origImgH = (normalisation.height - 2 * normalisation.offsetY) / scale;
+
+            overlayStyle = {
+              left: `${(origX / origImgW) * 100}%`,
+              top: `${(origY / origImgH) * 100}%`,
+              width: `${(origW / origImgW) * 100}%`,
+              height: `${(origH / origImgH) * 100}%`
+            };
+          }
+        }
+
+        return (
+          <div key={q.questionId} className="border-t pt-4 mt-2">
+            <p className="font-medium mb-2">{q.prompt} (Confidence: {q.confidence})</p>
+            
+            <div className="relative inline-block border border-gray-200 rounded overflow-hidden w-full max-w-xl">
+              <img 
+                src={uploadUrl || `/api/jobs/${jobId}/artifacts/2-normalised.png`} 
+                alt="Source context"
+                className="w-full h-auto block"
               />
-            )}
-          </div>
-          
-          <div className="mt-4 flex flex-wrap gap-3">
-            {q.options.map(opt => (
-              <label key={opt} className="flex items-center gap-1 cursor-pointer">
-                <input 
-                  type="radio" 
-                  name={`q-${q.questionId}`}
-                  value={opt}
-                  checked={answers[q.questionId] === opt}
-                  onChange={() => handleChoice(q.questionId, opt)}
+              {q.bbox && normalisation && (
+                <div 
+                  className="absolute border-2 border-red-500 bg-red-500 bg-opacity-20 pointer-events-none"
+                  style={overlayStyle}
                 />
-                <span className="text-sm">{opt}</span>
-              </label>
-            ))}
+              )}
+            </div>
+            
+            <div className="mt-4 flex flex-wrap gap-3">
+              {q.options.map(opt => (
+                <label key={opt} className="flex items-center gap-1 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name={`q-${q.questionId}`}
+                    value={opt}
+                    checked={answers[q.questionId] === opt}
+                    onChange={() => handleChoice(q.questionId, opt)}
+                  />
+                  <span className="text-sm">{opt}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       <div className="mt-4 pt-4 border-t flex justify-end">
         <button

@@ -17,15 +17,19 @@ test('QuestionPrompt UI satisfies FR-G11 (T-066)', () => {
   assert.match(source, /status !== ['`]awaiting-input['`]/, 'must check status === awaiting-input');
   assert.match(source, /fetch\(\s*[`']\/api\/jobs\/\$\{jobId\}\/questions[`']\s*\)/, 'must fetch questions');
 
-  // Verify it renders the image artifact
-  assert.match(source, /<img[\s\S]*src=\{[`']\/api\/jobs\/\$\{jobId\}\/artifacts\/2-normalised\.png[`']\}/, 'must render 2-normalised.png image');
+  // Verify it fetches normalisation and job (T-102)
+  assert.match(source, /fetch\(\s*[`']\/api\/jobs\/\$\{jobId\}\/artifacts\/s2-preprocessing-normalization\.json[`']\s*\)/, 'must fetch normalisation');
+  assert.match(source, /fetch\(\s*[`']\/api\/jobs\/\$\{jobId\}[`']\s*\)/, 'must fetch job to get upload url');
+
+  // Verify it renders the original upload image artifact
+  assert.match(source, /<img[\s\S]*src=\{uploadUrl \|\| [`']\/api\/jobs\/\$\{jobId\}\/artifacts\/2-normalised\.png[`']\}/, 'must fall back to 2-normalised.png if uploadUrl is unavailable');
   
-  // Verify it positions a bbox over the image
+  // Verify it maps bbox with normalisation scale/offset and uses percentages
   assert.match(source, /className="absolute[^"]*"/, 'must have an absolute overlay');
-  assert.match(source, /left:\s*`\$\{q\.bbox\[0\]\}px`/, 'must use bbox[0] for left');
-  assert.match(source, /top:\s*`\$\{q\.bbox\[1\]\}px`/, 'must use bbox[1] for top');
-  assert.match(source, /width:\s*`\$\{q\.bbox\[2\]\}px`/, 'must use bbox[2] for width');
-  assert.match(source, /height:\s*`\$\{q\.bbox\[3\]\}px`/, 'must use bbox[3] for height');
+  assert.match(source, /left:\s*`\$\{\(origX \/ origImgW\) \* 100\}%`/, 'must use normalisation mapping for left');
+  assert.match(source, /top:\s*`\$\{\(origY \/ origImgH\) \* 100\}%`/, 'must use normalisation mapping for top');
+  assert.match(source, /width:\s*`\$\{\(origW \/ origImgW\) \* 100\}%`/, 'must use normalisation mapping for width');
+  assert.match(source, /height:\s*`\$\{\(origH \/ origImgH\) \* 100\}%`/, 'must use normalisation mapping for height');
 
   // Verify it renders options as inputs
   assert.match(source, /type="radio"/, 'must use radio buttons for options');
