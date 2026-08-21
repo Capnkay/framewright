@@ -3,7 +3,10 @@
   "who": "Mohit Gupta",
   "device": "Mohits_Victus",
   "claimedAt": "2026-08-21T20:07:28.298Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-21T20:40:21.414Z",
+  "durationMs": 1973116,
+  "note": "Replaced hardcoded badge with ConfidenceBadge in StageInspector"
 }

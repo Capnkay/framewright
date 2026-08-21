@@ -101,7 +101,19 @@ function perceptionBody({ pageName = 'TestPage', sectionName = 'TestSection' } =
     questions: [],
     stages: [
       { stage: 2, name: 'preprocessing-normalization', status: 'ok', ms: 153,
-        artifact: { scale: 0.64, width: 1024, height: 1024 }, warnings: [] },
+        artifact: {
+          scale: 0.64, width: 1024, height: 1024,
+          // T-112: the normalised canvas travels inline per §11.2, because the service
+          // never writes files. A 1x1 JPEG stands in for it here — what is under test
+          // is that Node persists it under the name the overlay asks for, not what the
+          // picture contains.
+          raster: {
+            contentType: 'image/jpeg',
+            extension: 'jpg',
+            bytes: 4,
+            base64: '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAAEAAQMBIgACEQEDEQH/xAAVAAEBAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AKgD/2Q==',
+          },
+        }, warnings: [] },
       { stage: 3, name: 'multimodal-understanding', status: 'ok', ms: 5077,
         artifact: { count: 35, regions: [] }, model: 'opencv-contours+paddleocr', warnings: [] },
       { stage: 4, name: 'semantic-planning-ir', status: 'ok', ms: 0,
@@ -211,6 +223,56 @@ test('every persisted element carries an API-allocated fieldId', async () => {
     assert.match(String(fieldId), /^\d{10}$/, `${fieldId} is not a ten-digit allocated id`);
   }
   assert.equal(new Set(section.fieldIds).size, section.fieldIds.length, 'duplicate fieldIds');
+});
+
+test('stage 2 persists both the transform and the normalised canvas (T-112)', async () => {
+  // The human-in-the-loop overlay draws its bbox over `s2-normalised.jpg` and reads the
+  // transform from `s2-preprocessing-normalization.json`. Before T-112 neither existed:
+  // the perception service returns the transform and not pixels, because §11.2 makes it
+  // a service that never writes files, so the overlay's image was a 404.
+  const env = await isolatedEnv('wf-artifacts');
+  const { body } = await generate(env, {
+    files: { wireframe: wireframeFile() },
+    fetchImpl: stubPerceive(),
+  });
+
+  const jobs = createJobStore({ filePath: env.JOB_STORE_PATH });
+  const job = await jobs.getJob(body.job.jobId);
+  const stage2 = job.stages.find((s) => s.stage === 2);
+
+  assert.match(stage2.inputRef, /s2-preprocessing-normalization\.json$/, stage2.inputRef);
+  assert.match(stage2.outputRef, /s2-normalised\.jpg$/, stage2.outputRef);
+
+  // Written, not merely named. A ref pointing at nothing is the failure mode this task
+  // existed to fix, and asserting the ref alone would reproduce it exactly.
+  const bytes = await fs.readFile(stage2.outputRef);
+  assert.ok(bytes.length > 0, 'the normalised canvas artifact is empty');
+  assert.equal(bytes[0], 0xff, 'not a JPEG: first byte should be 0xFF');
+  assert.equal(bytes[1], 0xd8, 'not a JPEG: second byte should be 0xD8');
+
+  const transform = JSON.parse(await fs.readFile(stage2.inputRef, 'utf8'));
+  assert.equal(transform.width, 1024);
+  assert.equal(transform.scale, 0.64);
+});
+
+test('a perception run with no raster still records stage 2 rather than failing', async () => {
+  // §12's degradation rule, one level down: a stage 2 that normalised correctly and
+  // could not serialise its own preview has still done its job.
+  const body = perceptionBody();
+  delete body.stages.find((s) => s.stage === 2).artifact.raster;
+
+  const env = await isolatedEnv('wf-no-raster');
+  const { status, body: response } = await generate(env, {
+    files: { wireframe: wireframeFile() },
+    fetchImpl: stubPerceive(body),
+  });
+
+  assert.equal(status, 200, JSON.stringify(response));
+  const jobs = createJobStore({ filePath: env.JOB_STORE_PATH });
+  const job = await jobs.getJob(response.job.jobId);
+  const stage2 = job.stages.find((s) => s.stage === 2);
+  assert.equal(stage2.status, 'ok');
+  assert.match(stage2.inputRef, /s2-preprocessing-normalization\.json$/);
 });
 
 // ---------------------------------------------------------------------

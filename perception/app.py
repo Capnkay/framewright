@@ -37,11 +37,14 @@ a missing OCR engine. A perception service that dies takes the generation with i
 
 from __future__ import annotations
 
+import base64
 import json
 import time
 from datetime import datetime, timezone
 from typing import Any
 
+import cv2
+import numpy as np
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 
@@ -311,6 +314,45 @@ def _stage_record(
     }
 
 
+# JPEG, NOT PNG, AND THE NUMBERS ARE THE ARGUMENT. Measured on the reference wireframe,
+# encoding the same 1024x1024 normalised canvas:
+#
+#     png, default      1171 KB raw    1561 KB base64
+#     png, level 9       891 KB raw    1188 KB base64
+#     jpeg, quality 85   141 KB raw     188 KB base64
+#
+# The raster is a BACKDROP: the human-in-the-loop overlay draws a bbox on top of it so a
+# person can say what an element is. Nothing measures it, nothing re-reads geometry off
+# it -- stage 3 already did that on the array itself, and the bbox arrives as numbers.
+# Lossy is free here, and eight times the response size for a picture nobody analyses is
+# not.
+JPEG_QUALITY = 85
+
+
+def _encode_preview(image: np.ndarray) -> dict[str, Any] | None:
+    """The normalised canvas as a base64 JPEG, for section 11.2's inline artifact.
+
+    Returns None rather than raising if the encode fails. A stage 2 that normalised
+    correctly and could not serialise its own preview has still done its job, and the
+    pipeline must not lose a good transform over a picture -- section 12's degradation
+    rule applied one level down.
+
+    THE SIZE IS REPORTED ALONGSIDE, because this is the one field in the response that
+    can dominate it. A reader deciding whether to keep it should see what it costs
+    without having to measure it.
+    """
+    ok, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+    if not ok:
+        return None
+    raw = buffer.tobytes()
+    return {
+        "contentType": "image/jpeg",
+        "extension": "jpg",
+        "bytes": len(raw),
+        "base64": base64.b64encode(raw).decode("ascii"),
+    }
+
+
 def _mean_confidence(values: list[float]) -> float | None:
     """The mean of what was actually measured, or None if nothing was.
 
@@ -367,7 +409,17 @@ def perceive_image(payload: bytes, *, reader: Any | None = None) -> dict[str, An
             "ok",
             started_at,
             int((time.perf_counter() - clock) * 1000),
-            artifact=stage2.to_dict(),
+            # THE TRANSFORM AND THE CANVAS, BOTH. Section 6 requires the transform to be
+            # recorded, and section 11.2 requires stage outputs to travel inline -- "the
+            # service returns its stage outputs inline in the response body, and Node
+            # persists them". The normalised canvas IS stage 2's output, and until T-112
+            # only the transform was sent, so the raster existed nowhere outside this
+            # process. The human-in-the-loop overlay draws a bbox over that raster; with
+            # no raster the box is drawn over a 404.
+            #
+            # BASE64 AND NOT A PATH, for section 11.2's own reason: this service runs on
+            # a different machine, so a path written here resolves to nothing there.
+            artifact={**stage2.to_dict(), "raster": _encode_preview(stage2.image)},
             model="opencv",
         )
     )

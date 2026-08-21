@@ -185,10 +185,25 @@ export async function postGenerate(ctx = {}) {
       const remote = perceived.perception || {};
       const remoteStage = (n) => (remote.stages || []).find((s) => s.stage === n) || null;
 
+      // TWO ARTIFACTS FROM ONE STAGE, using runStage's own input/output pair rather
+      // than inventing a second stage. §11 rule 2 persists the input BEFORE the stage
+      // and the output after, which is exactly the shape stage 2 needs: the transform
+      // §6 requires goes in as `s2-preprocessing-normalization.json`, and the
+      // normalised canvas comes out as `s2-normalised.jpg`.
+      //
+      // The canvas is the artifact the human-in-the-loop overlay draws its bbox over.
+      // Before T-112 nothing produced it -- the perception service returns the
+      // transform, not pixels, because §11.2 makes it a service that never writes
+      // files -- so the overlay's <img> was a 404 and the box was drawn over nothing.
+      const raster = (remoteStage(2)?.artifact || {}).raster || null;
       await trace.runStage(job.jobId, {
         stage: 2,
-        run: async () => remote.normalisation || { degraded: true },
-        outputName: 'normalised'
+        input: remote.normalisation || { degraded: true },
+        inputName: 'preprocessing-normalization',
+        inputExt: 'json',
+        run: async () => (raster ? Buffer.from(raster.base64, 'base64') : null),
+        outputName: 'normalised',
+        outputExt: raster ? (raster.extension || 'jpg') : 'json'
       });
 
       await trace.runStage(job.jobId, {

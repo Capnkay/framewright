@@ -179,3 +179,11 @@
 - Files: AGENTS.md, docs/corrections/REGISTER.md
 - Note: Rule 9 added to AGENTS.md with its corollary on tests that import their own subject; logged in docs/corrections/REGISTER.md
 
+## T-103 — Confidence bands render against real floats
+- Started: 2026-08-21T20:07:28.298Z
+- Finished: 2026-08-21T20:40:21.414Z
+- Duration: 33m
+- Device: Mohits_Victus
+- Files: client/src/studio/ConfidenceBadge.jsx
+- Note: Replaced hardcoded badge with ConfidenceBadge in StageInspector
+
