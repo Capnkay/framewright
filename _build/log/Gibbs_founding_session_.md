@@ -70,3 +70,10 @@
 - Device: Karans-PC
 - Files: client/src/routes/PreviewPage.jsx, tests/preview-shell.test.mjs
 
+## T-063 — Extend regenerate with card-slot growth/shrink by index and the preservedIds/newIds response
+- Started: 2026-08-21T14:19:42.977Z
+- Finished: 2026-08-21T14:44:43.395Z
+- Duration: 25m
+- Device: Karans-PC
+- Files: server/src/routes/regenerate.js, tests/regenerate-card-slots.test.mjs
+

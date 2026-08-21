@@ -54,6 +54,12 @@ export async function postRegenerate(ctx = {}) {
   const currentVariations = parseInt(existingSection.variation || '1', 10);
   const nextVariation = body.variation ? String(body.variation) : String(currentVariations + 1);
 
+  const allElements = await store.findElements({ sectionId });
+  const elementsByName = {};
+  for (const el of allElements) {
+    elementsByName[el.elementName] = el;
+  }
+
   const jobStore = createJobStore(env.JOB_STORE_PATH ? { filePath: env.JOB_STORE_PATH } : undefined);
   const trace = createStageTrace({ jobStore });
 
@@ -66,6 +72,9 @@ export async function postRegenerate(ctx = {}) {
     await trace.skipStage(job.jobId, { stage: 2, reason: 'mode=prompt uses no image' });
     await trace.skipStage(job.jobId, { stage: 3, reason: 'mode=prompt uses no image' });
     
+    let preservedIds = {};
+    let newIds = [];
+
     // Stage 4: semantic-planning-ir
     const s4 = await trace.runStage(job.jobId, {
       stage: 4,
@@ -77,24 +86,40 @@ export async function postRegenerate(ctx = {}) {
         ir.idPolicy = ir.idPolicy || {};
         ir.idPolicy.mode = 'preserve';
         
-        // At this base step, we don't fully implement T-062/T-063 preserve semantics for IDs.
-        // But the IR shape must match.
-        // Wait, T-041's doneWhen says: "The sectionId does not change; variations is updated in place; idPolicy.mode is forced to preserve for this call."
-        // We will just allocate new IDs for everything that doesn't have an ID.
-        // For base semantics, T-062 isn't implemented so applyIdPolicy doesn't exist yet,
-        // but we must not leave elements without fieldId.
-        
         for (const el of ir.elements) {
-          if (!el.fieldId) {
+          const existing = elementsByName[el.elementName];
+          if (existing && existing.fieldId) {
+            el.fieldId = existing.fieldId;
+            preservedIds[el.elementName] = existing.fieldId;
+            if (el.contentType !== 'Cards') {
+              el.default = existing.content;
+              el.css = existing.css;
+            }
+          } else {
             el.fieldId = await store.allocateId('element');
+            newIds.push(el.fieldId);
           }
         }
         
         if (ir.cards && ir.cards.items) {
-          for (const item of ir.cards.items) {
+          const cardsElName = ir.cards.of || 'statBadges';
+          const existingCards = elementsByName[cardsElName];
+          const existingLoop = existingCards && existingCards.loop ? existingCards.loop : [];
+          
+          for (let index = 0; index < ir.cards.items.length; index++) {
+            const item = ir.cards.items[index];
+            const existingItem = existingLoop[index];
+            
             for (let i = 1; i <= ir.cards.fieldsPerItem; i++) {
-              if (item[`field${i}`] !== undefined && !item[`fieldId${i}`]) {
-                item[`fieldId${i}`] = await store.allocateId('cardField');
+              if (item[`field${i}`] !== undefined) {
+                if (existingItem && existingItem[`fieldId${i}`]) {
+                  item[`fieldId${i}`] = existingItem[`fieldId${i}`];
+                  item[`field${i}`] = existingItem[`field${i}`];
+                } else {
+                  const newId = await store.allocateId('cardField');
+                  item[`fieldId${i}`] = newId;
+                  newIds.push(newId);
+                }
               }
             }
           }
@@ -120,7 +145,6 @@ export async function postRegenerate(ctx = {}) {
     
     await store.updateSection(sectionId, updatedSection);
     
-    // Insert new elements (this is naive base semantics, T-062 handles the real 'keep')
     for (const el of ir.elements) {
       const elementDoc = {
         fieldId: el.fieldId,
@@ -139,8 +163,12 @@ export async function postRegenerate(ctx = {}) {
         elementDoc.loop = ir.cards.items;
       }
       
-      // We just insert them all. T-062 will update this to find/update existing elements.
-      await store.insertElement(elementDoc);
+      const isPreserved = Object.values(preservedIds).includes(el.fieldId);
+      if (isPreserved) {
+        await store.updateElement(el.fieldId, elementDoc);
+      } else {
+        await store.insertElement(elementDoc);
+      }
     }
     
     // Stage 5: code-generation-assembly
@@ -170,9 +198,20 @@ export async function postRegenerate(ctx = {}) {
     
     const finalJob = await jobStore.getJob(job.jobId);
     
+    const safeName = String(ir.sectionName || 'Section').replace(/[^a-zA-Z0-9_]/g, '');
+    const filename = `${safeName}-${ir.sectionId}-v${nextVariation}.jsx`;
+    
     return {
       status: STATUS.OK,
-      body: ok({ job: finalJob })
+      body: ok({
+        jobId: job.jobId,
+        sectionId: ir.sectionId,
+        componentFile: `src/sections/generated/${filename}`,
+        preservedIds,
+        newIds,
+        warnings: [],
+        job: finalJob
+      })
     };
     
   } catch (err) {
