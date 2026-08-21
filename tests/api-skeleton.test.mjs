@@ -241,8 +241,10 @@ test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (
 
 test('POST /api/jobs/:jobId/answers requires a non-empty answers array (§11.3)', async () => {
   const params = { jobId: 'job-0000000001' };
-  assert.equal((await postAnswers({ params, body: {} })).status, STATUS.BAD_REQUEST);
-  assert.equal((await postAnswers({ params, body: { answers: [] } })).status, STATUS.BAD_REQUEST);
+  // AWAITED. postAnswers became async when T-065 implemented it; unawaited, its
+  // .status is undefined and both assertions silently pass against a Promise.
+  assert.equal((await postAnswers({ params, body: {}, env: isolatedEnv('answers-empty') })).status, STATUS.BAD_REQUEST);
+  assert.equal((await postAnswers({ params, body: { answers: [] }, env: isolatedEnv('answers-blank') })).status, STATUS.BAD_REQUEST);
 });
 
 // --- errors always carry the envelope, whatever the endpoint ---------------
@@ -272,6 +274,9 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', async () => {
   // endpoints stopped being shadowed by stubs in routes/index.js and were
   // bound to their real implementations (T-015, T-016, T-037). Lowered 2 -> 1
   // when GET /api/metrics was likewise unshadowed and bound to metrics.js (T-087).
+  // Lowered 1 -> 0 when T-065 implemented POST /api/jobs/:jobId/answers, the last
+  // 501 in the table. The scaffold is now fully built out; this assertion holds
+  // it at zero so a regression to a stub fails here.
   const EXPECTED_STUBS = 0;
 
   const ctx = {
