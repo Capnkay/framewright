@@ -134,6 +134,22 @@ export async function applyIdPolicy({
   for (const irEl of irElements) {
     if (!irEl || !irEl.elementName) continue;
     const { elementName } = irEl;
+
+    // F-008, defence in depth. validateIr rejects a duplicate elementName at
+    // the boundary, which is where an untrusted model response is caught and
+    // turned into a keyless fallback (§16.2). This guard is for everything
+    // that reaches here WITHOUT having gone through that boundary — the
+    // generate, regenerate and replay routes all call applyIdPolicy directly.
+    // Two elements sharing a name would otherwise resolve to the same fieldId
+    // and be handed out as a duplicate, which §1 forbids and §14's pre-submit
+    // gate is built to catch. Failing loudly here beats issuing it: a
+    // duplicate ID surfaces as a blocked push for whoever runs the demo,
+    // arbitrarily far from the code that caused it.
+    if (seenNames.has(elementName)) {
+      throw new Error(
+        `applyIdPolicy: duplicate elementName ${JSON.stringify(elementName)} in ir.elements — §6 keys elements by name, so this would issue one fieldId to two elements (§1, §14). See _build/findings/F-008.md`,
+      );
+    }
     seenNames.add(elementName);
 
     const existing = byName.get(elementName);

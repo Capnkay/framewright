@@ -112,7 +112,46 @@ function validateSchema(value, schema, path, errors) {
 export function validateIr(doc) {
   const errors = [];
   validateSchema(doc, irSchema, '$', errors);
+  checkElementNamesAreUnique(doc, errors);
   return { valid: errors.length === 0, errors };
+}
+
+/**
+ * F-008 — `elementName` must be unique across `elements`.
+ *
+ * JSON Schema draft-07 has no cross-item uniqueness keyword for a property of
+ * array items, so this is expressed in code rather than in ir.schema.json.
+ *
+ * Why it belongs at the validator boundary rather than only downstream: §6's
+ * `idPolicy.preserve.elements` is a `{ elementName: fieldId }` map, so a
+ * duplicate name is already structurally unrepresentable in the contract — the
+ * schema simply never said so out loud. Without this check, two elements
+ * sharing a name resolve to the SAME fieldId in applyIdPolicy, which is the
+ * duplicate-ID condition §1 forbids and §14's pre-submit gate exists to catch.
+ *
+ * Rejecting here also makes the failure recoverable in the right way: §16.2
+ * has the hosted model's output validated against this schema, so a model that
+ * emits two `headlineMain` elements is treated as a schema-invalid response and
+ * falls back to the deterministic keyless path — rather than reaching the
+ * allocator and minting a duplicate, or throwing where nothing catches it.
+ */
+function checkElementNamesAreUnique(doc, errors) {
+  const elements = doc && Array.isArray(doc.elements) ? doc.elements : null;
+  if (!elements) return;
+
+  const seen = new Map();
+  elements.forEach((el, index) => {
+    const name = el && el.elementName;
+    if (typeof name !== 'string' || name === '') return;
+    if (seen.has(name)) {
+      errors.push({
+        path: `$.elements[${index}].elementName`,
+        message: `duplicate elementName ${JSON.stringify(name)} (first seen at $.elements[${seen.get(name)}]) — §6 keys elements by name, so two elements sharing one would resolve to the same fieldId (§1, §14)`,
+      });
+      return;
+    }
+    seen.set(name, index);
+  });
 }
 
 /**

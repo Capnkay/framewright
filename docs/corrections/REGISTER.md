@@ -1619,3 +1619,44 @@ was local and Windows-only — which is most of this team.
 Both scripts are now a single `node -e` using `fs.rmSync` and `fs.cpSync`:
 identical behaviour on every platform, no new dependency, and a real non-zero
 exit when it fails. Verified: `public/` receives all 8 files from `docs/html/`.
+
+---
+
+## 2026-08-21 · Generation-track self-audit — four findings, one fixed
+
+All ten generation-track tasks were re-verified after being marked done. Every verify command
+passes (175 tests across the ten). **Recorded plainly: this was the producer auditing his own
+work, which AGENTS.md rule 6 says is not sufficient.** An independent pass over T-007, T-019,
+T-023, T-026, T-027, T-062, T-085, T-092, T-093 and T-094 is still owed.
+
+Green tests from the person who wrote them prove little, so the audit was adversarial probing
+rather than a re-run. Four findings, filed as `_build/findings/F-008` … `F-011`:
+
+| | Severity | What |
+|---|---|---|
+| **F-008** | MAJOR | **FIXED.** A duplicate `elementName` made `applyIdPolicy` issue ONE `fieldId` to TWO elements — the exact duplicate-ID condition §14's pre-submit gate exists to catch, reachable from a hosted-model IR because the schema never required uniqueness |
+| F-009 | MINOR | `artifactRef` interpolates `jobId` into a path unvalidated (`../../etc/passwd` escapes `artifacts/`). **Not reachable today** — every call site passes a store-generated id and URL routes gate on `^job-\d{10}$` — but T-064 will pass a URL param into `runStage` |
+| F-010 | MAJOR | `@babel/parser` is declared but **not installed**, so T-094's documented weak fallback is the ACTIVE parser and it accepts `const = 5;`. §18.2's whole purpose is that unparseable JSX never ships. Fix is `npm install`, not code. Same root cause as the 4 failing suites (`ajv`, `multer`, `express`) and F-005 |
+| F-011 | MINOR | A background colour becomes the accent (`"the background is white"` → `accent: gray-50`). Warned, not silent — the §6.1-rule-5 warning added at T-093 records it. Filed rather than fixed because narrowing the fallback would break `"make it green"` |
+
+**Two things the audit confirmed working**, both bugs fixed during the original builds and
+worth re-proving: T-085's timeout classification survives a transport that rejects with
+`AbortError` (2 attempts, ~132ms on a 60ms budget, correctly classed as timeout — the
+`Promise.race` ordering bug stays fixed); and T-094's deterministic fallback passes the same
+gate that rejected the model's output, so the fallback cannot itself be unparseable.
+
+**F-008's fix, in two layers.** `validateIr` rejects duplicate `elementName` — in code, not
+`ir.schema.json`, because draft-07 has no cross-item uniqueness keyword. That is the layer
+that matters: §16.2 validates hosted-model output against this schema, so a model emitting two
+`headlineMain` elements now falls back to the keyless path instead of reaching the allocator.
+`applyIdPolicy` throws as well, because the generate, regenerate and replay routes call it
+directly and it must not be *able* to issue a duplicate. Deliberately **not** fixed by silently
+dropping the second element — that produces a component missing a node the IR asked for, the
+same class of invisible failure §9 exists to prevent.
+
+**One contract gap this opened.** The uniqueness rule now lives in a validator with no
+counterpart in `docs/CONTRACT.md`. §6 implies it — `idPolicy.preserve.elements` is a
+name-keyed map, so duplicates are structurally unrepresentable — but never says so. It
+deserves one sentence in §6's field notes, so the next person writing an IR producer does not
+have to infer the rule from a rejection message. Not added here because §6 is frozen and this
+is the owner of neither.

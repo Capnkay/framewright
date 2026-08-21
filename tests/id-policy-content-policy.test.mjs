@@ -394,3 +394,63 @@ test('the closed sets are exported and match §6', () => {
   assert.deepEqual(ID_MODES, ['allocate', 'preserve']);
   assert.deepEqual(CONTENT_POLICIES, ['overwrite', 'keep']);
 });
+
+// ---------------------------------------------------------------------
+// F-008 — a duplicate elementName must never become a duplicate fieldId.
+// ---------------------------------------------------------------------
+
+test('F-008: a duplicate elementName is refused, not issued the same fieldId twice', async () => {
+  const { allocateId } = allocator();
+  const ir = newIr();
+  // Two elements sharing a name. Before the fix both resolved to 2000000003.
+  ir.elements = [...ir.elements, { elementName: 'headlineMain', contentType: 'Text', default: 'A SECOND ONE', sourceOf: 'default' }];
+
+  await assert.rejects(
+    () => applyIdPolicy({ ir, existingElements: storedElements(), allocateId, isRegeneration: true }),
+    /duplicate elementName "headlineMain"/,
+    '§1 forbids two elements receiving one ID; failing loudly beats issuing it',
+  );
+});
+
+test('F-008: the refusal fires under mode allocate too, not just preserve', async () => {
+  const { allocateId } = allocator();
+  const ir = newIr({ idPolicy: { mode: 'allocate', contentPolicy: 'overwrite', preserve: {} } });
+  ir.elements = [...ir.elements, { elementName: 'ctaButton', contentType: 'Button', default: 'DUPE', sourceOf: 'default' }];
+
+  await assert.rejects(
+    () => applyIdPolicy({ ir, existingElements: [], allocateId, isRegeneration: false }),
+    /duplicate elementName "ctaButton"/,
+  );
+});
+
+test('F-008: no fieldId is ever issued twice across a full regeneration', async () => {
+  const { allocateId } = allocator();
+  const ir = newIr({
+    cards: {
+      of: 'statBadges',
+      count: 4,
+      fieldsPerItem: 2,
+      items: [
+        { field1: '1000+', field2: 'a' },
+        { field1: '40+', field2: 'b' },
+        { field1: '150+', field2: 'c' },
+        { field1: '24/7', field2: 'd' },
+      ],
+    },
+  });
+  ir.elements.push({ elementName: 'secondaryCta', contentType: 'Button', default: 'MORE', sourceOf: 'prompt' });
+
+  const result = await applyIdPolicy({ ir, existingElements: storedElements(), allocateId, isRegeneration: true });
+
+  // Every id the module hands out, top-level and nested.
+  const all = [];
+  for (const el of result.elements) {
+    all.push(el.fieldId);
+    for (const item of el.loop || []) {
+      for (const [k, v] of Object.entries(item)) if (/^fieldId\d+$/.test(k)) all.push(v);
+    }
+  }
+
+  assert.equal(new Set(all).size, all.length, `duplicate id issued: ${all.join(',')}`);
+  for (const id of all) assert.match(id, /^[23][0-9]{9}$/, 'and every one stays in a §1 range');
+});

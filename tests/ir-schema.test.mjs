@@ -164,3 +164,49 @@ test('an IR whose idPolicy.contentPolicy is outside overwrite|keep fails validat
   const result = validateIr(ir);
   assert.equal(result.valid, false);
 });
+
+// F-008 — a duplicate elementName resolves to a duplicate fieldId downstream.
+test('F-008: a duplicate elementName fails validation — §6 keys elements by name', () => {
+  const ir = makeReferenceIr();
+  ir.elements = [ir.elements[0], { ...ir.elements[0], default: 'A SECOND ONE' }];
+
+  const result = validateIr(ir);
+  assert.equal(result.valid, false, 'two elements sharing a name must be rejected');
+
+  const error = result.errors.find((e) => /duplicate elementName/.test(e.message));
+  assert.ok(error, 'the error must name the defect');
+  assert.equal(error.path, '$.elements[1].elementName', 'and point at the second occurrence');
+  assert.match(error.message, /headlineMain/);
+});
+
+test('F-008: three elements, two sharing a name — only the duplicate is reported', () => {
+  const ir = makeReferenceIr();
+  const base = ir.elements[0];
+  ir.elements = [
+    base,
+    { ...base, elementName: 'headlineSub', tag: 'h2' },
+    { ...base, default: 'CLASH' },
+  ];
+
+  const errors = validateIr(ir).errors.filter((e) => /duplicate elementName/.test(e.message));
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].path, '$.elements[2].elementName');
+});
+
+test('F-008: distinct elementNames still validate clean', () => {
+  const ir = makeReferenceIr();
+  ir.elements = [
+    ir.elements[0],
+    { ...ir.elements[0], elementName: 'headlineSub', tag: 'h2' },
+    { ...ir.elements[0], elementName: 'description', tag: 'p' },
+  ];
+  assert.deepEqual(validateIr(ir).errors, []);
+});
+
+test('F-008: the uniqueness check tolerates a malformed elements array', () => {
+  for (const elements of [undefined, null, 'nope', [], [null], [{}], [{ elementName: '' }, { elementName: '' }]]) {
+    const ir = { ...makeReferenceIr(), elements };
+    // Must not throw — a shape error is reported by the schema walk, not here.
+    assert.doesNotThrow(() => validateIr(ir), `elements = ${JSON.stringify(elements)}`);
+  }
+});
