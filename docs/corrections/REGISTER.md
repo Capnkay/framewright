@@ -1600,3 +1600,22 @@ these fixes the same six runs produced four different failures.
 clean. A gate that fails half the time is one people learn to re-run until green,
 which is the same as not having it — and it would have masked the dead-store
 defect in the entry above rather than surfacing it.
+
+---
+
+## 2026-08-21 · `npm run build` reported success and produced nothing on Windows
+
+`build` and `vercel-build` were `rm -rf public && mkdir -p public && cp -r
+docs/html/. public/`. npm runs scripts through `cmd.exe` on Windows, where
+`mkdir -p` means "make a directory called -p". The run printed *"A subdirectory
+or file -p already exists"*, copied nothing, left `public/` empty — **and exited
+0**. A build that fails loudly is a nuisance; one that reports success and
+produces nothing is a trap, and `public/` is gitignored so there was nothing in
+`git status` to contradict it.
+
+Vercel builds on Linux, so the deployed docs site was never affected. The cost
+was local and Windows-only — which is most of this team.
+
+Both scripts are now a single `node -e` using `fs.rmSync` and `fs.cpSync`:
+identical behaviour on every platform, no new dependency, and a real non-zero
+exit when it fails. Verified: `public/` receives all 8 files from `docs/html/`.

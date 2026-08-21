@@ -11,8 +11,8 @@
     "test": "node tools/test.mjs",
     "check-store-liveness": "node tools/check-store-liveness.mjs",
     "server": "node server/src/server.js",
-    "build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/",
-    "vercel-build": "rm -rf public && mkdir -p public && cp -r docs/html/. public/"
+    "build": "node -e \"const f=require('node:fs');f.rmSync('public',{recursive:true,force:true});f.cpSync('docs/html','public',{recursive:true})\"",
+    "vercel-build": "node -e \"const f=require('node:fs');f.rmSync('public',{recursive:true,force:true});f.cpSync('docs/html','public',{recursive:true})\""
   },
   "devDependencies": {
     "mongodb": "^7.5.0",
