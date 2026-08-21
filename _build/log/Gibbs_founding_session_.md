@@ -63,3 +63,10 @@
 - Device: Karans-PC
 - Files: server/src/routes/jobs.js, tests/confidence-surfaced-api.test.mjs
 
+## T-050 — Build the preview shell hosting the generated section at /preview/:pageName
+- Started: 2026-08-21T14:19:43.259Z
+- Finished: 2026-08-21T14:37:01.604Z
+- Duration: 17m
+- Device: Karans-PC
+- Files: client/src/routes/PreviewPage.jsx, tests/preview-shell.test.mjs
+
