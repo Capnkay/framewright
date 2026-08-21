@@ -27,9 +27,27 @@ export default function SideEditor({ fieldId, pageName = 'Home', apiUrl = '/api'
     e.preventDefault();
     setStatus('saving');
     setError(null);
+    
+    // Validate CSS client-side per A 8
+    const cssToPatch = css.trim() === '' ? null : css;
+    if (cssToPatch) {
+      const allowedProps = ['color', 'background-color', 'font-size', 'font-weight', 'text-align', 'margin', 'padding', 'border', 'border-radius'];
+      // Split by ';' and check properties
+      const declarations = cssToPatch.split(';');
+      for (const decl of declarations) {
+        if (!decl.trim()) continue;
+        const parts = decl.split(':');
+        if (parts.length < 2) continue; // Malformed, let server handle or just ignore here, but actually we should check if prop is in allowedProps.
+        const prop = parts[0].trim();
+        if (!allowedProps.includes(prop)) {
+          setStatus('error');
+          setError(`CSS property '${prop}' is not allowed. (A 8)`);
+          return;
+        }
+      }
+    }
+
     try {
-      // Pass empty string as null css to clear overlay as per spec
-      const cssToPatch = css.trim() === '' ? null : css;
       const data = await submitPatch({ apiUrl, fieldId, content, css: cssToPatch });
       applyPatchResponse(dispatch, data, pageName);
       setStatus('success');
