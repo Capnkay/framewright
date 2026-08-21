@@ -14,3 +14,10 @@
 - Device: Karans-PC
 - Files: server/src/observability/log.js, tests/logging.test.mjs
 
+## T-088 — Implement OpenTelemetry tracing, one span per stage, dropped silently when unconfigured (§17.3)
+- Started: 2026-08-21T12:11:43.613Z
+- Finished: 2026-08-21T12:26:07.377Z
+- Duration: 14m
+- Device: Karans-PC
+- Files: server/src/observability/tracing.js, tests/tracing.test.mjs
+
