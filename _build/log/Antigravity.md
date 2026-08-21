@@ -219,3 +219,10 @@
 - Device: Jainam
 - Files: server/src/quality/accessibility.js, server/src/quality/performance.js, tests/quality-a11y.test.mjs
 
+## T-091 — Compute and surface the 0–100 quality score per §18.1’s formula
+- Started: 2026-08-21T18:06:28.479Z
+- Finished: 2026-08-21T18:09:38.927Z
+- Duration: 3m
+- Device: Jainam
+- Files: server/src/quality/score.js, tests/quality-score.test.mjs
+

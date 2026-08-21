@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { STATUS, document, badRequest } from '../http/envelope.js';
 import { createJobStore } from '../jobs/jobStore.js';
+import { computeJobScore } from '../quality/score.js';
 
 const JOB_ID = /^job-\d{10}$/;
 
@@ -53,6 +54,19 @@ export async function getJob(ctx = {}) {
       // Missing or unparseable artifact: ignore
     }
   }
+
+  // §18.1: Compute and surface the 0-100 quality score
+  let stage6Data = null;
+  const s6 = job.stages.slice().reverse().find(s => s.stage === 6 && s.status !== 'failed');
+  if (s6 && s6.outputRef) {
+    try {
+      const artifactPath = path.join(process.cwd(), s6.outputRef);
+      const content = await fs.readFile(artifactPath, 'utf8');
+      stage6Data = JSON.parse(content);
+    } catch (err) {}
+  }
+  
+  job.score = computeJobScore(job, stage6Data);
 
   return document(job, 'job ' + jobId);
 }

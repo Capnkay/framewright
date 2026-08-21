@@ -49,7 +49,14 @@ export default function JobTimeline({ job, onRefresh }) {
   
   return (
     <div className="flex flex-col gap-2 p-4">
-      <h2 className="text-lg font-semibold mb-2">Job Timeline</h2>
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-lg font-semibold">Job Timeline</h2>
+        {job.score !== null && job.score !== undefined && (
+          <div className="bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1 rounded-full text-sm font-bold shadow-sm" title="Quality Score (A 18.1)">
+            Score: {job.score}
+          </div>
+        )}
+      </div>
       {replayError && <div className="text-red-600 text-sm mb-2 font-medium">{replayError}</div>}
       {[1, 2, 3, 4, 5, 6, 7].map((stageNum) => {
         const stageRecords = stages.filter(s => s.stage === stageNum);
