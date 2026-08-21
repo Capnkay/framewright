@@ -71,7 +71,7 @@ function SectionWrapper({ section, Component, pageName }) {
           </button>
         </div>
       </form>
-      <Component pageName={pageName} />
+      <Component key={section.sectionId} pageName={pageName} />
     </div>
   );
 }

@@ -1660,3 +1660,9 @@ name-keyed map, so duplicates are structurally unrepresentable — but never say
 deserves one sentence in §6's field notes, so the next person writing an IR producer does not
 have to infer the rule from a rejection message. Not added here because §6 is frozen and this
 is the owner of neither.
+
+---
+
+## 2026-08-22 · CONTRACT v1.5 → v1.6 — Duplicate `elementName` rejection
+
+Logged by Generation track owner. `docs/CONTRACT.md` §6 only implied that `elementName` must be unique within a section (because `idPolicy.preserve.elements` is a name-keyed map). A validation rule explicitly rejecting duplicate `elementName`s was added to `validateIr`, making this uniqueness an enforced constraint rather than just structurally implied. This addition clarifies the rule for IR-producers to prevent them from discovering it solely through validation rejections.

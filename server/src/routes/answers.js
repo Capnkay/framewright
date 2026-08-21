@@ -11,10 +11,10 @@ export async function postAnswers(ctx = {}) {
   const body = ctx.body || {};
 
   if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
-    return badRequest('jobId must match job-<10 digits> (A 11.1).');
+    return badRequest('jobId must match job-<10 digits> (§11.1).');
   }
   if (!Array.isArray(body.answers) || body.answers.length === 0) {
-    return badRequest('answers is required and must be a non-empty array (A 11.3).');
+    return badRequest('answers is required and must be a non-empty array (§11.3).');
   }
 
   const env = ctx.env || {};

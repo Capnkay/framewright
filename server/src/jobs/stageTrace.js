@@ -79,6 +79,7 @@ export class StageDegraded extends Error {
  * `s3a2-regions.json`. Logged in docs/corrections/REGISTER.md.
  */
 export function artifactRef(jobId, stage, name, ext = 'json', attempt = 1) {
+  if (!/^job-\d{10}$/.test(jobId)) throw new Error('Invalid jobId');
   const suffix = attempt > 1 ? `a${attempt}` : '';
   return `${ARTIFACT_ROOT}/${jobId}/s${stage}${suffix}-${name}.${ext}`;
 }
