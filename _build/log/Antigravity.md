@@ -147,3 +147,10 @@
 - Device: Jainam
 - Files: client/src/studio/SideEditor.jsx, tests/css-overlay-editor.test.mjs
 
+## T-064 — Wire replay-from-stage into the Timeline UI, including the 422 case
+- Started: 2026-08-21T17:12:44.960Z
+- Finished: 2026-08-21T17:13:48.290Z
+- Duration: 1m
+- Device: Jainam
+- Files: client/src/studio/JobTimeline.jsx, tests/replay-ui.test.mjs
+

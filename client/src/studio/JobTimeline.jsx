@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const STAGE_NAMES = {
   1: 'input-acquisition',
@@ -19,14 +19,38 @@ const STATUS_COLORS = {
   skipped: 'bg-slate-100 text-slate-600 border-slate-300',
 };
 
-export default function JobTimeline({ job }) {
+export default function JobTimeline({ job, onRefresh }) {
+  const [replayError, setReplayError] = useState(null);
+
   if (!job) return null;
+
+  const handleReplay = async (stageNum) => {
+    setReplayError(null);
+    try {
+      const res = await fetch(`/api/jobs/${job.jobId}/replay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: stageNum })
+      });
+      if (!res.ok) {
+        if (res.status === 422) {
+          throw new Error('Perception service is down or unavailable for this stage.');
+        }
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to replay stage');
+      }
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setReplayError(err.message);
+    }
+  };
 
   const stages = job.stages || [];
   
   return (
     <div className="flex flex-col gap-2 p-4">
       <h2 className="text-lg font-semibold mb-2">Job Timeline</h2>
+      {replayError && <div className="text-red-600 text-sm mb-2 font-medium">{replayError}</div>}
       {[1, 2, 3, 4, 5, 6, 7].map((stageNum) => {
         const stageRecords = stages.filter(s => s.stage === stageNum);
         const record = stageRecords.length > 0 ? stageRecords[stageRecords.length - 1] : null;
@@ -60,9 +84,15 @@ export default function JobTimeline({ job }) {
                 {status}
               </p>
             </div>
-            <div className="flex-none text-xs font-mono opacity-80 text-right">
+            <div className="flex-none text-xs font-mono opacity-80 text-right mr-4">
               {duration}
             </div>
+            <button 
+              className="text-xs bg-white text-gray-700 font-medium px-2 py-1 rounded shadow-sm hover:bg-gray-50 border border-gray-200"
+              onClick={() => handleReplay(stageNum)}
+            >
+              Replay from here
+            </button>
           </div>
         );
       })}
