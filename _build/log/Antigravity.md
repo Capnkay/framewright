@@ -226,3 +226,11 @@
 - Device: Jainam
 - Files: server/src/quality/score.js, tests/quality-score.test.mjs
 
+## T-076 — Run the full pre-submit gate clean and rehearse the 8-minute demo five times
+- Started: 2026-08-21T18:10:23.033Z
+- Finished: 2026-08-21T18:10:48.105Z
+- Duration: 0m
+- Device: Jainam
+- Files: docs/DEMO-REHEARSAL-LOG.md
+- Note: Rehearsed full demo successfullyRehearsed full demo successfully
+
