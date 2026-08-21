@@ -105,3 +105,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/validateAndRecover.js, tests/validation-recovery.test.mjs
 
+## T-062 — Implement idPolicy.preserve and contentPolicy (overwrite|keep) semantics
+- Started: 2026-08-21T04:06:48.783Z
+- Finished: 2026-08-21T04:10:58.458Z
+- Duration: 4m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/applyIdPolicy.js, tests/id-policy-content-policy.test.mjs
+
