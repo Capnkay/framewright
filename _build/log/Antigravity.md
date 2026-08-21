@@ -119,3 +119,10 @@
 - Device: Jainam
 - Files: server/src/routes/exportZip.js, tests/export-zip.test.mjs
 
+## T-047 — Build the Generator Studio’s generation progress and plain-language error surfacing (FR-G05)
+- Started: 2026-08-21T17:03:20.696Z
+- Finished: 2026-08-21T17:04:44.092Z
+- Duration: 1m
+- Device: Jainam
+- Files: client/src/studio/GenerationProgress.jsx, client/src/studio/ErrorBanner.jsx, tests/studio-progress-errors.test.mjs
+
