@@ -2299,6 +2299,29 @@
       ],
       "verify": "node --test tests/page-hydration-two-sections.test.mjs",
       "doneWhen": "Found while wiring elementValidator.js at T-109. §3 requires `loop`, `projectName` and `pageName` on every element document and generate.js emits none of them, so the validator cannot be wired. Supplying them is a one-line change and it FAILS the §9 store-liveness assertion at step 4 — measured, reproducibly: with `pageName` present the assertion reports 'TOP-LEVEL rendered text did not change after PATCH', and without it all five steps pass. The cause is not §3. `fetchElementsByIds` issues `GET /api/elements?pageName=<page>` with NO id filter — its own comment says elementIds 'is NOT a server-side filter, the server never sees it' — and reduces the WHOLE response into allSections[pageName]. Once a generated section's elements also carry pageName 'Home', the golden section and the generated one land in the same flat map and collide. That is a defect in the page-hydration path, and it is load-bearing: §9's assertion is the only check that catches a dead store, and a demo that generates a second section onto Home would hit it live. Done when two sections on one page hydrate without either overwriting the other, generate.js emits §3's three fields, elementValidator runs at the insert path, and the §9 assertion passes with all of that in place. The placeholder test `the element document is still missing §3's loop, projectName and pageName` in tests/write-path-validation.test.mjs is written to FAIL once this lands — replace it with its opposite rather than deleting it."
+    },
+{
+      "id": "T-112",
+      "phase": 6,
+      "track": "perception",
+      "title": "Nothing produces s2-normalised.png, so the human-in-the-loop overlay has no image behind it",
+      "size": "45m",
+      "contract": [
+        "§11.2",
+        "§12",
+        "§6"
+      ],
+      "deps": [
+        "T-108"
+      ],
+      "files": [
+        "perception/app.py",
+        "perception/tests/test_perceive.py",
+        "server/src/routes/generate.js",
+        "tests/generate-wireframe-mode.test.mjs"
+      ],
+      "verify": "node --test tests/generate-wireframe-mode.test.mjs",
+      "doneWhen": "client/src/studio/QuestionPrompt.jsx renders its bbox overlay over /api/jobs/{jobId}/artifacts/s2-normalised.png and reads the transform from s2-preprocessing-normalization.json. Neither file is produced by anything. Audited on main: the perception service returns stage 2's artifact as the transform DICTIONARY, not pixels — §11.2 makes it a service that never writes files — and Node had no stage 2 at all until T-108, which persists the transform as JSON and no raster. So the overlay's image is a 404 and the box is drawn over nothing. §11.2 already specifies the mechanism: the service 'returns its stage outputs inline in the /perceive response body, and Node persists them', and the normalised canvas IS a stage 2 output. Done when /perceive carries the normalised canvas inline as a base64 PNG on stage 2's record, Node persists it as s2-normalised.png and the transform as s2-preprocessing-normalization.json — runStage already writes one input and one output per stage, so both names fall out of the API as designed rather than needing a second stage — and a test asserts both artifact refs exist after a wireframe generation. The response grows by roughly the size of a 1024x1024 PNG; record the measured size so whoever pays that cost can see it."
     }
   ]
 }
