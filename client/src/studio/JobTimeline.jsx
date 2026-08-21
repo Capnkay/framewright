@@ -68,9 +68,10 @@ export default function JobTimeline({ job, onRefresh }) {
         let duration = '-';
         if (record && record.startedAt) {
           if (record.finishedAt) {
-            duration = `${new Date(record.finishedAt).getTime() - new Date(record.startedAt).getTime()}ms`;
+            const ms = new Date(record.finishedAt).getTime() - new Date(record.startedAt).getTime();
+            duration = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
           } else if (record.ms !== undefined) {
-            duration = `${record.ms}ms`;
+            duration = record.ms >= 1000 ? `${(record.ms / 1000).toFixed(1)}s` : `${record.ms}ms`;
           } else {
             duration = 'running...';
           }

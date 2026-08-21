@@ -136,3 +136,10 @@
 - Device: Mohits_Victus
 - Files: perception/app.py, perception/tests/test_perceive.py, perception/tests/test_health.py
 
+## T-104 — The timeline survives a 5-second stage and a degraded status
+- Started: 2026-08-21T20:10:12.209Z
+- Finished: 2026-08-21T20:13:13.238Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: client/src/studio/JobTimeline.jsx, client/src/studio/StageInspector.jsx, tests/job-timeline-ui.test.mjs
+

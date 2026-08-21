@@ -24,4 +24,7 @@ test('JobTimeline UI satisfies A 11.1 (T-038)', () => {
 
   // Verify it displays timings
   assert.match(source, /duration/, 'must calculate or display duration/timings');
+
+  // T-104: verify it formats > 1000ms correctly
+  assert.match(source, /\(ms \/ 1000\)\.toFixed\(1\)/, 'must convert >= 1000ms into seconds formatted to 1 decimal place');
 });

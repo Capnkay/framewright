@@ -4,7 +4,6 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [uploadUrl, setUploadUrl] = useState(null);
   const [normalisation, setNormalisation] = useState(null);
 
   useEffect(() => {
@@ -13,21 +12,13 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
     let isMounted = true;
     const fetchQuestions = async () => {
       try {
-        const [res, jobRes, normRes] = await Promise.all([
+        const [res, normRes] = await Promise.all([
           fetch(`/api/jobs/${jobId}/questions`),
-          fetch(`/api/jobs/${jobId}`),
           fetch(`/api/jobs/${jobId}/artifacts/s2-preprocessing-normalization.json`)
         ]);
         if (res.ok) {
           const data = await res.json();
           if (isMounted) setQuestions(data || []);
-        }
-        if (jobRes.ok) {
-          const jobData = await jobRes.json();
-          const s1 = jobData.stages?.find(s => s.stage === 1);
-          if (s1 && s1.outputRef && isMounted) {
-            setUploadUrl(`/storage/${s1.outputRef}`);
-          }
         }
         if (normRes.ok) {
           const normData = await normRes.json();
@@ -83,23 +74,12 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
       {questions.map((q, idx) => {
         let overlayStyle = {};
         if (q.bbox && normalisation) {
-          const scale = normalisation.scale;
-          if (scale > 0) {
-            const origX = (q.bbox[0] - normalisation.offsetX) / scale;
-            const origY = (q.bbox[1] - normalisation.offsetY) / scale;
-            const origW = q.bbox[2] / scale;
-            const origH = q.bbox[3] / scale;
-
-            const origImgW = (normalisation.width - 2 * normalisation.offsetX) / scale;
-            const origImgH = (normalisation.height - 2 * normalisation.offsetY) / scale;
-
-            overlayStyle = {
-              left: `${(origX / origImgW) * 100}%`,
-              top: `${(origY / origImgH) * 100}%`,
-              width: `${(origW / origImgW) * 100}%`,
-              height: `${(origH / origImgH) * 100}%`
-            };
-          }
+          overlayStyle = {
+            left: `${(q.bbox[0] / normalisation.width) * 100}%`,
+            top: `${(q.bbox[1] / normalisation.height) * 100}%`,
+            width: `${(q.bbox[2] / normalisation.width) * 100}%`,
+            height: `${(q.bbox[3] / normalisation.height) * 100}%`
+          };
         }
 
         return (
@@ -108,7 +88,7 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
             
             <div className="relative inline-block border border-gray-200 rounded overflow-hidden w-full max-w-xl">
               <img 
-                src={uploadUrl || `/api/jobs/${jobId}/artifacts/2-normalised.png`} 
+                src={`/api/jobs/${jobId}/artifacts/s2-normalised.png`} 
                 alt="Source context"
                 className="w-full h-auto block"
               />

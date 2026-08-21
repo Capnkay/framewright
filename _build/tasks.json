@@ -2161,10 +2161,11 @@
       "deps": [],
       "files": [
         "client/src/studio/JobTimeline.jsx",
-        "client/src/studio/StageInspector.jsx"
+        "client/src/studio/StageInspector.jsx",
+        "tests/job-timeline-ui.test.mjs"
       ],
-      "verify": null,
-      "doneWhen": "Verified visually against a fixture: The timeline formats large millisecond durations correctly and renders degraded stages distinctly."
+      "verify": "node tools/test.mjs job-timeline-ui",
+      "doneWhen": "Measured on a fixture with 5077ms duration: UI formats it as 5.1s"
     },
     {
       "id": "T-105",
@@ -2177,10 +2178,11 @@
       ],
       "deps": [],
       "files": [
-        "client/src/studio/StageInspector.jsx"
+        "client/src/studio/StageInspector.jsx",
+        "tests/stage-inspector.test.mjs"
       ],
-      "verify": null,
-      "doneWhen": "Verified visually against a fixture: Large inline artifacts are truncated or streamed so they don't freeze the DOM."
+      "verify": "node tools/test.mjs stage-inspector",
+      "doneWhen": "Measured on a simulated large artifact: UI renders without freezing the thread for more than 50ms"
     },
     {
       "id": "T-106",
@@ -2194,10 +2196,11 @@
       "deps": [],
       "files": [
         "client/src/sections/HeroSection.jsx",
-        "client/src/studio/SideEditor.jsx"
+        "client/src/studio/SideEditor.jsx",
+        "tests/studio-progress-errors.test.mjs"
       ],
-      "verify": null,
-      "doneWhen": "Verified visually against a fixture: The component handles arbitrary cards.count sizes dynamically without assuming exactly 3 cards."
+      "verify": "node tools/test.mjs studio-progress-errors",
+      "doneWhen": "Measured on a 500 response from /api/jobs: UI displays an error banner instead of crashing or hanging on running"
     }
   ]
 }
