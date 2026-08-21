@@ -126,3 +126,10 @@
 - Device: Karans-PC
 - Files: client/src/studio/SectionFields.jsx, tests/section-fields.test.mjs
 
+## T-051 — Build the CMS side-editor — click an element, edit content and css, PATCH per §13.2
+- Started: 2026-08-21T16:24:49.317Z
+- Finished: 2026-08-21T16:35:14.779Z
+- Duration: 10m
+- Device: Karans-PC
+- Files: client/src/studio/SideEditor.jsx, tests/side-editor.test.mjs
+
