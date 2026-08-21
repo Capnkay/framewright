@@ -1,4 +1,4 @@
-import { STATUS, ok, badRequest, error } from '../http/envelope.js';
+import { STATUS, NOT_IMPLEMENTED, ok, badRequest, error } from '../http/envelope.js';
 import { createStore } from '../store/index.js';
 import { createJobStore } from '../jobs/jobStore.js';
 import createStageTrace from '../jobs/stageTrace.js';
@@ -6,6 +6,36 @@ import promptToIrHosted from '../generate/promptToIrHosted.js';
 import { emitComponent } from '../generate/emitComponent.js';
 import { writeComponentFile } from '../generate/writeComponentFile.js';
 import { sanitiseGenerateBody } from '../sanitise/sanitiseWrite.js';
+import { perceiveOrDegrade, STAGE_DEGRADED } from '../generate/perceiveAndAssembleIr.js';
+
+/**
+ * §13.1's upload, as it reaches this handler.
+ *
+ * TOLERANT OF SHAPE, DELIBERATELY. `ctx.files` is whatever the HTTP layer put there,
+ * and multer's memory and disk storages disagree about the field names (`buffer` vs
+ * `data`, `originalname` vs `filename`). Picking one and letting the other arrive as
+ * `undefined` fails as "no wireframe supplied" — a message that sends the reader to
+ * the client when the fault is in the adapter.
+ */
+function readUpload(file) {
+  if (!file) return null;
+  const bytes = file.buffer || file.data || file.bytes || null;
+  if (!bytes) return null;
+  return {
+    bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes),
+    filename: file.originalname || file.filename || file.name || 'wireframe.png',
+    contentType: file.mimetype || file.type || 'image/png',
+    size: file.size ?? (bytes.length || 0),
+  };
+}
+
+/**
+ * §13.1's accepted formats, enforced here as well as at the perception service.
+ * Doing it in both places is not duplication: this one produces §13's error envelope
+ * for the caller, and that one keeps the service honest when it is called directly.
+ */
+const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export async function postGenerate(ctx = {}) {
   const env = ctx.env || {};
@@ -32,8 +62,33 @@ export async function postGenerate(ctx = {}) {
   body = cleaned.body;
   ctx.body = body;
 
-  if (body.mode !== 'prompt') {
-    return { status: STATUS.NOT_IMPLEMENTED, body: { ok: false, error: { code: 'NOT_IMPLEMENTED', message: `T-033: mode=${body.mode} not implemented yet` } } };
+  // T-108 opened `wireframe`. `code` and `combined` remain unbuilt and say so rather
+  // than half-working: §13 names four modes and this system implements two.
+  const IMPLEMENTED_MODES = ['prompt', 'wireframe'];
+  if (!IMPLEMENTED_MODES.includes(body.mode)) {
+    // `STATUS.NOT_IMPLEMENTED` does not exist -- envelope.js exports 501 as a
+    // standalone `NOT_IMPLEMENTED`, deliberately kept OUT of STATUS because it is not
+    // a contract status code. Reading it off STATUS yielded `undefined`, so every
+    // unimplemented mode has been answering with an undefined status rather than a
+    // 501. Found by T-108's test asserting the two remaining modes still say 501.
+    return { status: NOT_IMPLEMENTED, body: { ok: false, error: { code: 'NOT_IMPLEMENTED', message: `T-033: mode=${body.mode} not implemented yet` } } };
+  }
+
+  const isWireframe = body.mode === 'wireframe';
+  let upload = null;
+  if (isWireframe) {
+    upload = readUpload(files.wireframe);
+    if (!upload) {
+      return badRequest('mode=wireframe requires a wireframe image (§13.1).');
+    }
+    if (!ACCEPTED_IMAGE_TYPES.has(upload.contentType)) {
+      return badRequest(
+        `Unsupported image type ${upload.contentType}. Accepted: image/jpeg, image/png, image/webp (§13.1).`
+      );
+    }
+    if (upload.size > MAX_IMAGE_BYTES) {
+      return { status: 413, body: error('PAYLOAD_TOO_LARGE', `Image is ${upload.size} bytes; the limit is ${MAX_IMAGE_BYTES} (§13.1).`) };
+    }
   }
 
   const store = createStore(env);
@@ -48,18 +103,88 @@ export async function postGenerate(ctx = {}) {
     // Allocate section ID early so we can put it in the job and the IR
     const sectionId = await store.allocateId('section');
     
-    job = await jobStore.createJob({ mode: 'prompt', pageName, sectionId });
-    
-    // Skip image stages
-    await trace.skipStage(job.jobId, { stage: 1, reason: 'mode=prompt uses no image' });
-    await trace.skipStage(job.jobId, { stage: 2, reason: 'mode=prompt uses no image' });
-    await trace.skipStage(job.jobId, { stage: 3, reason: 'mode=prompt uses no image' });
+    job = await jobStore.createJob({ mode: body.mode, pageName, sectionId });
+
+    // ---- stages 1-3 -------------------------------------------------------
+    //
+    // ONE CALL TO /perceive, THREE TRACE RECORDS. §11.0 numbers normalisation (2) and
+    // multimodal-understanding (3) as separate stages, and the perception service runs
+    // both behind a single request — §12 gives it one endpoint, not three. So the call
+    // is made once and each record carries the part of the result that belongs to it:
+    // stage 2 the normalisation transform §6 requires, stage 3 the regions and text.
+    // Splitting the call to match the numbering would double a 5-second stage to make
+    // the trace look tidier, and would make the two records describe two different
+    // readings of the same image.
+    let perceived = null;
+    let perceptionWarnings = [];
+
+    if (isWireframe) {
+      // Stage 1: the upload, persisted as this stage's artifact. §11.2 keeps artifacts
+      // Node-owned, and this is the one place the original bytes exist on this side.
+      await trace.runStage(job.jobId, {
+        stage: 1,
+        run: async () => upload.bytes,
+        outputExt: upload.contentType === 'image/jpeg' ? 'jpg'
+          : upload.contentType === 'image/webp' ? 'webp' : 'png',
+        outputName: 'upload'
+      });
+
+      perceived = await perceiveOrDegrade({
+        image: upload.bytes,
+        filename: upload.filename,
+        contentType: upload.contentType,
+        baseUrl: env.PERCEPTION_URL || undefined,
+        request: {
+          pageName,
+          sectionName,
+          mode: body.mode,
+          prompt: body.prompt || '',
+          wireframeRef: `uploads/${job.jobId}`
+        }
+      });
+      perceptionWarnings = perceived.warnings || [];
+
+      const remote = perceived.perception || {};
+      const remoteStage = (n) => (remote.stages || []).find((s) => s.stage === n) || null;
+
+      await trace.runStage(job.jobId, {
+        stage: 2,
+        run: async () => remote.normalisation || { degraded: true },
+        outputName: 'normalised'
+      });
+
+      await trace.runStage(job.jobId, {
+        stage: 3,
+        run: async () => {
+          const s3 = remoteStage(3);
+          if (!s3) {
+            // §11.1: degraded is "the stage did not do its real work but the pipeline
+            // continued" — the canonical case being this service unreachable. Throwing
+            // here would make it FAILED and stop the job, which is the outcome
+            // AGENTS.md rule 5 forbids.
+            return { degraded: true, reason: perceived.reason || 'perception returned no stage 3 record' };
+          }
+          return s3.artifact;
+        },
+        outputName: 'regions'
+      });
+    } else {
+      // Skip image stages
+      await trace.skipStage(job.jobId, { stage: 1, reason: `mode=${body.mode} uses no image` });
+      await trace.skipStage(job.jobId, { stage: 2, reason: `mode=${body.mode} uses no image` });
+      await trace.skipStage(job.jobId, { stage: 3, reason: `mode=${body.mode} uses no image` });
+    }
     
     // Stage 4: semantic-planning-ir
     const s4 = await trace.runStage(job.jobId, {
       stage: 4,
       run: async () => {
-        const ir = await promptToIrHosted(body.prompt, { pageName, sectionName });
+        // The wireframe path's IR is already assembled by perceiveOrDegrade — that is
+        // what §12's named sub-objects are for, and reassembling them here would be a
+        // second implementation of the split T-058 already owns and tests.
+        const ir = isWireframe
+          ? perceived.ir
+          : await promptToIrHosted(body.prompt, { pageName, sectionName });
         ir.sectionId = sectionId;
         
         // Allocate IDs for elements
@@ -154,9 +279,16 @@ export async function postGenerate(ctx = {}) {
     // Refetch job to return it updated
     const finalJob = await jobStore.getJob(job.jobId);
     
+    // §12: degradation is part of the contract, not an afterthought. A caller that
+    // cannot tell a wireframe-derived section from a template-derived one has no way
+    // to know the upload was ignored, and the job record alone does not say.
+    const payload = { job: finalJob };
+    if (perceptionWarnings.length) payload.warnings = perceptionWarnings;
+    if (perceived && perceived.stageStatus === STAGE_DEGRADED) payload.degraded = true;
+
     return {
       status: STATUS.OK,
-      body: ok({ job: finalJob })
+      body: ok(payload)
     };
     
   } catch (err) {

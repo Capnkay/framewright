@@ -157,3 +157,10 @@
 - Device: Mohits_Victus
 - Files: client/src/sections/generated/HeroSection.jsx, tests/cards-count.test.mjs
 
+## T-108 — Implement mode=wireframe on POST /api/generate — stages 1, 2 and 3 never run in this system
+- Started: 2026-08-21T20:17:17.780Z
+- Finished: 2026-08-21T20:23:42.894Z
+- Duration: 6m
+- Device: Mohits_Victus
+- Files: server/src/routes/generate.js, tests/generate-wireframe-mode.test.mjs
+
