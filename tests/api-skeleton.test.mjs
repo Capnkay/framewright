@@ -239,10 +239,10 @@ test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (
   assert.equal((await postReplay({ params, body: { fromStage: 9 }, env: isolatedEnv('replay') })).status, STATUS.BAD_REQUEST);
 });
 
-test('POST /api/jobs/:jobId/answers requires a non-empty answers array (§11.3)', () => {
+test('POST /api/jobs/:jobId/answers requires a non-empty answers array (§11.3)', async () => {
   const params = { jobId: 'job-0000000001' };
-  assert.equal(postAnswers({ params, body: {} }).status, STATUS.BAD_REQUEST);
-  assert.equal(postAnswers({ params, body: { answers: [] } }).status, STATUS.BAD_REQUEST);
+  assert.equal((await postAnswers({ params, body: {} })).status, STATUS.BAD_REQUEST);
+  assert.equal((await postAnswers({ params, body: { answers: [] } })).status, STATUS.BAD_REQUEST);
 });
 
 // --- errors always carry the envelope, whatever the endpoint ---------------
@@ -272,7 +272,7 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', async () => {
   // endpoints stopped being shadowed by stubs in routes/index.js and were
   // bound to their real implementations (T-015, T-016, T-037). Lowered 2 -> 1
   // when GET /api/metrics was likewise unshadowed and bound to metrics.js (T-087).
-  const EXPECTED_STUBS = 1;
+  const EXPECTED_STUBS = 0;
 
   const ctx = {
     params: { sectionId: '1000000001', fieldId: '2000000003', jobId: 'job-0000000001', name: 's3-regions.json' },

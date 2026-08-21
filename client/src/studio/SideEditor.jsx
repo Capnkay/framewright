@@ -8,7 +8,7 @@ export default function SideEditor({ fieldId, pageName = 'Home', apiUrl = '/api'
   
   const contentFromStore = useSelector(state => state.cms.allSections[pageName]?.[fieldId]);
   const cssFromStore = useSelector(state => state.cms.allSectionsCss[pageName]?.[fieldId]);
-  const confidenceFromStore = useSelector(state => state.cms.allSectionsConfidence?.[pageName]?.[fieldId]);
+  const confidenceFromStore = useSelector(state => state.cms.allSections[pageName]?.[`__confidence__:${fieldId}`]);
   
   const [content, setContent] = useState('');
   const [css, setCss] = useState('');

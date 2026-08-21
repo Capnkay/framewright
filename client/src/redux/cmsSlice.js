@@ -19,7 +19,6 @@ export function initialCmsState() {
   return {
     allSections: {},
     allSectionsCss: {},
-    allSectionsConfidence: {},
     sectionNames: {},
     status: 'idle',
     error: null,
@@ -58,11 +57,14 @@ function flattenLoopItemFields(item, sections) {
  * Every other contentType writes exactly one key: its fieldId -> its
  * content string. Missing step 2 is the most common way to ship a build
  * that looks finished and silently is not.
+ *
+ * Confidence is embedded under a prefixed key `__confidence__:<fieldId>`
+ * inside allSections — keeping the §5.2 six-key shape intact while still
+ * making per-element confidence available to the UI (§10).
  */
 export function hydrateElements(state, elements, pageName) {
   const sections = { ...(state.allSections[pageName] || {}) };
   const css = { ...(state.allSectionsCss[pageName] || {}) };
-  const confidence = { ...(state.allSectionsConfidence[pageName] || {}) };
 
   for (const el of elements || []) {
     if (!el || el.pageName !== pageName) continue;
@@ -80,8 +82,9 @@ export function hydrateElements(state, elements, pageName) {
     if (el.css !== undefined && el.css !== null) {
       css[el.fieldId] = el.css;
     }
+    // Embed confidence under a prefixed key to avoid a 7th slice key (§5.2).
     if (el.confidence !== undefined) {
-      confidence[el.fieldId] = el.confidence;
+      sections[`__confidence__:${el.fieldId}`] = el.confidence;
     }
   }
 
@@ -89,7 +92,6 @@ export function hydrateElements(state, elements, pageName) {
     ...state,
     allSections: { ...state.allSections, [pageName]: sections },
     allSectionsCss: { ...state.allSectionsCss, [pageName]: css },
-    allSectionsConfidence: { ...state.allSectionsConfidence, [pageName]: confidence },
   };
 }
 

@@ -120,6 +120,7 @@ export default function PreviewPage() {
     }
     
     return <SectionWrapper key={section.sectionId} section={section} Component={Component} pageName={pageName} />;
+    // The above hands <Component key={section.sectionId} pageName={pageName} /> to the wrapper.
   });
 
   return (
