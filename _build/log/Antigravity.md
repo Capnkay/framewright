@@ -205,3 +205,10 @@
 - Files: (none named)
 - Note: Rehearsed on a non-GPU machine with perception service stopped. All fallbacks A 15-A 17 exercised.
 
+## T-083 — Implement the S3-compatible storage backend, proxying reads through VITE_STORAGE_URL (§15.2)
+- Started: 2026-08-21T17:50:07.460Z
+- Finished: 2026-08-21T17:56:40.677Z
+- Duration: 7m
+- Device: Jainam
+- Files: server/src/storage/s3.js, tests/storage-s3.test.mjs
+
