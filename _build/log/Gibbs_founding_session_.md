@@ -98,3 +98,10 @@
 - Device: Karans-PC
 - Files: client/src/studio/UploadForm.jsx, tests/upload-form.test.mjs
 
+## T-044 — Build the Generator Studio’s code and prompt textareas (FR-G02, FR-G03)
+- Started: 2026-08-21T15:26:03.462Z
+- Finished: 2026-08-21T15:33:23.859Z
+- Duration: 7m
+- Device: Karans-PC
+- Files: client/src/studio/CodePromptInputs.jsx, tests/code-prompt-inputs.test.mjs
+
