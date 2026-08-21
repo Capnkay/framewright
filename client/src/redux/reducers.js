@@ -26,13 +26,19 @@ export const reducerMap = {
 };
 
 /**
- * The six keys §5.2 declares, in the order the contract lists them. Exported so
- * the test asserts against a single written-down list rather than restating it,
- * and so a future slice change has one obvious place to update.
+ * The seven keys §5.2 declares, in the order the contract lists them. Exported
+ * so the test asserts against a single written-down list rather than restating
+ * it, and so a future slice change has one obvious place to update.
+ *
+ * `allSectionsConfidence` joined the list in v1.6 (T-068, §10). It was added to
+ * cmsSlice.js without being added here, which is the case this list exists to
+ * catch — the slice and its declared shape drifted apart and three suites went
+ * red at once.
  */
 export const CMS_SLICE_KEYS = Object.freeze([
   'allSections',
   'allSectionsCss',
+  'allSectionsConfidence',
   'sectionNames',
   'status',
   'error',

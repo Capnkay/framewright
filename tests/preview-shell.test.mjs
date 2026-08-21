@@ -39,10 +39,16 @@ test('Preview shell hosts generated sections by fetching SectionDocs and renderi
   );
 
   // Verify it renders the dynamically discovered Component with pageName prop
+  // The requirement is that the discovered component is rendered and receives
+  // pageName — not that `key` sits immediately before it. This previously
+  // pinned the exact JSX including the key's position, so wrapping <Component>
+  // in a container (T-069's per-section regenerate control) broke it while the
+  // behaviour was unchanged. React's `key` belongs on the outermost element of
+  // a mapped item, so it legitimately moves when a wrapper is introduced.
   assert.match(
     source,
-    /<Component\s+key=\{[^}]+\}\s+pageName=\{pageName\}\s*\/>/,
-    'must render the dynamically discovered Component with pageName prop'
+    /<Component[^>]*\spageName=\{pageName\}/,
+    'must render the dynamically discovered Component with the pageName prop'
   );
 
   // Verify fallback UI is rendered if the component is missing

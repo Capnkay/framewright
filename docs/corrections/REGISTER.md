@@ -1786,3 +1786,37 @@ able to see why.
 cause, and the first plausible explanation fitted it. It was the *second* question —
 "why would that break a PATCH?" — that found the seed. A fix built on the first answer
 would have changed the hydration path, left duplicate ids in the store, and passed.
+## 2026-08-21 · CONTRACT v1.5 → v1.6 — §5.2 gains a seventh key, and main went red because the slice and its declared shape drifted
+
+**The amendment.** §5.2 listed six keys. T-068 needed per-element confidence in the
+Studio (§10 requires it surfaced per element), and added `allSectionsConfidence` to
+`cmsSlice.js`. The key is load-bearing — `SideEditor.jsx` reads it per `fieldId` — so
+the choice was to amend §5.2 or revert a legitimately completed task. §5.2 is amended.
+
+It is kept separate from `allSections` deliberately: confidence is metadata about a
+value, and merging them would make `allSections[pageName][fieldId]` sometimes a string
+and sometimes an object, which is exactly the ambiguity §5.0's flattening rule exists to
+remove.
+
+**Why three suites went red at once.** `client/src/redux/reducers.js` exports
+`CMS_SLICE_KEYS`, described in its own comment as existing "so a future slice change has
+one obvious place to update". T-068 updated the slice and not that list, so the slice and
+its declared shape disagreed, and every test asserting §5.2's shape failed together. The
+guard worked; it was simply not updated. `CMS_SLICE_KEYS` now carries the seventh key,
+and `tests/app-shell.test.mjs` and `tests/cms-slice.test.mjs` assert seven.
+
+**A second, unrelated breakage in the same push.** T-069 added a per-section regenerate
+control to `PreviewPage.jsx`, wrapping `<Component>` in a container. Two suites asserted
+the exact JSX `/<Component\s+key=\{[^}]+\}\s+pageName=\{pageName\}\s*\/>/` — pinning not
+just that the discovered component renders with `pageName`, but that React's `key` sits
+immediately before it. A `key` belongs on the outermost element of a mapped item, so it
+legitimately moves the moment a wrapper is introduced. The behaviour never changed; only
+the formatting did. Both now assert `/<Component[^>]*\spageName=\{pageName\}/`.
+
+This is the third time a source-regex assertion in this repo has failed on a legitimate
+refactor or passed while the wiring was wrong. The pattern is worth naming: asserting the
+text of a component tests how it is written, not what it does.
+
+**Also noted, not fixed here.** T-069 was implemented twice, by two people, from claims
+made minutes apart — a genuine race rather than a protocol failure. The duplicate work is
+recorded so the cost is visible: both implementations were complete and tested.

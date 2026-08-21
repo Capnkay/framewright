@@ -271,14 +271,22 @@ what it needs, and the store can say what never arrived. The automated assertion
 
 ```
 state.cms = {
-  allSections:    { [pageName]: { [fieldId]: string | loopArray } },
-  allSectionsCss: { [pageName]: { [fieldId]: string } },
-  sectionNames:   { [sectionId]: string },
-  status:         "idle" | "loading" | "succeeded" | "failed",
-  error:          string | null,
-  missing:        { [pageName]: string[] }
+  allSections:           { [pageName]: { [fieldId]: string | loopArray } },
+  allSectionsCss:        { [pageName]: { [fieldId]: string } },
+  allSectionsConfidence: { [pageName]: { [fieldId]: number } },
+  sectionNames:          { [sectionId]: string },
+  status:                "idle" | "loading" | "succeeded" | "failed",
+  error:                 string | null,
+  missing:               { [pageName]: string[] }
 }
 ```
+
+**`allSectionsConfidence` was added in v1.6** (T-068). §10 requires confidence to be
+surfaced per element, and the Studio's side-editor reads it per `fieldId` — so it is keyed
+the same way as `allSections` and `allSectionsCss`, and populated by the same hydration
+path. It is separate from `allSections` deliberately: confidence is metadata about a value,
+and merging the two would make `allSections[pageName][fieldId]` sometimes a string and
+sometimes an object, which is exactly the ambiguity §5.0's flattening rule exists to remove.
 
 `status` and `error` exist so a failed hydration is visible in the UI instead of hiding
 behind the component's default fallbacks.

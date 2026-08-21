@@ -32,9 +32,15 @@ test('PreviewPage wires Vite eager-glob discovery of generated sections (T-029)'
   );
 
   // Verify it renders the Component if found
+  // The requirement is that the discovered component is rendered and receives
+  // pageName — not that `key` sits immediately before it. This previously
+  // pinned the exact JSX including the key's position, so wrapping <Component>
+  // in a container (T-069's per-section regenerate control) broke it while the
+  // behaviour was unchanged. React's `key` belongs on the outermost element of
+  // a mapped item, so it legitimately moves when a wrapper is introduced.
   assert.match(
     source,
-    /<Component\s+key=\{[^}]+\}\s+pageName=\{pageName\}\s*\/>/,
-    'must render the dynamically discovered Component with pageName prop'
+    /<Component[^>]*\spageName=\{pageName\}/,
+    'must render the dynamically discovered Component with the pageName prop'
   );
 });

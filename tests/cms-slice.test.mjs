@@ -2,7 +2,7 @@
 //
 // The dedicated slice-shape suite. tests/golden.test.mjs already exercises the
 // §5.0 flattening through the component's eyes, and tests/app-shell.test.mjs
-// checks the namespace is mounted; this file pins §5.2 itself — the six keys,
+// checks the namespace is mounted; this file pins §5.2 itself — the seven keys,
 // their initial values, the four legal status values, and the reducer
 // properties Redux relies on but nothing else asserts.
 //
@@ -33,13 +33,14 @@ import {
 const LEGAL_STATUSES = ['idle', 'loading', 'succeeded', 'failed'];
 
 // ---------------------------------------------------------------------
-// 1. The six keys and their initial values (§5.2).
+// 1. The seven keys and their initial values (§5.2, amended in v1.6 by T-068).
 // ---------------------------------------------------------------------
-test('the slice has exactly §5.2 six keys, with the initial values it implies', () => {
+test('the slice has exactly §5.2 seven keys, with the initial values it implies', () => {
   const state = initialCmsState();
 
   assert.deepEqual(Object.keys(state).sort(), [
     'allSections',
+    'allSectionsConfidence',
     'allSectionsCss',
     'error',
     'missing',
@@ -49,6 +50,7 @@ test('the slice has exactly §5.2 six keys, with the initial values it implies',
 
   assert.deepEqual(state.allSections, {});
   assert.deepEqual(state.allSectionsCss, {});
+  assert.deepEqual(state.allSectionsConfidence, {});
   assert.deepEqual(state.sectionNames, {});
   assert.equal(state.status, 'idle');
   assert.equal(state.error, null);
@@ -76,7 +78,7 @@ test('the reducer is usable as a real Redux reducer', () => {
 
   // Redux calls every reducer with undefined state and a private init action.
   const initial = cmsReducer(undefined, { type: '@@redux/INIT' });
-  assert.deepEqual(Object.keys(initial).length, 6);
+  assert.deepEqual(Object.keys(initial).length, 7);
 
   // And probes with an action nobody handles; returning undefined throws.
   const same = cmsReducer(initial, { type: 'x/unhandled' });
