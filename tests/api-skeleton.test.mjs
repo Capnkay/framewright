@@ -236,8 +236,9 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', async () => {
   // Phase 2 lands, and it can never rise without this assertion failing.
   // Lowered 5 -> 2 when GET/PATCH /api/elements and the two §11.2 artifact
   // endpoints stopped being shadowed by stubs in routes/index.js and were
-  // bound to their real implementations (T-015, T-016, T-037).
-  const EXPECTED_STUBS = 2;
+  // bound to their real implementations (T-015, T-016, T-037). Lowered 2 -> 1
+  // when GET /api/metrics was likewise unshadowed and bound to metrics.js (T-087).
+  const EXPECTED_STUBS = 1;
 
   const ctx = {
     params: { sectionId: '1000000001', fieldId: '2000000003', jobId: 'job-0000000001', name: 's3-regions.json' },

@@ -84,10 +84,6 @@ export function getHealth(ctx = {}) {
   };
 }
 
-/** GET /api/metrics — §17.2. Prometheus text format; no server required. */
-export function getMetrics() {
-  return notImplemented('T-087', 'GET /api/metrics');
-}
 
 import { postGenerate } from './generate.js';
 export { postGenerate };
@@ -105,6 +101,9 @@ export { getElements, patchElement };
 
 import { getArtifact, getComponentSource } from './artifacts.js';
 export { getArtifact, getComponentSource };
+
+import { getMetrics } from './metrics.js';
+export { getMetrics };
 
 
 

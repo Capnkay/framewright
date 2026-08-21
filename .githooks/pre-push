@@ -178,4 +178,40 @@ if [ -n "$DUPLICATES" ]; then
   fail "duplicate fieldId/fieldIdN found in tracked JSON files (atomicity failure): $DUPLICATES"
 fi
 
+# --- 9. the section 9 store-liveness invariant ------------------------------
+#
+# CONTRACT.md section 9 is the single most dangerous property of this design:
+# every text node renders as `data?.[id] || "DEFAULT"`, so a dead store renders
+# pixel-identical to a working system. It compiles, it lints, it passes schema
+# validation and a screenshot diff. It fails only when someone changes a value
+# and the preview does not move -- in front of a judge, at the exact moment the
+# demo script says to change a headline.
+#
+# Not hypothetical. Five endpoints once shipped bound to stubs in routes/index.js
+# that shadowed their real implementations; GET /api/elements answered 200 []
+# whatever the store held, with the whole suite green. See
+# docs/corrections/REGISTER.md, 2026-08-21.
+#
+# It runs on push rather than on commit deliberately. The check renders React for
+# real, so it needs BOTH server/node_modules and client/node_modules. On
+# pre-commit, fail-closed would mean any teammate who had not installed both
+# could not commit at all -- the gate that exists to protect the demo would
+# instead stop the build. Push is where work reaches other people, which is the
+# boundary this invariant actually needs to hold at.
+#
+# Fails closed, like every other check here: missing dependencies are a real
+# inability to verify the invariant, not a pass.
+
+command -v node >/dev/null 2>&1 || fail "required tool not found on PATH: node"
+
+for DEPS in server/node_modules client/node_modules; do
+  [ -d "$DEPS" ] || fail "$DEPS is missing, so the section 9 store-liveness check cannot run. Run npm install in server/ and client/, then push again -- see SETUP.md."
+done
+
+node tools/check-store-liveness.mjs
+LIVENESS_STATUS=$?
+if [ "$LIVENESS_STATUS" -ne 0 ]; then
+  fail "the section 9 store-liveness assertion failed. The store is not reaching the rendered preview -- a PATCH would not move the page. Run: npm run check-store-liveness"
+fi
+
 exit 0

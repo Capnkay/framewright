@@ -27,6 +27,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 import { createApp } from '../server/src/app.js';
 import { createStore } from '../server/src/store/index.js';
@@ -103,4 +104,39 @@ test('no route handler is a stub shadowing a real implementation', async () => {
       `${route.method} ${route.path} returns 501 but does not name the task that implements it`,
     );
   }
+});
+
+// A static guard, stronger than the runtime one above: catch the SHADOWING
+// itself, not just its symptom. The runtime check only notices a shadow when
+// the stub's response differs visibly; a stub that returns 501 while naming its
+// task passes it, and GET /api/metrics shipped in exactly that state.
+//
+// The rule: if a sibling route module exports a handler, index.js must
+// re-export it, never declare its own function of the same name. That is how
+// sections.js, generate.js, elements.js, artifacts.js and metrics.js are wired.
+test('routes/index.js never declares a handler a sibling route module implements', async () => {
+  const routesDir = fileURLToPath(new URL('../server/src/routes/', import.meta.url));
+  const indexSrc = await fsp.readFile(path.join(routesDir, 'index.js'), 'utf8');
+  const EXPORTED_FN = /^export (?:async )?function (\w+)/gm;
+
+  const declaredLocally = new Set([...indexSrc.matchAll(EXPORTED_FN)].map((m) => m[1]));
+
+  const implementedBySibling = new Map();
+  for (const file of await fsp.readdir(routesDir)) {
+    if (file === 'index.js' || !file.endsWith('.js')) continue;
+    const src = await fsp.readFile(path.join(routesDir, file), 'utf8');
+    for (const m of src.matchAll(EXPORTED_FN)) implementedBySibling.set(m[1], file);
+  }
+
+  const shadowed = [...declaredLocally]
+    .filter((name) => implementedBySibling.has(name))
+    .map((name) => name + ' (real implementation lives in ' + implementedBySibling.get(name) + ')');
+
+  assert.deepEqual(
+    shadowed,
+    [],
+    'routes/index.js declares handler(s) a sibling module already implements, so the '
+      + 'route table binds the stub and the real handler never runs. Delete the local '
+      + 'declaration and re-export the sibling instead. Shadowed: ' + shadowed.join('; '),
+  );
 });

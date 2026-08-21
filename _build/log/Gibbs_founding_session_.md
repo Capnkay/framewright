@@ -49,3 +49,17 @@
 - Device: Karans-PC
 - Files: tools/check-store-liveness.mjs, package.json
 
+## T-081 — Wire the four sanctioned cache keys into the IR, render, embedding and perceive paths (§15.1)
+- Started: 2026-08-21T14:19:42.506Z
+- Finished: 2026-08-21T14:33:14.530Z
+- Duration: 14m
+- Device: Karans-PC
+- Files: server/src/cache/keys.js, tests/cache-keys.test.mjs
+
+## T-067 — Surface confidence bands per §10 in the API response and the Glass Box timeline
+- Started: 2026-08-21T14:19:43.121Z
+- Finished: 2026-08-21T14:33:15.281Z
+- Duration: 14m
+- Device: Karans-PC
+- Files: server/src/routes/jobs.js, tests/confidence-surfaced-api.test.mjs
+
