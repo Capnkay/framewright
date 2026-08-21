@@ -171,3 +171,11 @@
 - Device: Mohits_Victus
 - Files: server/src/routes/generate.js, tests/write-path-validation.test.mjs
 
+## T-110 — AGENTS.md: a task that builds a module must wire it or name the task that will
+- Started: 2026-08-21T20:34:23.516Z
+- Finished: 2026-08-21T20:35:08.036Z
+- Duration: 1m
+- Device: Mohits_Victus
+- Files: AGENTS.md, docs/corrections/REGISTER.md
+- Note: Rule 9 added to AGENTS.md with its corollary on tests that import their own subject; logged in docs/corrections/REGISTER.md
+

@@ -3,7 +3,10 @@
   "who": "Mohit Gupta",
   "device": "Mohits_Victus",
   "claimedAt": "2026-08-21T20:34:23.516Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-21T20:35:08.036Z",
+  "durationMs": 44520,
+  "note": "Rule 9 added to AGENTS.md with its corollary on tests that import their own subject; logged in docs/corrections/REGISTER.md"
 }

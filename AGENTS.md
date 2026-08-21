@@ -92,6 +92,29 @@ hours and then quietly lies to whoever reads it next.
 
 8. **Every claim carries a source**, and says whether it was verified or merely reported.
 
+9. **A task that builds a module must wire it, or name the task that will.** A `files`
+   list covers a module; nothing covers the call from one module to the next, and a
+   dependency graph over tasks cannot express *"and something must invoke this"*. So a
+   module can be built, tested, marked done, and never called by anything — and the
+   board will read 100 of 100 while the feature does not exist. Three of these were
+   found in two days, each sitting between two individually complete tasks:
+
+   | Gap | Between |
+   |---|---|
+   | `/perceive` answered with the T-054 scaffold while stages 2–4 sat built and unreachable | T-054 and T-055/T-056/T-098/T-057 |
+   | `mode=wireframe` returned 501 while `perceiveAndAssembleIr` had zero callers | T-033 and T-058 |
+   | The Generator Studio mounted none of its 14 built components | T-001 and T-043…T-068 |
+
+   **Corollary, and it is the half people skip: a test that imports its own subject has
+   not shown the module is reachable.** Every one of those 14 studio components had a
+   passing test. That is exactly why it survived — the tests import the component
+   directly, so they pass whether or not anything mounts it. Where reachability is the
+   thing in doubt, assert it from the route, the endpoint or the page.
+
+   **How to satisfy this:** either add the call site to your own `files` list, or write
+   the follow-up task before you close yours and name it in your `doneWhen`. "Someone
+   will wire it later" is how all three of the above happened.
+
 ---
 
 ## Never

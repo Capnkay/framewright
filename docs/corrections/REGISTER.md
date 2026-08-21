@@ -1727,3 +1727,26 @@ is the argument against deleting one.
 **Not changed:** `docs/CONTRACT.md`. §12's response shape, §11.1's stage records and
 §10's null rule all described the correct behaviour already. The endpoint did not
 implement them, which is a bug under rule 1 rather than a specification gap.
+
+---
+
+## 2026-08-22 · AGENTS.md — a ninth rule, after three gaps of one shape in two days
+
+Found by a static import-graph audit over `server/src` and `client/src`, run against a
+board reading 100 of 100 with `baton next` clear on every track.
+
+| # | Added | Why it mattered |
+|---|---|---|
+| 1 | **Rule 9** — a task that builds a module must wire it, or name the task that will | Three features were built, tested, marked done, and unreachable: `/perceive` answered with the T-054 scaffold (T-101), `mode=wireframe` returned 501 while `perceiveAndAssembleIr` had zero callers (T-108), and the Generator Studio mounted none of its 14 components (T-107). Each sat *between* two complete tasks. A `files` list covers a module; nothing covers the call from one to the next, and a dependency graph over tasks cannot express "and something must invoke this" |
+| 2 | **Rule 9's corollary** — a test that imports its own subject has not shown the module is reachable | All 14 orphaned studio components had passing tests. That is why the gap survived a full board: the tests import the component directly, so they pass whether or not anything mounts it |
+
+**Not changed:** `docs/CONTRACT.md`. None of the three is a contract defect — §12's
+response shape, §13's modes and §11's stage records all described the correct behaviour.
+The code did not implement them, which is a bug under rule 1, not a specification gap.
+
+**Also logged here rather than in a task:** `T-109` was reduced in scope mid-flight.
+§3's element fields could not be supplied because doing so fails the §9 store-liveness
+assertion — `fetchElementsByIds` hydrates a page with no id filter, so a generated
+section's elements collide with the golden section's in one flat map. Raised as T-111.
+Rule 2 forbids disabling that assertion, and shipping a change that leaves it red is
+disabling it in everything but name.
