@@ -168,3 +168,10 @@
 - Device: Jainam
 - Files: client/src/studio/QuestionPrompt.jsx, tests/hitl-ui.test.mjs
 
+## T-068 — Surface confidence per element in the Studio and preview
+- Started: 2026-08-21T17:24:38.706Z
+- Finished: 2026-08-21T17:27:45.063Z
+- Duration: 3m
+- Device: Jainam
+- Files: client/src/studio/ConfidenceBadge.jsx, tests/confidence-surfaced-studio.test.mjs
+

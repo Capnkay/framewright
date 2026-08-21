@@ -19,6 +19,7 @@ export function initialCmsState() {
   return {
     allSections: {},
     allSectionsCss: {},
+    allSectionsConfidence: {},
     sectionNames: {},
     status: 'idle',
     error: null,
@@ -61,6 +62,7 @@ function flattenLoopItemFields(item, sections) {
 export function hydrateElements(state, elements, pageName) {
   const sections = { ...(state.allSections[pageName] || {}) };
   const css = { ...(state.allSectionsCss[pageName] || {}) };
+  const confidence = { ...(state.allSectionsConfidence[pageName] || {}) };
 
   for (const el of elements || []) {
     if (!el || el.pageName !== pageName) continue;
@@ -78,12 +80,16 @@ export function hydrateElements(state, elements, pageName) {
     if (el.css !== undefined && el.css !== null) {
       css[el.fieldId] = el.css;
     }
+    if (el.confidence !== undefined) {
+      confidence[el.fieldId] = el.confidence;
+    }
   }
 
   return {
     ...state,
     allSections: { ...state.allSections, [pageName]: sections },
     allSectionsCss: { ...state.allSectionsCss, [pageName]: css },
+    allSectionsConfidence: { ...state.allSectionsConfidence, [pageName]: confidence },
   };
 }
 

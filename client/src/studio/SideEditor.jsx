@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { submitPatch, applyPatchResponse } from './SideEditor.logic.js';
+import ConfidenceBadge from './ConfidenceBadge.jsx';
 
 export default function SideEditor({ fieldId, pageName = 'Home', apiUrl = '/api' }) {
   const dispatch = useDispatch();
   
   const contentFromStore = useSelector(state => state.cms.allSections[pageName]?.[fieldId]);
   const cssFromStore = useSelector(state => state.cms.allSectionsCss[pageName]?.[fieldId]);
+  const confidenceFromStore = useSelector(state => state.cms.allSectionsConfidence?.[pageName]?.[fieldId]);
   
   const [content, setContent] = useState('');
   const [css, setCss] = useState('');
@@ -59,7 +61,12 @@ export default function SideEditor({ fieldId, pageName = 'Home', apiUrl = '/api'
 
   return (
     <div className="side-editor">
-      <h3>Edit Field: {fieldId}</h3>
+      <h3>
+        Edit Field: {fieldId}
+        <span className="ml-2">
+          <ConfidenceBadge confidence={confidenceFromStore} />
+        </span>
+      </h3>
       <form onSubmit={handleSave}>
         <div>
           <label>Content</label>
