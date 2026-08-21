@@ -2115,6 +2115,88 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_perceive.py",
       "doneWhen": "Measured by calling POST /perceive with gpu-test/wireframe.png against the board at 100/100: every element came back sourceOf 'default' with bbox null, normalisation was the identity {scale 1.0, width null, height null}, confidence was null, and stages 2, 3 and 4 were all 'skipped' naming T-055/T-056/T-057 — tasks that are done, tested and unreachable from the endpoint. No task covered the seam: T-054 built the scaffold and T-058 owns the Node side, so the wiring belonged to nobody and a 100/100 board could not see it. /perceive must run normalise → detect_regions → extract_text → fuse and return what they produce: the real transform (§6 requires the normaliser to record it), real bboxes in normalised space, measured confidences and never fabricated ones (§10), and stage records carrying real status, timings and inline artifacts (§11.1, §11.2). Degradation stays supported rather than fatal: OCR absent or a dead worker is a 'degraded' stage and regions-without-text, not a 500, and an undecodable upload is still §12's 422 PARSE_FAILURE. The service still writes no file and allocates no fieldId. Pinned by a test that feeds the reference wireframe through the endpoint and asserts sourceOf 'wireframe' on the elements a detection actually claimed."
+    },
+    {
+      "id": "T-102",
+      "phase": 6,
+      "track": "studio-preview",
+      "title": "bbox overlay maps normalised → upload space in QuestionPrompt",
+      "size": "45m",
+      "contract": [
+        "§6"
+      ],
+      "deps": [],
+      "files": [
+        "client/src/studio/QuestionPrompt.jsx"
+      ],
+      "verify": null,
+      "doneWhen": "Verified visually against a fixture: The QuestionPrompt component applies the normalisation transform to the bbox so it draws accurately on the uploaded image."
+    },
+    {
+      "id": "T-103",
+      "phase": 6,
+      "track": "studio-preview",
+      "title": "Confidence bands render against real floats",
+      "size": "30m",
+      "contract": [
+        "§10"
+      ],
+      "deps": [],
+      "files": [
+        "client/src/studio/ConfidenceBadge.jsx"
+      ],
+      "verify": null,
+      "doneWhen": "Verified visually against a fixture: ConfidenceBadge renders null as 'Not examined', not 0%, distinguishing it clearly from low confidence per §10."
+    },
+    {
+      "id": "T-104",
+      "phase": 6,
+      "track": "studio-preview",
+      "title": "The timeline survives a 5-second stage and a degraded status",
+      "size": "30m",
+      "contract": [
+        "§11"
+      ],
+      "deps": [],
+      "files": [
+        "client/src/studio/JobTimeline.jsx",
+        "client/src/studio/StageInspector.jsx"
+      ],
+      "verify": null,
+      "doneWhen": "Verified visually against a fixture: The timeline formats large millisecond durations correctly and renders degraded stages distinctly."
+    },
+    {
+      "id": "T-105",
+      "phase": 6,
+      "track": "studio-preview",
+      "title": "StageInspector handles a large inline artifact without freezing",
+      "size": "30m",
+      "contract": [
+        "§11.2"
+      ],
+      "deps": [],
+      "files": [
+        "client/src/studio/StageInspector.jsx"
+      ],
+      "verify": null,
+      "doneWhen": "Verified visually against a fixture: Large inline artifacts are truncated or streamed so they don't freeze the DOM."
+    },
+    {
+      "id": "T-106",
+      "phase": 6,
+      "track": "studio-preview",
+      "title": "cards.count ≠ 3 renders correctly",
+      "size": "30m",
+      "contract": [
+        "§4"
+      ],
+      "deps": [],
+      "files": [
+        "client/src/sections/HeroSection.jsx",
+        "client/src/studio/SideEditor.jsx"
+      ],
+      "verify": null,
+      "doneWhen": "Verified visually against a fixture: The component handles arbitrary cards.count sizes dynamically without assuming exactly 3 cards."
     }
   ]
 }
