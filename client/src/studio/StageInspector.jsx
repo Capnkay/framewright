@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { extractStageInfo, fetchArtifactContent } from './StageInspector.logic.js';
+import ConfidenceBadge from './ConfidenceBadge.jsx';
 
 export default function StageInspector({ jobId, stageRecord }) {
   const [content, setContent] = useState(null);
@@ -50,9 +51,10 @@ export default function StageInspector({ jobId, stageRecord }) {
         </h3>
         <div className="flex gap-2 text-xs">
           {confidence !== null && (
-            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium">
-              Confidence: {confidence.toFixed(2)}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="font-medium text-gray-700">Confidence:</span>
+              <ConfidenceBadge confidence={confidence} />
+            </div>
           )}
           {warnings.length > 0 && (
             <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">
