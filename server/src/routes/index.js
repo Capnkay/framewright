@@ -95,42 +95,18 @@ export { postGenerate };
 import { getSections, getSection } from './sections.js';
 export { getSections, getSection };
 
-/**
- * GET /api/elements — §13.4. Bare array.
- * At least one query parameter is required; an unfiltered request is 400.
- */
-export function getElements(ctx = {}) {
-  const query = ctx.query || {};
-  const filters = ['pageName', 'sectionId', 'fieldIds'].filter((key) => query[key]);
+// The real handlers live in their own route files. They were previously
+// shadowed by local stubs in this file, so the route table below bound the
+// stub and GET /api/elements answered 200 [] no matter what the store held —
+// the §9 dead-store failure, invisible to tests that import the sibling
+// module directly. Re-export, never re-declare.
+import { getElements, patchElement } from './elements.js';
+export { getElements, patchElement };
 
-  if (filters.length === 0) {
-    return badRequest(
-      'At least one of pageName, sectionId, or fieldIds is required (§13.4). ' +
-        'An unfiltered request would return the whole store.',
-    );
-  }
+import { getArtifact, getComponentSource } from './artifacts.js';
+export { getArtifact, getComponentSource };
 
-  return { status: STATUS.OK, body: collection([]) };
-}
 
-/** PATCH /api/elements/:fieldId — §13.2. */
-export function patchElement(ctx = {}) {
-  const { fieldId } = ctx.params || {};
-  const body = ctx.body || {};
-
-  if (!isFieldId(fieldId)) {
-    return badRequest('fieldId must be a 10-digit string in the 2… or 3… range (§1).');
-  }
-
-  // §13.2: both content and css are optional, at least one is required. `loop`
-  // joins them because a Cards element is patched through its loop, not content.
-  const provided = ['content', 'css', 'loop'].filter((key) => key in body);
-  if (provided.length === 0) {
-    return badRequest('At least one of content, css, or loop is required (§13.2).');
-  }
-
-  return notImplemented('T-016', 'PATCH /api/elements/:fieldId');
-}
 
 import { postRegenerate } from './regenerate.js';
 export { postRegenerate };
@@ -141,23 +117,7 @@ export { getJob };
 import { postReplay } from './replay.js';
 export { postReplay };
 
-/** GET /api/jobs/:jobId/artifacts/:name — §11.2. */
-export function getArtifact(ctx = {}) {
-  const { jobId } = ctx.params || {};
-  if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
-    return badRequest('jobId must match job-<10 digits> (§11.1).');
-  }
-  return notImplemented('T-037', 'GET /api/jobs/:jobId/artifacts/:name');
-}
 
-/** GET /api/jobs/:jobId/component — §11.2. text/plain, the generated JSX. */
-export function getComponentSource(ctx = {}) {
-  const { jobId } = ctx.params || {};
-  if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
-    return badRequest('jobId must match job-<10 digits> (§11.1).');
-  }
-  return notImplemented('T-037', 'GET /api/jobs/:jobId/component');
-}
 
 /** GET /api/jobs/:jobId/questions — §11.3. Bare array. */
 export function getQuestions(ctx = {}) {

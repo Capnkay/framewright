@@ -3,7 +3,9 @@
   "who": "Gibbs (founding session)",
   "device": "Karans-PC",
   "claimedAt": "2026-08-21T12:46:28.738Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": "Khushi Singh",
-  "takenAt": "2026-08-21T12:46:28.732Z"
+  "takenAt": "2026-08-21T12:46:28.732Z",
+  "finishedAt": "2026-08-21T14:13:51.144Z",
+  "durationMs": 5242406
 }

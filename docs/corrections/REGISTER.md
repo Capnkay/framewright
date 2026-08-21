@@ -1483,3 +1483,73 @@ override `layout.breakpoint`. It should not: §6 gives spatial layout to the wir
 `layout.breakpoint` is that decision written down. The token is the fallback for an IR that
 never stated one. Test corrected to assert that precedence in both directions.
 
+
+---
+
+## 2026-08-21 · Four endpoints were bound to stubs that shadowed their real implementations — found by T-018's own first run
+
+**The §9 failure, in production, on `main`, with the whole suite green.**
+
+`server/src/routes/index.js` declared its own `getElements` returning `200 []`
+unconditionally. `routes/elements.js` held the real T-015 implementation. The route
+table bound the stub. So `GET /api/elements` — the endpoint the entire preview
+hydrates through — answered with an empty array no matter what the store held.
+
+Three more were shadowed exactly the same way:
+
+| Endpoint | Real implementation | Task |
+|---|---|---|
+| `GET /api/elements` | `routes/elements.js` | T-015 |
+| `PATCH /api/elements/:fieldId` | `routes/elements.js` | T-016 |
+| `GET /api/jobs/:jobId/artifacts/:name` | `routes/artifacts.js` | T-037 |
+| `GET /api/jobs/:jobId/component` | `routes/artifacts.js` | T-037 |
+
+`sections.js` and `generate.js` were wired correctly — `import` then `export {}` — so
+the pattern was established and these four simply never got converted from stub to
+re-export when their implementations landed.
+
+**This is §9 word for word.** The store never hydrates; `data?.[id] || "DEFAULT"`
+renders pixel-identical to a working system; it fails only when someone changes a
+value and the preview does not move. §9's own sentence: *"a build that passes every
+other gate and fails this one is a build that will fail in front of a judge, at the
+exact moment the demo script says to change a headline."*
+
+**Why 530 green tests missed it — two independent reasons, both now closed.**
+
+1. Every test imported the handler from its sibling module directly
+   (`tests/get-elements.test.mjs` imports from `routes/elements.js`), so the suite
+   exercised code Express never called. No test went through `createApp` for this
+   endpoint.
+2. Those tests mocked the store to `{"elements":[]}` and asserted only
+   `Array.isArray(body)` — a predicate a permanently-empty endpoint satisfies
+   perfectly. Shape was asserted; content never was.
+
+**Fixed.** The four stubs are deleted and the real handlers re-exported, following the
+`sections.js` pattern. `tests/route-binding.test.mjs` is new: it seeds a real store,
+goes over real HTTP, and asserts on content, plus a structural guard that every 501 names
+its task. Verified by re-introducing the exact defect — the new test fails with *"An
+empty array here means the route table is bound to a stub again"*, and
+`check-store-liveness` exits 1 instead of 0.
+
+**Two further defects found in `tests/api-skeleton.test.mjs` while fixing this.** It
+called handlers without `await`. Several handlers are async now, so `res.status` was
+`undefined`: the 501 ratchet silently counted every async handler as implemented, and
+`assert.notEqual(undefined, BAD_REQUEST)` in the nested-card-id test — the one guarding
+§9's step 5 — passed against a Promise without ever testing anything. The unawaited
+promises also produced the intermittent *"asynchronous activity after the test ended"*
+failure that made this file fail at random. All call sites now await.
+`EXPECTED_STUBS` lowered 5 → 2, per the ratchet's own instruction.
+
+**Board change: T-018's `files` list was too narrow.** T-018 declares only
+`tools/check-store-liveness.mjs` and `package.json`, but its `doneWhen` cannot be
+reached without `server/src/routes/index.js` — the check cannot pass while the store is
+dead. Per `docs/GIT-PROTOCOL.md` ("If you find yourself needing to edit a file your task
+does not declare, stop"), the work stopped and the Cap'n ruled to fix it under T-018 and
+record it here. `tests/api-skeleton.test.mjs` and `tests/route-binding.test.mjs` were
+touched for the same reason.
+
+**Still owed, and deliberately not done here.** T-018's `doneWhen` also says "The check
+runs on every commit." Wiring it into `.githooks/pre-commit` additionally requires
+regenerating `LAW-MANIFEST.sha256`, which covers `.githooks/`. That is a law change, not
+a task edit, and it is left for an explicit decision. Today the check is reachable as
+`npm run check-store-liveness`.

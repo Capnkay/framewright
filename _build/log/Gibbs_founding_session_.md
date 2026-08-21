@@ -42,3 +42,10 @@
 - Device: Karans-PC
 - Files: server/src/generate/resolveConflicts.js, tests/combined-mode-conflicts.test.mjs
 
+## T-018 — Automate the §9 store-liveness assertion, including step 5's nested-card-field PATCH
+- Started: 2026-08-21T12:46:28.738Z
+- Finished: 2026-08-21T14:13:51.144Z
+- Duration: 1h 27m
+- Device: Karans-PC
+- Files: tools/check-store-liveness.mjs, package.json
+

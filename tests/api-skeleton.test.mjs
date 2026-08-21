@@ -119,33 +119,33 @@ test('GET /api/health returns the §13.4 shape and never fabricates perception u
 
 // --- validation the contract states explicitly -----------------------------
 
-test('GET /api/elements 400s when unfiltered, per §13.4', () => {
-  const unfiltered = getElements({ query: {} });
+test('GET /api/elements 400s when unfiltered, per §13.4', async () => {
+  const unfiltered = await getElements({ query: {} });
   assert.equal(unfiltered.status, STATUS.BAD_REQUEST);
   assert.equal(unfiltered.body.error.code, ERROR_CODE.INVALID_INPUT);
 
   for (const query of [{ pageName: 'Home' }, { sectionId: '1000000001' }, { fieldIds: '2000000003' }]) {
-    const res = getElements({ query });
+    const res = await getElements({ query });
     assert.equal(res.status, STATUS.OK, `${JSON.stringify(query)} is a valid filter`);
     assert.ok(Array.isArray(res.body));
   }
 });
 
-test('PATCH /api/elements/:fieldId requires at least one of content, css or loop (§13.2)', () => {
-  const empty = patchElement({ params: { fieldId: '2000000003' }, body: {} });
+test('PATCH /api/elements/:fieldId requires at least one of content, css or loop (§13.2)', async () => {
+  const empty = await patchElement({ params: { fieldId: '2000000003' }, body: {} });
   assert.equal(empty.status, STATUS.BAD_REQUEST);
 
   for (const body of [{ content: 'TRAIN WITHOUT LIMITS' }, { css: 'font-weight: bold;' }, { loop: [] }]) {
-    const res = patchElement({ params: { fieldId: '2000000003' }, body });
+    const res = await patchElement({ params: { fieldId: '2000000003' }, body });
     assert.notEqual(res.status, STATUS.BAD_REQUEST, `${JSON.stringify(body)} is a valid patch`);
   }
 });
 
-test('PATCH accepts a nested card field id in the 3… range — §13.2 says it must', () => {
+test('PATCH accepts a nested card field id in the 3… range — §13.2 says it must', async () => {
   // "An implementation that rejects nested IDs here makes card fields
   // uneditable and quietly fails the store-liveness gate's most important
   // step." That step is §9's step 5, and this is the assertion that guards it.
-  const nested = patchElement({ params: { fieldId: '3000000001' }, body: { content: '2000+' } });
+  const nested = await patchElement({ params: { fieldId: '3000000001' }, body: { content: '2000+' } });
   assert.notEqual(
     nested.status,
     STATUS.BAD_REQUEST,
@@ -215,8 +215,8 @@ test('POST /api/jobs/:jobId/answers requires a non-empty answers array (§11.3)'
 
 test('every error response carries the §13 error envelope', async () => {
   const probes = [
-    getElements({ query: {} }),
-    patchElement({ params: { fieldId: 'nope' }, body: { content: 'x' } }),
+    await getElements({ query: {} }),
+    await patchElement({ params: { fieldId: 'nope' }, body: { content: 'x' } }),
     await getSection({ params: { sectionId: 'nope' } }),
     await postGenerate({ body: {} }),
     await postReplay({ params: { jobId: 'nope' }, body: { fromStage: 5 } }),
@@ -229,12 +229,15 @@ test('every error response carries the §13 error envelope', async () => {
 
 // --- the scaffold must shrink, not grow ------------------------------------
 
-test('501 stubs are counted, so the scaffold cannot quietly grow', () => {
+test('501 stubs are counted, so the scaffold cannot quietly grow', async () => {
   // 501 is NOT a contract status code — it exists only while this is a skeleton,
   // to keep an unimplemented route loudly distinguishable from an implemented
   // one returning nothing. This count is a ratchet: it must fall to zero as
   // Phase 2 lands, and it can never rise without this assertion failing.
-  const EXPECTED_STUBS = 5;
+  // Lowered 5 -> 2 when GET/PATCH /api/elements and the two §11.2 artifact
+  // endpoints stopped being shadowed by stubs in routes/index.js and were
+  // bound to their real implementations (T-015, T-016, T-037).
+  const EXPECTED_STUBS = 2;
 
   const ctx = {
     params: { sectionId: '1000000001', fieldId: '2000000003', jobId: 'job-0000000001', name: 's3-regions.json' },
@@ -244,9 +247,16 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', () => {
     env: {},
   };
 
-  const stubbed = routes
-    .filter((route) => route.handler(ctx).status === NOT_IMPLEMENTED)
-    .map(key);
+  // AWAITED. Several handlers are async now; calling them without await gives
+  // a Promise whose .status is undefined, which silently counts every async
+  // handler as "implemented" and leaves an unhandled rejection behind that
+  // fails this file at random. Resolve first, then classify.
+  const settled = [];
+  for (const route of routes) settled.push([route, await route.handler(ctx)]);
+
+  const stubbed = settled
+    .filter(([, res]) => res.status === NOT_IMPLEMENTED)
+    .map(([route]) => key(route));
 
   assert.equal(
     stubbed.length,
@@ -255,8 +265,7 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', () => {
       'If you implemented one, lower EXPECTED_STUBS. If this went UP, a route regressed.',
   );
 
-  for (const route of routes) {
-    const res = route.handler(ctx);
+  for (const [route, res] of settled) {
     if (res.status !== NOT_IMPLEMENTED) continue;
     assert.match(
       res.body.error.message,
@@ -265,3 +274,4 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', () => {
     );
   }
 });
+
