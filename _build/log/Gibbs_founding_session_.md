@@ -112,3 +112,10 @@
 - Device: Karans-PC
 - Files: client/src/studio/StageInspector.jsx, tests/stage-inspector.test.mjs
 
+## T-045 — Build the Generator Studio’s mode selector (FR-G04)
+- Started: 2026-08-21T15:43:07.383Z
+- Finished: 2026-08-21T15:50:18.036Z
+- Duration: 7m
+- Device: Karans-PC
+- Files: client/src/studio/ModeSelector.jsx, tests/mode-selector.test.mjs
+
