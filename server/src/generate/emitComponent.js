@@ -29,61 +29,37 @@
 // ES module — server package.json has "type": "module"
 
 // ---------------------------------------------------------------------------
-// DEFAULT_TOKENS (§6.1 — the Pulse Fit reference set)
+// Design tokens (§6.1) — ONE definition, in ./designTokens.js
 // ---------------------------------------------------------------------------
-const DEFAULT_TOKENS = {
-  colors: {
-    accent: 'red-500',
-    accentContrast: 'white',
-    surface: 'white',
-    surfaceAlt: 'gray-50',
-    text: 'gray-800',
-    textMuted: 'gray-500',
-  },
-  typography: {
-    headingFamily: 'font-sans',
-    bodyFamily: 'font-sans',
-    headingWeight: 'font-extrabold',
-    bodyWeight: 'font-normal',
-    scale: {
-      h1: 'text-4xl md:text-5xl',
-      h2: 'text-xl md:text-2xl',
-      body: 'text-base',
-      eyebrow: 'text-sm',
-      stat: 'text-2xl',
-    },
-  },
-  spacing: { sectionY: 'py-8 md:py-16', gap: 'gap-4', containerX: 'px-0 md:px-12' },
-  shadows: { card: 'shadow-none', button: 'shadow-none' },
-  borderRadius: { button: 'rounded-md', card: 'rounded-lg', image: 'rounded-none' },
-  breakpoints: { stack: 'md' },
-  components: { button: 'inline-flex items-center justify-center font-semibold' },
-};
-
-// ---------------------------------------------------------------------------
-// Token resolution helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Merge IR designTokens on top of DEFAULT_TOKENS (shallow per-group).
- * Unknown keys are silently ignored per §6.1 rule 4.
- */
-function resolveTokens(irTokens) {
-  if (!irTokens) return DEFAULT_TOKENS;
-  const merged = JSON.parse(JSON.stringify(DEFAULT_TOKENS));
-  for (const [group, values] of Object.entries(irTokens)) {
-    if (merged[group] !== undefined && typeof values === 'object' && values !== null) {
-      Object.assign(merged[group], values);
-      // merge sub-objects one level deeper (e.g. typography.scale)
-      for (const [k, v] of Object.entries(values)) {
-        if (typeof v === 'object' && v !== null && typeof merged[group][k] === 'object') {
-          Object.assign(merged[group][k], v);
-        }
-      }
-    }
-  }
-  return merged;
-}
+//
+// T-093 consolidated this. Until then, DEFAULT_TOKENS and resolveTokens were
+// defined BOTH here and in ./designTokens.js (T-092). The two values happened
+// to be identical, so nothing failed — but three behaviours differed, and each
+// one is a §6.1 rule this file was getting wrong:
+//
+//   Rule 4, unknown keys "ignored, not an error" — the local resolveTokens used
+//     Object.assign, which COPIED an unrecognised key into the resolved set.
+//     Its own comment claimed the opposite. An unknown token then reached the
+//     emitted className.
+//   Rules 1 and 2, Tailwind classes only, never a colour literal or raw CSS —
+//     the local version validated nothing, so `accent: '#ef4444'` emitted
+//     `bg-#ef4444` and `gap: '16px'` emitted `16px` as a class name. That is
+//     precisely the failure §6.1 rule 1 names: "a raw value forces the emitter
+//     to invent a class name or inline a style".
+//   Shared mutable default — `resolveTokens(undefined)` returned the module
+//     object ITSELF, so one caller mutating the result silently changed the
+//     default for every later generation in the process.
+//
+// designTokens.js gets all three right and is unit-tested for them, so this
+// file now imports rather than restates. DEFAULT_TOKENS and resolveTokens stay
+// re-exported at the bottom: T-025's test and other callers import them from
+// here, and moving the definition should not move the import site.
+//
+// tokensFromIr rather than resolveTokens(ir.designTokens) is deliberate — it
+// applies §6.1 rule 3, keeping theme.accent and designTokens.colors.accent in
+// agreement. Without it a prompt that moved the accent moved `theme` only, and
+// the emitted classes kept the default colour.
+import { DEFAULT_TOKENS, resolveTokens, tokensFromIr } from './designTokens.js';
 
 // ---------------------------------------------------------------------------
 // Layout helpers
@@ -107,6 +83,33 @@ function containerClasses(layout, tokens) {
 // Element JSX renderers
 // ---------------------------------------------------------------------------
 
+/**
+ * The CTA's class list, with the token accent applied (§6.1).
+ *
+ * The accent has to come from the tokens even when the element carries its own
+ * `classes`. The golden component's button is
+ * `... rounded-md bg-red-500 px-6 py-3 text-white ...` — the accent lives in
+ * the button's classes, so a class list that omits a background renders a CTA
+ * with no colour at all. Before T-093 this branch was `classes || <tokens>`:
+ * any element carrying utility classes silently lost the accent, and the
+ * "prompt sets the accent" beat produced an uncoloured button.
+ *
+ * A colour the element states explicitly still wins — an IR that says
+ * `bg-blue-600` means it, and §6's conflict order does not let a default
+ * override a stated value.
+ */
+function buttonClasses(classes, tokens) {
+  const tokenClasses = `${tokens.components.button} ${tokens.borderRadius.button} bg-${tokens.colors.accent} px-6 py-3 text-${tokens.colors.accentContrast} ${tokens.typography.headingWeight} w-fit`;
+  if (!classes) return tokenClasses;
+
+  const parts = [classes];
+  if (!/(^|\s)bg-\S+/.test(classes)) parts.push(`bg-${tokens.colors.accent}`);
+  if (!/(^|\s)text-(?!sm\b|base\b|lg\b|xl\b|\dxl\b|left\b|center\b|right\b)\S+/.test(classes)) {
+    parts.push(`text-${tokens.colors.accentContrast}`);
+  }
+  return parts.join(' ');
+}
+
 function renderElementNode(el, tokens) {
   const { elementName, contentType, tag, classes, css, alt } = el;
   const idExpr = `ids.${elementName}`;
@@ -127,7 +130,7 @@ function renderElementNode(el, tokens) {
         <button
           id={${idExpr}}
           type="button"
-          className="dynamicStyle ${classes || `${tokens.components.button} ${tokens.borderRadius.button} bg-${tokens.colors.accent} px-6 py-3 text-${tokens.colors.accentContrast} ${tokens.typography.headingWeight} w-fit`}"
+          className="dynamicStyle ${buttonClasses(classes, tokens)}"
           aria-label={getTextValue(data, ids.${elementName}, DEFAULTS[ids.${elementName}])}
           onClick={() => {
             // Stub — wired in a later phase.
@@ -308,7 +311,10 @@ function collectAllMountFieldIds(elements, cards) {
  * @returns {string}   JSX file contents, ready to write.
  */
 function emitComponent(ir) {
-  const tokens = resolveTokens(ir.designTokens);
+  // §6.1 rule 3 — theme.accent and designTokens.colors.accent must agree.
+  // tokensFromIr applies that, so a prompt that moved theme.accent moves the
+  // emitted colour with it.
+  const tokens = tokensFromIr(ir);
   const { sectionName, pageName = 'Home', layout, theme, cards } = ir;
   const elements = ir.elements || [];
   const bp = layout?.breakpoint || tokens.breakpoints.stack || 'md';

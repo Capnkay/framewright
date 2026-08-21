@@ -342,6 +342,14 @@ export function promptToIrKeyless(prompt, options = {}) {
   }
   if (!accent.found) {
     warnings.push(`No accent colour found in the prompt; defaulted to "${DEFAULT_ACCENT}".`);
+  } else if (accent.value !== DEFAULT_ACCENT) {
+    // §6.1 rule 5 — "Prompt wins... 'Make the CTA green' sets colors.accent and
+    // records a warning, exactly as it does for theme.accent today." The
+    // warning is the audit trail for §6's conflict-resolution order: a colour
+    // that moved without a recorded reason is indistinguishable from a bug.
+    warnings.push(
+      `Prompt set the accent to "${accent.value}" (§6 conflict resolution: prompt wins for colour); theme.accent and designTokens.colors.accent both moved.`,
+    );
   }
   if (!ctaLabel.found) {
     warnings.push('No CTA label found in the prompt; the reference label was kept.');
@@ -410,6 +418,15 @@ export function promptToIrKeyless(prompt, options = {}) {
       text: 'gray-800',
       textMode: textMode.value,
     },
+
+    // §6.1 rule 3 — theme.accent and designTokens.colors.accent must agree,
+    // "the API sets both from the same source". Emitted ONLY when the prompt
+    // actually moved the accent: an IR that did not ask for a colour carries no
+    // designTokens at all, which is what keeps the deterministic path's output
+    // byte-identical to DEFAULT_TOKENS (§6.1, and T-093's assertion).
+    ...(accent.found && accent.value !== DEFAULT_ACCENT
+      ? { designTokens: { colors: { accent: accent.value } } }
+      : {}),
 
     cards: {
       of: 'statBadges',

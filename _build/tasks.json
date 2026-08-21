@@ -1950,7 +1950,8 @@
         "T-025"
       ],
       "files": [
-        "server/src/generate/emitter.js",
+        "server/src/generate/emitComponent.js",
+        "server/src/generate/promptToIrKeyless.js",
         "tests/emitter-tokens.test.mjs"
       ],
       "verify": "npm test -- emitter-tokens",

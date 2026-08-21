@@ -91,3 +91,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/routes/artifacts.js, tests/artifact-endpoints.test.mjs
 
+## T-093 — Make the deterministic emitter read designTokens, proving it changes nothing by default (§6.1)
+- Started: 2026-08-21T03:49:01.263Z
+- Finished: 2026-08-21T03:58:39.826Z
+- Duration: 10m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/emitComponent.js, server/src/generate/promptToIrKeyless.js, tests/emitter-tokens.test.mjs
+

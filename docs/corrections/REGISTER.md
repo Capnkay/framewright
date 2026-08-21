@@ -1428,3 +1428,58 @@ all three were caught, so the gate is not vacuous.
 fail. The licences are all fine (MIT); the packaging is not. Each belongs in
 `dependencies`, and that is the owning task's call rather than this one's.
 
+---
+
+## 2026-08-21 · T-093 — DEFAULT_TOKENS was defined TWICE, and the copies behaved differently
+
+The emitter naming conflict flagged in T-092's entry landed exactly as predicted. T-025
+built `server/src/generate/emitComponent.js`; T-093's `files` declared
+`server/src/generate/emitter.js`, which never existed. Building T-093 as declared would have
+produced a **second emitter**. Its `files` now names the real one.
+
+The larger find is what was already inside it. `emitComponent.js` carried its **own**
+`DEFAULT_TOKENS` and `resolveTokens`, duplicating T-092's `designTokens.js`. The values were
+identical, so no test failed — and three behaviours were not, each a §6.1 rule the emitter
+was getting wrong. Measured, not inferred:
+
+| §6.1 rule | `designTokens.js` | `emitComponent.js` (before) |
+|---|---|---|
+| 4 — unknown key "ignored, not an error" | dropped | **copied into the resolved set** via `Object.assign`, and on into the emitted `className`. Its own comment claimed the opposite |
+| 1, 2 — Tailwind classes only, no colour literals | declined, default kept | **accepted**: `accent: '#ef4444'` emitted `bg-#ef4444`; `gap: '16px'` emitted `16px` as a class name |
+| — | fresh copy per call | **returned the module object itself**, so one caller mutating its tokens changed the default for every later generation in the process |
+
+The third one bit while I was measuring it: a probe that mutated the emitter's resolved
+tokens made a later comparison of the two `DEFAULT_TOKENS` report *unequal* in the same
+process. That is the failure mode in miniature — one generation quietly redefining the
+defaults for the next.
+
+Rule 1's own wording is the reason this mattered: "a raw value forces the emitter to invent a
+class name or inline a style — the second of which collides with R10's `cssText` overlay and
+with §8's CSS allow-list." The emitter was doing the first.
+
+**Fixed** by deleting the local copies and importing `designTokens.js`, which is unit-tested
+for all three. `DEFAULT_TOKENS` and `resolveTokens` stay re-exported from `emitComponent.js`,
+so T-025's test and the four route files that import them are untouched. The emitter now
+calls `tokensFromIr(ir)` rather than `resolveTokens(ir.designTokens)`, which applies §6.1
+rule 3 — `theme.accent` and `designTokens.colors.accent` agree.
+
+**A second, separate defect, found by T-093's own doneWhen.** The CTA's class list was
+`classes || <token classes>`. Any element carrying utility classes therefore lost the accent
+entirely — and the keyless path supplies a colour-free class list, so "a prompt changes the
+accent" produced a button with **no background colour at all**. The golden component's button
+is `... rounded-md bg-red-500 px-6 py-3 text-white ...`, so the accent belongs in the button's
+classes. `buttonClasses()` now merges the token accent into a stated class list, while a
+colour the IR states explicitly still wins.
+
+**Also changed, and declared:** `promptToIrKeyless.js` now sets
+`designTokens.colors.accent` alongside `theme.accent` and records a warning when the prompt
+moves the accent — §6.1 rule 5 ("'Make the CTA green' sets colors.accent and records a
+warning"). It emits `designTokens` **only** when the accent actually moved off the default, so
+an IR that asked for no colour still carries none, which is what keeps the byte-identical
+equivalence true.
+
+**One test of mine was wrong and the code was right.** I asserted `breakpoints.stack` should
+override `layout.breakpoint`. It should not: §6 gives spatial layout to the wireframe, and
+`layout.breakpoint` is that decision written down. The token is the fallback for an IR that
+never stated one. Test corrected to assert that precedence in both directions.
+
