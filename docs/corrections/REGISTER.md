@@ -1553,3 +1553,50 @@ runs on every commit." Wiring it into `.githooks/pre-commit` additionally requir
 regenerating `LAW-MANIFEST.sha256`, which covers `.githooks/`. That is a law change, not
 a task edit, and it is left for an explicit decision. Today the check is reachable as
 `npm run check-store-liveness`.
+
+---
+
+## 2026-08-21 · The suite was not hermetic — the same commit passed or failed depending on what a previous run left behind
+
+Found while verifying a batch of tasks: the full suite failed roughly half the
+time, with a **different** test failing each run. Not flakiness in the usual
+sense — three distinct shared-state defects, each independently able to turn a
+green commit red with no code change.
+
+**1. Shared JSON stores, written from parallel processes.** `node:test` runs test
+FILES in separate processes, and `jsonStore`'s single-writer queue only
+serialises writes *within* one process. Two files touching the default
+`server/data/store.json` left it half-written, which surfaced in whichever suite
+read it next as `Unexpected non-whitespace character after JSON at position
+32082`. Every handler call site in `tests/api-skeleton.test.mjs` and
+`tests/route-binding.test.mjs` now gets its own temp `STORE_PATH` **and**
+`JOB_STORE_PATH` — the job store is a separate file and needed isolating too.
+
+**2. Accumulated job records made "absent" ids stop being absent.** The default
+`server/data/jobs.json` grew to 136 records across runs, so `job-0000000099` —
+an id `api-skeleton` asserts is missing — eventually existed. A suite that
+passed in week one fails in week two with nothing changed. Same fix: isolated
+stores per call site. `server/data/store.json` and `jobs.json` are now
+gitignored (see the entry above) since they are byproducts, not source.
+
+**3. Three suites collided on one physical artifacts directory.** The job
+counter restarts at 1 in every fresh store, so `tests/replay-endpoint`,
+`tests/artifact-endpoints` and the handler under `tests/regenerate-base` all
+produced `job-0000000001` and all wrote to — and recursively removed —
+`artifacts/job-0000000001`. One suite's cleanup raced another's write: `ENOTEMPTY`
+here, a missing `s4-output.json` there, alternating.
+
+The key `artifacts/<jobId>/...` is fixed by §11.2 and §15.2 rule 2 and is
+deliberately NOT relocated. What changed is the job id: each suite seeds its job
+counter into its own range (`replay-endpoint` 9001, `artifact-endpoints` 7001) and
+derives its artifact directory from the id actually allocated rather than
+hard-coding one. `replay-endpoint` also stopped writing its store into
+`server/data/`.
+
+**Verified:** six consecutive full-suite runs, 544 passing, 0 failures. Before
+these fixes the same six runs produced four different failures.
+
+**Why it matters beyond tidiness.** T-076 requires the full pre-submit gate to run
+clean. A gate that fails half the time is one people learn to re-run until green,
+which is the same as not having it — and it would have masked the dead-store
+defect in the entry above rather than surfacing it.

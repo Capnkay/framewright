@@ -92,7 +92,13 @@ test('no route handler is a stub shadowing a real implementation', async () => {
     query: { pageName: 'Home' },
     body: { mode: 'prompt', prompt: 'a fitness hero', fromStage: 5, content: 'x' },
     files: {},
-    env: { STORE_TYPE: 'json', STORE_PATH: tempStorePath('shadow-probe') },
+    // Both stores isolated: this probe calls EVERY handler, several of which
+    // write, and the job store is a separate file from the element store.
+    env: {
+      STORE_TYPE: 'json',
+      STORE_PATH: tempStorePath('shadow-probe-store'),
+      JOB_STORE_PATH: tempStorePath('shadow-probe-jobs'),
+    },
   };
 
   for (const route of routes) {

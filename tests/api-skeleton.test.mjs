@@ -14,6 +14,30 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
+
+
+// A unique temp path per call, so no suite inherits another's leftovers and
+// nothing is written into the repo. Built-ins only: this file must keep
+// running on a fresh clone with no npm install.
+// Every handler call in this file gets ISOLATED stores. node:test runs test
+// FILES in separate processes, and jsonStore's single-writer queue only
+// serialises writes within one process — so two files touching the default
+// server/data/store.json raced and left it half-written, which surfaced as
+// "Unexpected non-whitespace character after JSON" in whichever suite read it
+// next. Isolation, not retries, is the fix.
+function isolatedEnv(label) {
+  return {
+    STORE_TYPE: 'json',
+    STORE_PATH: tempPath(`${label}-store`),
+    JOB_STORE_PATH: tempPath(`${label}-jobs`),
+  };
+}
+
+function tempPath(label) {
+  return path.join(os.tmpdir(), `framewright-${label}-${process.pid}-${process.hrtime.bigint()}.json`);
+}
 
 import routes, {
   SECTION_13_TABLE,
@@ -82,7 +106,17 @@ test('a document read returns 404 with the error envelope when absent', async ()
   assert.ok(documents.length > 0, 'expected at least one document route');
 
   for (const route of documents) {
-    const ctx = { params: { sectionId: '1000000099', jobId: 'job-0000000099' } };
+    const ctx = {
+      params: { sectionId: '1000000099', jobId: 'job-0000000099' },
+      // Isolated stores: 'absent' must mean absent. Against the shared default
+      // stores, an id this suite treats as missing was eventually created by
+      // another suite, and this assertion started failing on a clean checkout.
+      env: {
+        STORE_TYPE: 'json',
+        STORE_PATH: tempPath('absent-doc-store'),
+        JOB_STORE_PATH: tempPath('absent-doc-jobs'),
+      },
+    };
     const { status, body } = await route.handler(ctx);
     assert.equal(status, STATUS.NOT_FOUND, `${key(route)} should 404 on an absent document`);
     assert.ok(isErrorEnvelope(body), `${key(route)}'s 404 must carry the error envelope`);
@@ -164,10 +198,10 @@ test('id-shaped params are range-checked per §1', async () => {
 });
 
 test('POST /api/generate 400s with §13’s own message when no input is supplied', async () => {
-  const noMode = await postGenerate({ body: {} });
+  const noMode = await postGenerate({ body: {}, env: isolatedEnv('gen-nomode') });
   assert.equal(noMode.status, STATUS.BAD_REQUEST);
 
-  const noInput = await postGenerate({ body: { mode: 'prompt' }, files: {} });
+  const noInput = await postGenerate({ body: { mode: 'prompt' }, files: {}, env: isolatedEnv('gen-noinput') });
   assert.equal(noInput.status, STATUS.BAD_REQUEST);
   assert.equal(
     noInput.body.error.message,
@@ -175,7 +209,7 @@ test('POST /api/generate 400s with §13’s own message when no input is supplie
     "§13's error example is quoted verbatim so the wire shape matches the contract",
   );
 
-  const badMode = await postGenerate({ body: { mode: 'sketch', prompt: 'x' } });
+  const badMode = await postGenerate({ body: { mode: 'sketch', prompt: 'x' }, env: isolatedEnv('gen-badmode') });
   assert.equal(badMode.status, STATUS.BAD_REQUEST, 'mode is a closed set of four values');
 });
 
@@ -183,7 +217,7 @@ test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (
   const params = { jobId: 'job-0000000001' };
 
   for (const fromStage of [2, 3, 4]) {
-    const res = await postReplay({ params, body: { fromStage } });
+    const res = await postReplay({ params, body: { fromStage }, env: isolatedEnv('replay') });
     assert.equal(
       res.status,
       STATUS.UNPROCESSABLE,
@@ -193,7 +227,7 @@ test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (
   }
 
   for (const fromStage of [5, 6, 7]) {
-    const res = await postReplay({ params, body: { fromStage } });
+    const res = await postReplay({ params, body: { fromStage }, env: isolatedEnv('replay') });
     assert.notEqual(
       res.status,
       STATUS.UNPROCESSABLE,
@@ -201,8 +235,8 @@ test('POST /api/jobs/:jobId/replay 422s below stage 5 while perception is down (
     );
   }
 
-  assert.equal((await postReplay({ params, body: {} })).status, STATUS.BAD_REQUEST);
-  assert.equal((await postReplay({ params, body: { fromStage: 9 } })).status, STATUS.BAD_REQUEST);
+  assert.equal((await postReplay({ params, body: {}, env: isolatedEnv('replay') })).status, STATUS.BAD_REQUEST);
+  assert.equal((await postReplay({ params, body: { fromStage: 9 }, env: isolatedEnv('replay') })).status, STATUS.BAD_REQUEST);
 });
 
 test('POST /api/jobs/:jobId/answers requires a non-empty answers array (§11.3)', () => {
@@ -218,8 +252,8 @@ test('every error response carries the §13 error envelope', async () => {
     await getElements({ query: {} }),
     await patchElement({ params: { fieldId: 'nope' }, body: { content: 'x' } }),
     await getSection({ params: { sectionId: 'nope' } }),
-    await postGenerate({ body: {} }),
-    await postReplay({ params: { jobId: 'nope' }, body: { fromStage: 5 } }),
+    await postGenerate({ body: {}, env: isolatedEnv('envelope-gen') }),
+    await postReplay({ params: { jobId: 'nope' }, body: { fromStage: 5 }, env: isolatedEnv('envelope-replay') }),
   ];
   for (const probe of probes) {
     assert.ok(probe.status >= 400, 'this probe should be an error');
@@ -245,7 +279,22 @@ test('501 stubs are counted, so the scaffold cannot quietly grow', async () => {
     query: { pageName: 'Home' },
     body: { mode: 'prompt', prompt: 'a fitness hero', fromStage: 5, content: 'x', answers: [{ questionId: 'q1', choice: 'Button' }] },
     files: {},
-    env: {},
+    // An ISOLATED store, not the default one. Now that these handlers are
+    // awaited they really run, and several read or write the store. Left on
+    // the default path they raced the other test files against the same
+    // server/data/store.json and failed intermittently with EBUSY on Windows.
+    // A per-run temp path also keeps this file from leaving state behind for
+    // the next suite, which is how "absent" ids stopped being absent before.
+    env: {
+      STORE_TYPE: 'json',
+      STORE_PATH: tempPath('stub-ratchet-store'),
+      // The job store is a SEPARATE file from the element store and needs its
+      // own isolation. Left on the default server/data/jobs.json, accumulated
+      // job records from earlier runs made the "absent" ids these assertions
+      // rely on stop being absent, so a passing suite slowly turned into a
+      // failing one with no code change.
+      JOB_STORE_PATH: tempPath('stub-ratchet-jobs'),
+    },
   };
 
   // AWAITED. Several handlers are async now; calling them without await gives

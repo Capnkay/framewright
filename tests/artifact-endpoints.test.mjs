@@ -26,8 +26,21 @@ function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'fw-t037-'));
 }
 
+// The job store file is per-test and temporary, but the job COUNTER inside it
+// restarts at 1 every time, so every suite that made a job got job-0000000001.
+// The physical artifacts directory is repo-relative and shared — the key
+// `artifacts/<jobId>/...` is fixed by §11.2 and §15.2 rule 2, so it is not ours
+// to relocate — which meant three suites running in parallel processes all wrote
+// to, and removed, the same artifacts/job-0000000001. That surfaced as ENOTEMPTY
+// here and as a missing artifact in tests/regenerate-base, on alternating runs.
+// Seeding the counter into a range no other suite uses gives this file its own
+// directories. The seed is arbitrary but must stay distinct per suite.
+const JOB_COUNTER_SEED = 7001;
+
 function makeTmpJobStore(tmpDir) {
-  return createJobStore({ filePath: path.join(tmpDir, 'jobs.json') });
+  const filePath = path.join(tmpDir, 'jobs.json');
+  fs.writeFileSync(filePath, JSON.stringify({ counters: { job: JOB_COUNTER_SEED }, jobs: [] }));
+  return createJobStore({ filePath });
 }
 
 async function createTestJob(store, mode = 'prompt') {
