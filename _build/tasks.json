@@ -2365,6 +2365,27 @@
       ],
       "verify": "node --test tests/studio-submits-and-renders-a-job.test.mjs",
       "doneWhen": "T-107 mounted all 14 components and the page still does not generate anything. GeneratePage's handleSubmit reads formData.get('jobId') and nothing else — there is no fetch, no POST to /api/generate, and no job is ever created, so every control on the page is inert. This is AGENTS.md rule 9 one level up: the components are reachable and the FEATURE is not. mode=wireframe works server-side as of T-108 — POST /api/generate with a wireframe file runs stages 1, 2 and 3, and the response carries { job, warnings, degraded } — so the Studio must POST the multipart form (§13.1: image plus pageName, sectionName, mode), take jobId from the response, and drive GenerationProgress, JobTimeline and StageInspector from the real job record rather than from local state. A degraded run (perception stopped) must render as a degraded stage with its warning, never as an error — EC-015 and §11.1. Done when a test drives the route, submits, and asserts a job id reaches the timeline; assert it by RENDERING the route, not by grepping the source — T-107's test matches `import X from` and `<X` as text, which passes whether or not anything mounts and is exactly the weakness rule 9's corollary names."
+    },
+{
+      "id": "T-115",
+      "phase": 6,
+      "track": "generation",
+      "title": "Stage 6 never runs, so the 0-100 quality score is computed entirely from fallbacks",
+      "size": "45m",
+      "contract": [
+        "§18",
+        "§18.2",
+        "§11.0"
+      ],
+      "deps": [
+        "T-108"
+      ],
+      "files": [
+        "server/src/routes/generate.js",
+        "tests/stage6-quality-gate.test.mjs"
+      ],
+      "verify": "node --test tests/stage6-quality-gate.test.mjs",
+      "doneWhen": "Audited on main: runStage is called for stages 1, 2, 3, 4, 5 and 7 and never for 6. quality/score.js looks for `job.stages.find(s => s.stage === 6)` and, finding none, falls back to structurePass false, eslintErrors 0 and axeSeriousViolations 0 for every job ever scored -- so the 0-100 number T-091 surfaces is not a measurement of anything. quality/accessibility.js, quality/performance.js and quality/visual.js (T-090) have zero callers, and generate/validateAndRecover.js -- which implements §18.2's parse-and-lint check -- has zero callers too. Done when generate.js runs stage 6 after stage 5, using validateAndRecover's own check rather than a second implementation of it, and persists an artifact carrying at least structurePass and eslintErrors in the shape computeJobScore already reads. A structural failure is a DEGRADED stage and a successful job, never a failed one -- §18.2's whole point is that the job still succeeds. SCOPE: the visual and accessibility metrics need a rendered page and a browser and are NOT in this task; they stay at their documented fallbacks and get their own task, so that what the score does and does not measure stays legible."
     }
   ]
 }

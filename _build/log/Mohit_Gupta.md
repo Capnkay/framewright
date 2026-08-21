@@ -215,3 +215,10 @@
 - Device: Mohits_Victus
 - Files: server/src/store/seed.js, server/src/routes/generate.js, tests/seed-does-not-collide-with-allocated-ids.test.mjs, tests/write-path-validation.test.mjs
 
+## T-115 — Stage 6 never runs, so the 0-100 quality score is computed entirely from fallbacks
+- Started: 2026-08-21T20:57:17.827Z
+- Finished: 2026-08-21T20:59:02.467Z
+- Duration: 2m
+- Device: Mohits_Victus
+- Files: server/src/routes/generate.js, tests/stage6-quality-gate.test.mjs
+

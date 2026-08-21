@@ -10,6 +10,7 @@ import { perceiveOrDegrade, STAGE_DEGRADED } from '../generate/perceiveAndAssemb
 import { validateSection } from '../validate/sectionValidator.js';
 import { validateElement } from '../validate/elementValidator.js';
 import { PROJECT_NAME } from '../models/elementDoc.js';
+import createValidateAndRecover from '../generate/validateAndRecover.js';
 import { isSafeCssText } from '../sanitise/cssAllowList.js';
 
 /**
@@ -349,6 +350,44 @@ export async function postGenerate(ctx = {}) {
       throw new Error('Stage 5 failed to emit component');
     }
     
+    // ---- stage 6: validation-qa -------------------------------------------
+    //
+    // WHY THIS EXISTS. runStage was called for 1, 2, 3, 4, 5 and 7 and never for 6, so
+    // quality/score.js -- which looks for `job.stages.find(s => s.stage === 6)` -- fell
+    // back to `structurePass: false` and `eslintErrors: 0` for every job ever scored.
+    // The 0-100 number T-091 surfaces was not a measurement of anything.
+    //
+    // USES validateAndRecover's OWN check, which implements §18.2's parse-then-lint
+    // rule including "an ESLint error -- warnings do not count", rather than a second
+    // implementation of the same rule that can drift from it. That module had zero
+    // callers too.
+    //
+    // A STRUCTURAL FAILURE IS A DEGRADED STAGE AND A SUCCESSFUL JOB. §18.2's whole
+    // point is that the job still succeeds; marking it failed would stop a generation
+    // over a lint error and take the demo with it.
+    const { check } = createValidateAndRecover();
+    await trace.runStage(job.jobId, {
+      stage: 6,
+      run: async (ctxStage) => {
+        const result = await check(s5.output);
+        for (const warning of result.warnings || []) ctxStage.addWarning(warning);
+        if (!result.ok) {
+          ctxStage.addWarning(`§18.2 ${result.kind}: ${result.error}`);
+        }
+        // The shape computeJobScore already reads. The visual and accessibility
+        // metrics need a rendered page and a browser; they are not measured here and
+        // keep their documented fallbacks, so what the score does and does not measure
+        // stays legible rather than silently defaulting to a flattering number.
+        return {
+          structurePass: result.ok === true,
+          eslintErrors: result.ok === false && result.kind === 'lint-error' ? 1 : 0,
+          measured: ['structurePass', 'eslintErrors'],
+          notMeasured: ['visualSimilarity', 'axeSeriousViolations'],
+        };
+      },
+      outputName: 'validation-qa'
+    });
+
     // Stage 7: output-delivery (Write file to disk)
     await trace.runStage(job.jobId, {
       stage: 7,
