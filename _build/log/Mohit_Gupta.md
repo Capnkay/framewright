@@ -164,3 +164,10 @@
 - Device: Mohits_Victus
 - Files: server/src/routes/generate.js, tests/generate-wireframe-mode.test.mjs
 
+## T-109 — Apply the §8 CSS allow-list and the document validators at the write path — all three are built and never called
+- Started: 2026-08-21T20:24:13.163Z
+- Finished: 2026-08-21T20:33:54.635Z
+- Duration: 10m
+- Device: Mohits_Victus
+- Files: server/src/routes/generate.js, tests/write-path-validation.test.mjs
+

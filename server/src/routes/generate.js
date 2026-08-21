@@ -7,6 +7,8 @@ import { emitComponent } from '../generate/emitComponent.js';
 import { writeComponentFile } from '../generate/writeComponentFile.js';
 import { sanitiseGenerateBody } from '../sanitise/sanitiseWrite.js';
 import { perceiveOrDegrade, STAGE_DEGRADED } from '../generate/perceiveAndAssembleIr.js';
+import { validateSection } from '../validate/sectionValidator.js';
+import { isSafeCssText } from '../sanitise/cssAllowList.js';
 
 /**
  * §13.1's upload, as it reaches this handler.
@@ -36,6 +38,41 @@ function readUpload(file) {
  */
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+/**
+ * §8's second chokepoint, applied. T-109.
+ *
+ * WHY IT IS HERE AND NOT ONLY IN sanitiseWrite. sanitiseWrite cleans what the CALLER
+ * sent. This runs on what the GENERATOR produced — an IR element's `css` comes from a
+ * model or a template, travels through the emitter, and reaches the store without ever
+ * having been the caller's input. §8 makes the store boundary a chokepoint, not the
+ * request boundary alone, and cssAllowList.js has existed since T-032 with nothing
+ * calling it.
+ *
+ * REJECTS THE DECLARATION, NOT THE GENERATION. An unsafe `css` value is dropped and
+ * warned about rather than failing the job: the section is still correct without it,
+ * and killing a generation over a style string would make §8 something people route
+ * around. What must not happen — and now cannot — is the value reaching the store.
+ */
+function safeCss(value, elementName, warnings) {
+  if (value === null || value === undefined || value === '') return null;
+  if (isSafeCssText(value)) return value;
+  warnings.push(
+    `${elementName}: the css declaration was rejected by §8's allow-list and dropped. ` +
+    'The element was stored without it.'
+  );
+  return null;
+}
+
+/** A schema failure at the write path is a bug in this handler, not in the caller. */
+function assertValid(result, what) {
+  if (result.valid) return;
+  const detail = (result.errors || [])
+    .slice(0, 3)
+    .map((e) => `${e.path}: ${e.message}`)
+    .join('; ');
+  throw new Error(`${what} failed its own schema before insert — ${detail}`);
+}
 
 export async function postGenerate(ctx = {}) {
   const env = ctx.env || {};
@@ -117,6 +154,7 @@ export async function postGenerate(ctx = {}) {
     // readings of the same image.
     let perceived = null;
     let perceptionWarnings = [];
+    const writeWarnings = [];
 
     if (isWireframe) {
       // Stage 1: the upload, persisted as this stage's artifact. §11.2 keeps artifacts
@@ -221,10 +259,25 @@ export async function postGenerate(ctx = {}) {
       status: 'Pending',
       jobId: job.jobId,
       prompt: body.prompt || '',
+      // §2 REQUIRES `variations`, PLURAL, AND A STRING. This handler wrote `variation`
+      // and nothing noticed, because sectionValidator.js was built at T-020 and called
+      // by nobody -- the first run with it wired refused the document on the missing
+      // field. promptToIrKeyless and perceiveAndAssembleIr both produce `variations`
+      // correctly; only the hand-built document here diverged.
+      //
+      // THE SINGULAR IS KEPT AS AN ALIAS, deliberately and temporarily. regenerate.js,
+      // replay.js and the client's PreviewPage all read `section.variation`, none of
+      // them is in this task's files, and dropping it would build the preview's
+      // generated filename as `-vundefined.jsx`. Both are written until one task can
+      // migrate every reader and delete the alias. Logged rather than left quiet.
+      variations: String(ir.variations || '1'),
       variation: '1',
       designTokens: ir.designTokens,
       fieldIds: ir.elements.map(e => e.fieldId)
     };
+    // §2, at the one moment it matters. sectionValidator.js (T-020) existed and was
+    // called by nothing, so nothing checked the shape at the point it was persisted.
+    assertValid(validateSection(sectionDoc), 'the section document');
     await store.insertSection(sectionDoc);
     
     // Then elements
@@ -238,8 +291,21 @@ export async function postGenerate(ctx = {}) {
         tag: el.tag,
         order: el.order,
         content: el.default,
-        css: el.css || null
+        css: safeCss(el.css, el.elementName, writeWarnings)
       };
+      // THE ELEMENT DOCUMENT IS NOT VALIDATED HERE, AND THAT IS DELIBERATE. §3 also
+      // requires `loop`, `projectName` and `pageName`, none of which this handler
+      // emits, so wiring elementValidator.js would refuse every document. Supplying
+      // them is a one-line change and it FAILS THE §9 STORE-LIVENESS ASSERTION:
+      // `pageName` puts the generated section's elements on the same page as the
+      // golden one, and the client hydrates a page with
+      // `GET /api/elements?pageName=Home` — no id filter — reducing every section's
+      // elements into one flat map. Two sections on one page collide there.
+      //
+      // That is a real defect in the page-hydration path, not in §3, and it is bigger
+      // than this task. Left as T-111 rather than smuggled in behind a disabled gate:
+      // rule 2 says the §9 assertion is never disabled, and shipping the field with
+      // the gate red would be disabling it in everything but name.
       
       if (el.contentType === 'Cards' && ir.cards) {
         elementDoc.content = null; // Cards don't have text content
@@ -283,7 +349,8 @@ export async function postGenerate(ctx = {}) {
     // cannot tell a wireframe-derived section from a template-derived one has no way
     // to know the upload was ignored, and the job record alone does not say.
     const payload = { job: finalJob };
-    if (perceptionWarnings.length) payload.warnings = perceptionWarnings;
+    const allWarnings = [...perceptionWarnings, ...writeWarnings];
+    if (allWarnings.length) payload.warnings = allWarnings;
     if (perceived && perceived.stageStatus === STAGE_DEGRADED) payload.degraded = true;
 
     return {

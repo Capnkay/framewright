@@ -2274,6 +2274,31 @@
       ],
       "verify": null,
       "doneWhen": "Three gaps of one shape were found in two days, each sitting between two individually complete tasks: /perceive answered with the T-054 scaffold while stages 2-4 sat built and unreachable (fixed as T-101); mode=wireframe returns 501 while perceiveAndAssembleIr has zero callers (T-108); and the Generator Studio mounts none of its 14 built components (T-107). None was visible on a board reading 100 of 100, because a task's files list covers a module and nothing owns the call from one module to the next — a dependency graph over tasks cannot express 'and something must invoke this'. AGENTS.md must carry the rule that closes the class: a task that builds a module either wires it into a caller or names the task that will, and a task whose only test imports its own subject has not shown the module is reachable. Manual task: the note records where the rule landed."
+    },
+{
+      "id": "T-111",
+      "phase": 6,
+      "track": "api-glassbox",
+      "title": "A page hydrates every section's elements into one flat map, so §3's element fields cannot be supplied",
+      "size": "60m",
+      "contract": [
+        "§3",
+        "§5.0",
+        "§5.1",
+        "§9",
+        "§13.4"
+      ],
+      "deps": [
+        "T-109"
+      ],
+      "files": [
+        "client/src/redux/fetchElementsByIds.js",
+        "server/src/routes/elements.js",
+        "server/src/routes/generate.js",
+        "tests/page-hydration-two-sections.test.mjs"
+      ],
+      "verify": "node --test tests/page-hydration-two-sections.test.mjs",
+      "doneWhen": "Found while wiring elementValidator.js at T-109. §3 requires `loop`, `projectName` and `pageName` on every element document and generate.js emits none of them, so the validator cannot be wired. Supplying them is a one-line change and it FAILS the §9 store-liveness assertion at step 4 — measured, reproducibly: with `pageName` present the assertion reports 'TOP-LEVEL rendered text did not change after PATCH', and without it all five steps pass. The cause is not §3. `fetchElementsByIds` issues `GET /api/elements?pageName=<page>` with NO id filter — its own comment says elementIds 'is NOT a server-side filter, the server never sees it' — and reduces the WHOLE response into allSections[pageName]. Once a generated section's elements also carry pageName 'Home', the golden section and the generated one land in the same flat map and collide. That is a defect in the page-hydration path, and it is load-bearing: §9's assertion is the only check that catches a dead store, and a demo that generates a second section onto Home would hit it live. Done when two sections on one page hydrate without either overwriting the other, generate.js emits §3's three fields, elementValidator runs at the insert path, and the §9 assertion passes with all of that in place. The placeholder test `the element document is still missing §3's loop, projectName and pageName` in tests/write-path-validation.test.mjs is written to FAIL once this lands — replace it with its opposite rather than deleting it."
     }
   ]
 }
