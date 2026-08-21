@@ -374,14 +374,16 @@ test('prompt mode still skips the image stages and is untouched', async () => {
   }
 });
 
-test('code and combined still say they are unbuilt rather than half-working', async () => {
+test('code still says it is unbuilt rather than half-working', async () => {
+  // `combined` was in this list until T-119 opened it. It is not deleted from the
+  // test, it is moved: codeToIr.js remains a built module with zero callers, and the
+  // point of this assertion is that an unbuilt mode says so rather than half-working.
   const env = await isolatedEnv('wf-unbuilt-modes');
-  for (const mode of ['code', 'combined']) {
-    const { status } = await postGenerate({
-      env,
-      body: { mode, pageName: 'P', sectionName: 'S', prompt: 'x', code: 'x' },
-      files: {},
-    });
-    assert.equal(status, 501, `mode=${mode} should still be 501`);
-  }
+  const { status } = await postGenerate({
+    env,
+    body: { mode: 'code', pageName: 'P', sectionName: 'S', code: 'x' },
+    files: {},
+  });
+
+  assert.equal(status, 501, 'mode=code should still be 501');
 });

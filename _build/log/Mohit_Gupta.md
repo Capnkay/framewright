@@ -243,3 +243,10 @@
 - Device: Mohits_Victus
 - Files: server/src/generate/writeComponentFile.js, tests/write-component-file-path.test.mjs
 
+## T-119 — mode=combined returns 501 while resolveConflicts sits built, tested and uncalled
+- Started: 2026-08-21T21:15:46.652Z
+- Finished: 2026-08-21T21:19:43.915Z
+- Duration: 4m
+- Device: Mohits_Victus
+- Files: server/src/routes/generate.js, tests/generate-combined-mode.test.mjs, tests/generate-wireframe-mode.test.mjs
+

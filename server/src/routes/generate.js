@@ -11,6 +11,7 @@ import { validateSection } from '../validate/sectionValidator.js';
 import { validateElement } from '../validate/elementValidator.js';
 import { PROJECT_NAME } from '../models/elementDoc.js';
 import createValidateAndRecover from '../generate/validateAndRecover.js';
+import { resolveConflicts } from '../generate/resolveConflicts.js';
 import { isSafeCssText } from '../sanitise/cssAllowList.js';
 
 /**
@@ -102,9 +103,10 @@ export async function postGenerate(ctx = {}) {
   body = cleaned.body;
   ctx.body = body;
 
-  // T-108 opened `wireframe`. `code` and `combined` remain unbuilt and say so rather
-  // than half-working: §13 names four modes and this system implements two.
-  const IMPLEMENTED_MODES = ['prompt', 'wireframe'];
+  // T-108 opened `wireframe`, T-119 opened `combined`. `code` remains unbuilt and says
+  // so rather than half-working: codeToIr.js is a separate module with no callers and
+  // is not this task's subject.
+  const IMPLEMENTED_MODES = ['prompt', 'wireframe', 'combined'];
   if (!IMPLEMENTED_MODES.includes(body.mode)) {
     // `STATUS.NOT_IMPLEMENTED` does not exist -- envelope.js exports 501 as a
     // standalone `NOT_IMPLEMENTED`, deliberately kept OUT of STATUS because it is not
@@ -114,12 +116,27 @@ export async function postGenerate(ctx = {}) {
     return { status: NOT_IMPLEMENTED, body: { ok: false, error: { code: 'NOT_IMPLEMENTED', message: `T-033: mode=${body.mode} not implemented yet` } } };
   }
 
-  const isWireframe = body.mode === 'wireframe';
+  // COMBINED IS NOT A THIRD PATH, it is both halves plus §6's conflict order. Building
+  // it as its own branch would be a second implementation of the two that already work
+  // and a second place for them to drift.
+  //
+  // WHICH HALVES RUN IS DECIDED BY WHAT THE CALLER SENT, not by the mode alone.
+  // `combined` with a wireframe and no prompt is a wireframe run; with a prompt and no
+  // wireframe it is a prompt run. §13 requires at least one input and does not require
+  // combined to carry both, so refusing a one-sided combined would invent a rule.
+  const usesWireframe = body.mode === 'wireframe' || (body.mode === 'combined' && Boolean(files.wireframe || files.image));
+  const usesPrompt = body.mode === 'prompt' || (body.mode === 'combined' && Boolean(body.prompt));
+  const isWireframe = usesWireframe;
+
+  if (body.mode === 'combined' && !usesWireframe && !usesPrompt) {
+    return badRequest('mode=combined requires a wireframe image or a prompt (§13).');
+  }
+
   let upload = null;
   if (isWireframe) {
     upload = readUpload(files.wireframe);
     if (!upload) {
-      return badRequest('mode=wireframe requires a wireframe image (§13.1).');
+      return badRequest(`mode=${body.mode} requires a wireframe image (§13.1).`);
     }
     if (!ACCEPTED_IMAGE_TYPES.has(upload.contentType)) {
       return badRequest(
@@ -238,9 +255,26 @@ export async function postGenerate(ctx = {}) {
         // The wireframe path's IR is already assembled by perceiveOrDegrade — that is
         // what §12's named sub-objects are for, and reassembling them here would be a
         // second implementation of the split T-058 already owns and tests.
-        const ir = isWireframe
-          ? perceived.ir
-          : await promptToIrHosted(body.prompt, { pageName, sectionName });
+        const wireframeIr = usesWireframe ? perceived.ir : null;
+        const promptIr = usesPrompt
+          ? await promptToIrHosted(body.prompt, { pageName, sectionName })
+          : null;
+
+        // §6's conflict order lives in resolveConflicts and nowhere else: prompt wins
+        // for copy, colour, CTA behaviour and card count; wireframe wins for spatial
+        // layout. That module was built at T-061 and had zero callers until now, which
+        // is why the order was never actually applied to anything.
+        let ir;
+        if (wireframeIr && promptIr) {
+          const merged = resolveConflicts({ promptIr, wireframeIr, codeIr: null });
+          if (!merged) throw new Error('conflict resolution produced no IR');
+          for (const warning of merged.warnings || []) writeWarnings.push(warning);
+          ir = merged;
+          delete ir.warnings;
+        } else {
+          ir = wireframeIr || promptIr;
+        }
+        if (!ir) throw new Error(`mode=${body.mode} produced no IR`);
         ir.sectionId = sectionId;
         
         // Allocate IDs for elements

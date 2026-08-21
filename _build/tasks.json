@@ -2366,7 +2366,7 @@
       "verify": "node --test tests/studio-submits-and-renders-a-job.test.mjs",
       "doneWhen": "T-107 mounted all 14 components and the page still does not generate anything. GeneratePage's handleSubmit reads formData.get('jobId') and nothing else — there is no fetch, no POST to /api/generate, and no job is ever created, so every control on the page is inert. This is AGENTS.md rule 9 one level up: the components are reachable and the FEATURE is not. mode=wireframe works server-side as of T-108 — POST /api/generate with a wireframe file runs stages 1, 2 and 3, and the response carries { job, warnings, degraded } — so the Studio must POST the multipart form (§13.1: image plus pageName, sectionName, mode), take jobId from the response, and drive GenerationProgress, JobTimeline and StageInspector from the real job record rather than from local state. A degraded run (perception stopped) must render as a degraded stage with its warning, never as an error — EC-015 and §11.1. Done when a test drives the route, submits, and asserts a job id reaches the timeline; assert it by RENDERING the route, not by grepping the source — T-107's test matches `import X from` and `<X` as text, which passes whether or not anything mounts and is exactly the weakness rule 9's corollary names."
     },
-{
+    {
       "id": "T-115",
       "phase": 6,
       "track": "generation",
@@ -2387,7 +2387,7 @@
       "verify": "node --test tests/stage6-quality-gate.test.mjs",
       "doneWhen": "Audited on main: runStage is called for stages 1, 2, 3, 4, 5 and 7 and never for 6. quality/score.js looks for `job.stages.find(s => s.stage === 6)` and, finding none, falls back to structurePass false, eslintErrors 0 and axeSeriousViolations 0 for every job ever scored -- so the 0-100 number T-091 surfaces is not a measurement of anything. quality/accessibility.js, quality/performance.js and quality/visual.js (T-090) have zero callers, and generate/validateAndRecover.js -- which implements §18.2's parse-and-lint check -- has zero callers too. Done when generate.js runs stage 6 after stage 5, using validateAndRecover's own check rather than a second implementation of it, and persists an artifact carrying at least structurePass and eslintErrors in the shape computeJobScore already reads. A structural failure is a DEGRADED stage and a successful job, never a failed one -- §18.2's whole point is that the job still succeeds. SCOPE: the visual and accessibility metrics need a rendered page and a browser and are NOT in this task; they stay at their documented fallbacks and get their own task, so that what the score does and does not measure stays legible."
     },
-{
+    {
       "id": "T-116",
       "phase": 6,
       "track": "api-glassbox",
@@ -2408,7 +2408,7 @@
       "verify": "node --test tests/generate-accepts-a-multipart-upload.test.mjs",
       "doneWhen": "Measured against the running system, not the tests. With the perception service and the Node API both up, `curl -X POST /api/generate -F mode=wireframe -F wireframe=@gpu-test/wireframe.png` answers 400 'mode is required and must be one of: wireframe, code, prompt, combined' — the MODE does not arrive, let alone the file. app.js mounts `express.json()` and nothing else, so a multipart request reaches the handler with an empty body and empty files. T-108 made the handler work and nothing can feed it. server/src/pipeline/stage1InputAcquisition.js carries a multer configuration and has zero callers, and its field name is `image` while §13.1, the client and generate.js all say `wireframe`. Done when a real multipart POST reaches postGenerate with body fields populated and `ctx.files.wireframe` carrying the bytes; when §13.1's limits produce §13's envelopes rather than multer's own errors — over 8 MB is 413, a non-image type is 400; when JSON requests are unaffected; and when the demo path is exercised end to end with curl against a running server, not only against an injected ctx."
     },
-{
+    {
       "id": "T-117",
       "phase": 6,
       "track": "generation",
@@ -2428,7 +2428,7 @@
       "verify": "node --test tests/write-component-file-path.test.mjs",
       "doneWhen": "Found by running the demo, not by reading code. writeComponentFile.js computes REPO_ROOT as path.resolve(__dirname, '..', '..', '..', '..') from server/src/generate — four levels, which lands on the PARENT of the repository. Its own comment on the line above says 'up 3 levels'; the comment is right and the code is wrong. Every component this project has ever generated was written to D:/SIH/client/src/sections/generated/ instead of framewright/client/src/sections/generated/, and PreviewPage.jsx discovers sections with import.meta.glob('../sections/generated/*.jsx') — so it has never seen a single one of them and every generated section renders the 'file was not found by Vite eager-glob' branch. Verified on disk: the out-of-tree directory holds dozens of Custom-*.jsx files and the in-tree one holds only the golden HeroSection. Done when the file lands inside the repository, when a test asserts the resolved directory is under the repo root rather than asserting a hardcoded absolute path, and when a generated section is confirmed discoverable by the same glob the preview uses."
     },
-{
+    {
       "id": "T-118",
       "phase": 6,
       "track": "any",
@@ -2446,6 +2446,46 @@
       ],
       "verify": "node --test tests/generated-sections-are-not-committed.test.mjs",
       "doneWhen": "T-117 moved generated components back inside the repository, which is correct and has a consequence: client/src/sections/generated/ now fills with Custom-<id>-v<n>.jsx on every generation and .gitignore has no rule for it, so `git status` is dirty after any demo run and someone will eventually commit a demo artifact. AGENTS.md already forbids committing uploads/ and artifacts/ for the same reason. The directory cannot simply be ignored: the golden HeroSection.jsx and HeroSection.logic.js live there, are tracked, and are graded. Done when generated sections are ignored and the golden files are not, asserted by a test that checks the ignore rules rather than the current contents of the directory — a test reading the directory passes on a clean checkout and says nothing. ALSO: roughly 80 stray files sit in D:/SIH/client/src/sections/generated/, written outside the repo by every generation before T-117. Removing them is a human decision, not a build step — flag it, do not delete it."
+    },
+    {
+      "id": "T-119",
+      "phase": 6,
+      "track": "generation",
+      "title": "mode=combined returns 501 while resolveConflicts sits built, tested and uncalled",
+      "size": "55m",
+      "contract": [
+        "§6",
+        "§13"
+      ],
+      "deps": [
+        "T-116"
+      ],
+      "files": [
+        "server/src/routes/generate.js",
+        "tests/generate-combined-mode.test.mjs",
+        "tests/generate-wireframe-mode.test.mjs"
+      ],
+      "verify": "node --test tests/generate-combined-mode.test.mjs",
+      "doneWhen": "§13 names four modes and this system now implements two. server/src/generate/resolveConflicts.js implements §6's conflict order in full — prompt wins for copy, colour, CTA behaviour and card count; wireframe wins for spatial layout; code wins for technical patterns — and has zero callers, the same class of gap as T-101, T-108 and T-116. Done when mode=combined builds a wireframe IR and a prompt IR from whichever inputs the caller supplied and merges them through resolveConflicts rather than a second implementation of §6's order; when a test proves the ORDER holds — the prompt's copy beating the wireframe's OCR text, and the wireframe's layout beating the prompt's — rather than only that a 200 comes back; when a combined run with the perception service stopped still completes on the prompt half (§12, rule 5); and when mode=code still answers 501 rather than half-working, since codeToIr.js is a separate uncalled module and not in this task."
+    },
+{
+      "id": "T-120",
+      "phase": 6,
+      "track": "api-glassbox",
+      "title": "Stage artifacts are written to a shared relative path, so parallel tests overwrite each other's outputs",
+      "size": "35m",
+      "contract": [
+        "§11.2"
+      ],
+      "deps": [
+        "T-119"
+      ],
+      "files": [
+        "server/src/jobs/stageTrace.js",
+        "tests/artifact-root-is-isolable.test.mjs"
+      ],
+      "verify": "node --test tests/artifact-root-is-isolable.test.mjs",
+      "doneWhen": "stageTrace.js exports ARTIFACT_ROOT as the hardcoded string 'artifacts', resolved against the process cwd. A test that isolates its job store restarts the job counter at 1, so two test FILES running in parallel both write artifacts/job-0000000001/ under the repo root and overwrite each other's stage outputs. Measured: tests/generate-combined-mode.test.mjs passed alone and failed two assertions in a full npm test run, and tests/regenerate-base.test.mjs flaked the same way once. Worked around in generate-combined-mode.test.mjs by moving that file's cwd, which is a workaround and is labelled as one in the file. Done when the artifact root can be set per store or per run — an env var read once, or a value threaded through createStageTrace, whichever fits §11.2's 'artifacts are owned by Node and live on the Node machine' — and when a test proves two concurrent runs with the same jobId do not overwrite one another. Remove the cwd workaround when this lands."
     }
   ]
 }
