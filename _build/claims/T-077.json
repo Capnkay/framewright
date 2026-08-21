@@ -3,7 +3,10 @@
   "who": "Antigravity",
   "device": "Jainam",
   "claimedAt": "2026-08-21T18:11:24.424Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-21T18:12:04.110Z",
+  "durationMs": 39686,
+  "note": "Recorded backup demo successfully"
 }

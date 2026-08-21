@@ -234,3 +234,11 @@
 - Files: docs/DEMO-REHEARSAL-LOG.md
 - Note: Rehearsed full demo successfullyRehearsed full demo successfully
 
+## T-077 — Record a backup demo run
+- Started: 2026-08-21T18:11:24.424Z
+- Finished: 2026-08-21T18:12:04.110Z
+- Duration: 1m
+- Device: Jainam
+- Files: docs/DEMO-REHEARSAL-LOG.md
+- Note: Recorded backup demo successfully
+
