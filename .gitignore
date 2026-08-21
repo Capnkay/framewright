@@ -59,3 +59,6 @@ venv/
 # under server/data/seed/ stays tracked -- that is real, scored input.
 server/data/store.json
 server/data/jobs.json
+
+# tools scratch files — not deliverables (duplicate seed IDs → pre-push gate)
+tools/_store_scratch.json
