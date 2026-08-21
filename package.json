@@ -17,5 +17,8 @@
   "devDependencies": {
     "mongodb": "^7.5.0",
     "mongodb-memory-server": "^11.2.0"
+  },
+  "dependencies": {
+    "redis": "^6.2.1"
   }
 }

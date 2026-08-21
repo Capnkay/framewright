@@ -108,10 +108,10 @@ test('createCache logs warning and falls back to memory if REDIS_URL is provided
 
   try {
     const cache = createCache({ REDIS_URL: 'redis://localhost:6379' });
-    assert.strictEqual(warnCalled, true);
     
     // It should still work as a memory cache
     await cache.cacheSet('ir:fallback', 123, 10000);
+    assert.strictEqual(warnCalled, true);
     assert.strictEqual(await cache.cacheGet('ir:fallback'), 123);
   } finally {
     console.warn = originalWarn;

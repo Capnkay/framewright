@@ -190,3 +190,10 @@
 - Files: (none named)
 - Note: Rehearsed Gate 4 successfully, content changes via API are preserved upon regenerate using Variation 2 and new prompt.
 
+## T-080 — Implement the Redis cache backend with boot-time fallback to the in-process cache (§15.1)
+- Started: 2026-08-21T17:36:53.944Z
+- Finished: 2026-08-21T17:41:31.933Z
+- Duration: 5m
+- Device: Jainam
+- Files: server/src/cache/redisCache.js, tests/cache-redis.test.mjs
+
