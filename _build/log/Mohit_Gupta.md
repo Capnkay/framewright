@@ -194,3 +194,10 @@
 - Device: Mohits_Victus
 - Files: perception/app.py, perception/tests/test_perceive.py, server/src/routes/generate.js, tests/generate-wireframe-mode.test.mjs
 
+## T-113 — POST /api/sections/:sectionId/regenerate answers with an undefined HTTP status for three of §13's four modes
+- Started: 2026-08-21T20:44:25.045Z
+- Finished: 2026-08-21T20:46:02.244Z
+- Duration: 2m
+- Device: Mohits_Victus
+- Files: server/src/routes/regenerate.js, tests/regenerate-unbuilt-modes.test.mjs
+

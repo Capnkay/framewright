@@ -2322,6 +2322,27 @@
       ],
       "verify": "node --test tests/generate-wireframe-mode.test.mjs",
       "doneWhen": "client/src/studio/QuestionPrompt.jsx renders its bbox overlay over /api/jobs/{jobId}/artifacts/s2-normalised.png and reads the transform from s2-preprocessing-normalization.json. Neither file is produced by anything. Audited on main: the perception service returns stage 2's artifact as the transform DICTIONARY, not pixels — §11.2 makes it a service that never writes files — and Node had no stage 2 at all until T-108, which persists the transform as JSON and no raster. So the overlay's image is a 404 and the box is drawn over nothing. §11.2 already specifies the mechanism: the service 'returns its stage outputs inline in the /perceive response body, and Node persists them', and the normalised canvas IS a stage 2 output. Done when /perceive carries the normalised canvas inline as a base64 PNG on stage 2's record, Node persists it as s2-normalised.png and the transform as s2-preprocessing-normalization.json — runStage already writes one input and one output per stage, so both names fall out of the API as designed rather than needing a second stage — and a test asserts both artifact refs exist after a wireframe generation. The response grows by roughly the size of a 1024x1024 PNG; record the measured size so whoever pays that cost can see it."
+    },
+{
+      "id": "T-113",
+      "phase": 6,
+      "track": "api-glassbox",
+      "title": "POST /api/sections/:sectionId/regenerate answers with an undefined HTTP status for three of §13's four modes",
+      "size": "35m",
+      "contract": [
+        "§13",
+        "§13.3",
+        "§2"
+      ],
+      "deps": [
+        "T-109"
+      ],
+      "files": [
+        "server/src/routes/regenerate.js",
+        "tests/regenerate-unbuilt-modes.test.mjs"
+      ],
+      "verify": "node --test tests/regenerate-unbuilt-modes.test.mjs",
+      "doneWhen": "Measured: regenerate.js:40 returns `status: STATUS.NOT_IMPLEMENTED` for every mode but prompt, and that property does not exist. envelope.js exports 501 as a standalone `NOT_IMPLEMENTED`, kept OUT of STATUS deliberately because it is not a contract status code, so the expression is `undefined` and the handler answers with no status at all. The same bug was found and fixed in generate.js at T-108, caught by a test asserting the unbuilt modes still say 501; regenerate.js was outside that task's files and still carries it. envelope.js already exports a `notImplemented(taskId, what)` helper that nothing uses — use it rather than a fourth hand-built literal. Done when every unbuilt mode on regenerate answers 501 with §13's error envelope, asserted by a test that reads the status rather than only the body. Also carry over T-109's §2 finding if it applies here: regenerate.js:140 writes `variation` on the section document where §2 requires `variations`, so a regenerated section is persisted in a shape its own schema rejects."
     }
   ]
 }

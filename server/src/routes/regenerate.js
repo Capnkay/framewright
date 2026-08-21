@@ -1,4 +1,4 @@
-import { STATUS, ok, badRequest, error } from '../http/envelope.js';
+import { STATUS, ok, badRequest, error, notImplemented } from '../http/envelope.js';
 import { createStore } from '../store/index.js';
 import { createJobStore } from '../jobs/jobStore.js';
 import createStageTrace from '../jobs/stageTrace.js';
@@ -15,7 +15,7 @@ function isSectionId(value) {
 export async function postRegenerate(ctx = {}) {
   const env = ctx.env || {};
   const { sectionId } = ctx.params || {};
-  const body = ctx.body || {};
+  let body = ctx.body || {};
   const files = ctx.files || {};
 
   if (!isSectionId(sectionId)) {
@@ -34,10 +34,24 @@ export async function postRegenerate(ctx = {}) {
 
   const cleaned = sanitiseGenerateBody(body);
   if (!cleaned.ok) return badRequest(cleaned.reason);
-  ctx.body = cleaned.body;
+  // REBIND, do not merely publish -- the same fix generate.js already carries, and its
+  // comment explains why: assigning ctx.body alone leaves every line below reading the
+  // RAW object, so the sanitised prompt is computed and then discarded and body.prompt
+  // reaches the IR builder unsanitised. That is the §8 write-side chokepoint running
+  // and having no effect. This file had the bug generate.js documents.
+  body = cleaned.body;
+  ctx.body = body;
 
   if (body.mode !== 'prompt') {
-    return { status: STATUS.NOT_IMPLEMENTED, body: { ok: false, error: { code: 'NOT_IMPLEMENTED', message: `T-041: mode=${body.mode} not implemented yet` } } };
+    // `STATUS.NOT_IMPLEMENTED` DOES NOT EXIST. envelope.js exports 501 as a standalone
+    // `NOT_IMPLEMENTED`, kept out of STATUS deliberately because it is not a contract
+    // status code -- so this expression was `undefined` and the handler answered with
+    // no status at all. The same bug was found in generate.js at T-108; this file was
+    // outside that task's files and still carried it.
+    //
+    // `notImplemented` is envelope.js's own helper and nothing was using it. A fourth
+    // hand-built literal is how the first three drifted.
+    return notImplemented('T-041', `mode=${body.mode} on regenerate`);
   }
 
   const store = createStore(env);
@@ -137,6 +151,12 @@ export async function postRegenerate(ctx = {}) {
     // Update the existing section in place
     const updatedSection = {
       ...existingSection,
+      // §2 REQUIRES `variations`, PLURAL AND A STRING. T-109 found the same divergence
+      // in generate.js: a regenerated section was persisted in a shape its own schema
+      // rejects. The singular stays as an alias because regenerate, replay and the
+      // client's PreviewPage all read it -- see T-109's note; one task migrates all of
+      // them and deletes the alias.
+      variations: String(nextVariation),
       variation: nextVariation,
       prompt: body.prompt || existingSection.prompt,
       designTokens: ir.designTokens,
