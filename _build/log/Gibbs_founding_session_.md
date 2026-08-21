@@ -119,3 +119,10 @@
 - Device: Karans-PC
 - Files: client/src/studio/ModeSelector.jsx, tests/mode-selector.test.mjs
 
+## T-046 — Build the Generator Studio’s pageName/sectionName fields and accent colour picker (FR-G07)
+- Started: 2026-08-21T16:17:16.905Z
+- Finished: 2026-08-21T16:24:23.533Z
+- Duration: 7m
+- Device: Karans-PC
+- Files: client/src/studio/SectionFields.jsx, tests/section-fields.test.mjs
+
