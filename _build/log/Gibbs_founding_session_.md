@@ -105,3 +105,10 @@
 - Device: Karans-PC
 - Files: client/src/studio/CodePromptInputs.jsx, tests/code-prompt-inputs.test.mjs
 
+## T-039 — Build stage inspection — clicking a stage shows its artifact content via §11.2's endpoint
+- Started: 2026-08-21T15:33:59.791Z
+- Finished: 2026-08-21T15:42:43.898Z
+- Duration: 9m
+- Device: Karans-PC
+- Files: client/src/studio/StageInspector.jsx, tests/stage-inspector.test.mjs
+
