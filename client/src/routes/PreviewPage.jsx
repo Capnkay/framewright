@@ -6,6 +6,76 @@ import { useSelector } from 'react-redux';
 // Keys are relative paths: '../sections/generated/SectionName-1000000001-v1.jsx'
 const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
 
+function SectionWrapper({ section, Component, pageName }) {
+  const [regeneratePrompt, setRegeneratePrompt] = useState('');
+  const [regenerateVariation, setRegenerateVariation] = useState(section.variation || '1');
+  const [regenerating, setRegenerating] = useState(false);
+
+  const handleRegenerate = async (e) => {
+    e.preventDefault();
+    setRegenerating(true);
+    try {
+      const res = await fetch(`/api/sections/${section.sectionId}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: regeneratePrompt || undefined,
+          variation: regenerateVariation 
+        })
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setRegenerating(false);
+  };
+
+  return (
+    <div className="relative group border rounded mb-8 p-4">
+      <form 
+        onSubmit={handleRegenerate}
+        className="absolute top-2 right-2 bg-white shadow rounded px-3 py-2 z-10 flex flex-col gap-2 border text-sm"
+      >
+        <div className="font-semibold text-gray-700">Regenerate Section</div>
+        <div className="flex gap-2 items-center">
+          <label>Prompt:</label>
+          <input 
+            type="text"
+            placeholder="e.g. four stats, green accent"
+            value={regeneratePrompt}
+            onChange={(e) => setRegeneratePrompt(e.target.value)}
+            className="border p-1 rounded text-xs w-48"
+          />
+        </div>
+        <div className="flex gap-2 items-center justify-between">
+          <div>
+            <label className="mr-2">Variation:</label>
+            <select 
+              value={regenerateVariation} 
+              onChange={(e) => setRegenerateVariation(e.target.value)}
+              className="border p-1 rounded text-xs"
+            >
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+          <button 
+            type="submit" 
+            disabled={regenerating}
+            className="bg-blue-600 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
+          >
+            {regenerating ? 'Wait...' : 'Go'}
+          </button>
+        </div>
+      </form>
+      <Component pageName={pageName} />
+    </div>
+  );
+}
+
 export default function PreviewPage() {
   // §1: pageName is case-sensitive. Whatever case the URL carries is the key.
   const { pageName = 'Home' } = useParams();
@@ -49,7 +119,7 @@ export default function PreviewPage() {
       );
     }
     
-    return <Component key={section.sectionId} pageName={pageName} />;
+    return <SectionWrapper key={section.sectionId} section={section} Component={Component} pageName={pageName} />;
   });
 
   return (

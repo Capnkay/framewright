@@ -175,3 +175,10 @@
 - Device: Jainam
 - Files: client/src/studio/ConfidenceBadge.jsx, tests/confidence-surfaced-studio.test.mjs
 
+## T-069 — Ship variation 2, selectable in the preview without disturbing variation 1
+- Started: 2026-08-21T17:29:22.469Z
+- Finished: 2026-08-21T17:32:56.973Z
+- Duration: 4m
+- Device: Jainam
+- Files: client/src/routes/PreviewPage.jsx, tests/variation-2.test.mjs
+
