@@ -154,3 +154,10 @@
 - Device: Jainam
 - Files: client/src/studio/JobTimeline.jsx, tests/replay-ui.test.mjs
 
+## T-065 — Implement the human-in-the-loop questions and answers endpoints per §11.3
+- Started: 2026-08-21T17:15:30.963Z
+- Finished: 2026-08-21T17:18:51.107Z
+- Duration: 3m
+- Device: Jainam
+- Files: server/src/routes/questions.js, server/src/routes/answers.js, tests/hitl-endpoints.test.mjs
+

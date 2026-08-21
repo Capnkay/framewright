@@ -118,29 +118,11 @@ export { postReplay };
 
 
 
-/** GET /api/jobs/:jobId/questions — §11.3. Bare array. */
-export function getQuestions(ctx = {}) {
-  const { jobId } = ctx.params || {};
-  if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
-    return badRequest('jobId must match job-<10 digits> (§11.1).');
-  }
-  return { status: 200, body: [] };
-}
+import { getQuestions } from './questions.js';
+export { getQuestions };
 
-/** POST /api/jobs/:jobId/answers — §11.3. */
-export function postAnswers(ctx = {}) {
-  const { jobId } = ctx.params || {};
-  const body = ctx.body || {};
-
-  if (typeof jobId !== 'string' || !JOB_ID.test(jobId)) {
-    return badRequest('jobId must match job-<10 digits> (§11.1).');
-  }
-  if (!Array.isArray(body.answers) || body.answers.length === 0) {
-    return badRequest('answers is required and must be a non-empty array (§11.3).');
-  }
-
-  return notImplemented('T-065', 'POST /api/jobs/:jobId/answers');
-}
+import { postAnswers } from './answers.js';
+export { postAnswers };
 
 import { getExportZip } from './exportZip.js';
 export { getExportZip };
