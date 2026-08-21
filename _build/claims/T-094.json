@@ -3,7 +3,9 @@
   "who": "Jagrat",
   "device": "LAPTOP-E9HORJ7M",
   "claimedAt": "2026-08-21T04:01:27.060Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-21T04:05:32.182Z",
+  "durationMs": 245122
 }

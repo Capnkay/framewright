@@ -98,3 +98,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/emitComponent.js, server/src/generate/promptToIrKeyless.js, tests/emitter-tokens.test.mjs
 
+## T-094 — Implement §18.2 — retry once on structural failure, then fall back to the deterministic emitter
+- Started: 2026-08-21T04:01:27.060Z
+- Finished: 2026-08-21T04:05:32.182Z
+- Duration: 4m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/validateAndRecover.js, tests/validation-recovery.test.mjs
+
