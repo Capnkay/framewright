@@ -13,8 +13,90 @@
 // T-002. CONTRACT.md §13, §13.4.
 
 import express from 'express';
+import multer from 'multer';
 import routes from './routes/index.js';
 import { error, ERROR_CODE, STATUS, isErrorEnvelope } from './http/envelope.js';
+
+// §13.1's upload rules, enforced at the door. multer only engages on a
+// `multipart/form-data` request and calls next() otherwise, so mounting it on every
+// POST leaves JSON requests untouched.
+//
+// MEMORY STORAGE, NOT DISK. §11.2 makes artifacts Node-owned and written through the
+// stage trace: stage 1 persists the upload as `s1-upload.png` with an inputRef the
+// timeline can resolve. A second copy dropped into uploads/ by the parser would be a
+// file nothing references and nothing cleans up. The handler wants bytes, and
+// `readUpload` in routes/generate.js reads `file.buffer`.
+const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+const parseUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMAGE_BYTES },
+  fileFilter: (req, file, cb) => {
+    if (ACCEPTED_IMAGE_TYPES.includes(file.mimetype)) return cb(null, true);
+    // Not an exception: the caller sent something §13.1 refuses, and §13 says that is
+    // a 400 with an envelope, not a 500 with a stack.
+    const err = new Error(`Unsupported image type ${file.mimetype}.`);
+    err.code = 'UNSUPPORTED_IMAGE_TYPE';
+    return cb(err);
+  },
+}).fields([
+  // `wireframe` is the name §13.1, the client and routes/generate.js all use.
+  // `image` is accepted too because pipeline/stage1InputAcquisition.js was written
+  // against that name; taking both costs one line and removes a class of silent
+  // "no wireframe supplied" that points the reader at the client.
+  { name: 'wireframe', maxCount: 1 },
+  { name: 'image', maxCount: 1 },
+]);
+
+/**
+ * multer's own errors, translated into §13's envelope.
+ *
+ * Left to the generic error handler they become a 500 with "An unexpected error
+ * occurred" — which is the right default for a bug and the wrong answer for a caller
+ * who sent a 9 MB GIF and can fix it if told.
+ */
+function uploadErrorEnvelope(err) {
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return {
+      status: STATUS.PAYLOAD_TOO_LARGE,
+      body: error(ERROR_CODE.PAYLOAD_TOO_LARGE, `Image exceeds the ${MAX_IMAGE_BYTES} byte limit (§13.1).`),
+    };
+  }
+  if (err && err.code === 'UNSUPPORTED_IMAGE_TYPE') {
+    return {
+      status: STATUS.BAD_REQUEST,
+      body: error(ERROR_CODE.INVALID_INPUT, `${err.message} Accepted: ${ACCEPTED_IMAGE_TYPES.join(', ')} (§13.1).`),
+    };
+  }
+  if (err && err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return {
+      status: STATUS.BAD_REQUEST,
+      body: error(ERROR_CODE.INVALID_INPUT, `Unexpected file field "${err.field}". §13.1 names the field "wireframe".`),
+    };
+  }
+  return null;
+}
+
+/** multer as a promise, so a route handler can stay a plain async function. */
+function readMultipart(req, res) {
+  return new Promise((resolve) => {
+    parseUpload(req, res, (err) => resolve(err || null));
+  });
+}
+
+function flattenFiles(files) {
+  if (!files) return {};
+  if (Array.isArray(files)) return {};
+  const out = {};
+  for (const [field, value] of Object.entries(files)) {
+    out[field] = Array.isArray(value) ? value[0] : value;
+  }
+  // stage1InputAcquisition.js names the field `image`; §13.1 and the client name it
+  // `wireframe`. Whichever arrived, the handlers see `wireframe`.
+  if (!out.wireframe && out.image) out.wireframe = out.image;
+  return out;
+}
 
 /** Turn an Express request into the plain `ctx` object handlers expect. */
 function toContext(req, env) {
@@ -22,7 +104,9 @@ function toContext(req, env) {
     params: req.params || {},
     query: req.query || {},
     body: req.body || {},
-    files: req.files || {},
+    // multer gives `{ wireframe: [file] }`; every handler reads `files.wireframe`.
+    // Flattening here rather than in each handler keeps the ctx shape one thing.
+    files: flattenFiles(req.files),
     env,
   };
 }
@@ -36,6 +120,16 @@ export function createApp({ env = process.env } = {}) {
     const method = route.method.toLowerCase();
     app[method](route.path, async (req, res, next) => {
       try {
+        if (method === 'post') {
+          // No-op on a JSON request: multer inspects the content type and calls back
+          // immediately when it is not multipart.
+          const uploadError = await readMultipart(req, res);
+          if (uploadError) {
+            const envelope = uploadErrorEnvelope(uploadError);
+            if (envelope) return res.status(envelope.status).json(envelope.body);
+            throw uploadError;
+          }
+        }
         // AWAITED. Handlers were all synchronous when this table was written, and
         // several are now async — POST /api/generate allocates IDs, writes a job and
         // calls a model. Destructuring the returned Promise gave `status` and `body`

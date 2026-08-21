@@ -222,3 +222,10 @@
 - Device: Mohits_Victus
 - Files: server/src/routes/generate.js, tests/stage6-quality-gate.test.mjs
 
+## T-116 — Nothing parses multipart, so POST /api/generate cannot receive a wireframe over HTTP at all
+- Started: 2026-08-21T21:06:54.625Z
+- Finished: 2026-08-21T21:10:26.749Z
+- Duration: 4m
+- Device: Mohits_Victus
+- Files: server/src/app.js, tests/generate-accepts-a-multipart-upload.test.mjs
+

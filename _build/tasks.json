@@ -2386,6 +2386,27 @@
       ],
       "verify": "node --test tests/stage6-quality-gate.test.mjs",
       "doneWhen": "Audited on main: runStage is called for stages 1, 2, 3, 4, 5 and 7 and never for 6. quality/score.js looks for `job.stages.find(s => s.stage === 6)` and, finding none, falls back to structurePass false, eslintErrors 0 and axeSeriousViolations 0 for every job ever scored -- so the 0-100 number T-091 surfaces is not a measurement of anything. quality/accessibility.js, quality/performance.js and quality/visual.js (T-090) have zero callers, and generate/validateAndRecover.js -- which implements §18.2's parse-and-lint check -- has zero callers too. Done when generate.js runs stage 6 after stage 5, using validateAndRecover's own check rather than a second implementation of it, and persists an artifact carrying at least structurePass and eslintErrors in the shape computeJobScore already reads. A structural failure is a DEGRADED stage and a successful job, never a failed one -- §18.2's whole point is that the job still succeeds. SCOPE: the visual and accessibility metrics need a rendered page and a browser and are NOT in this task; they stay at their documented fallbacks and get their own task, so that what the score does and does not measure stays legible."
+    },
+{
+      "id": "T-116",
+      "phase": 6,
+      "track": "api-glassbox",
+      "title": "Nothing parses multipart, so POST /api/generate cannot receive a wireframe over HTTP at all",
+      "size": "50m",
+      "contract": [
+        "§13",
+        "§13.1",
+        "§11.0"
+      ],
+      "deps": [
+        "T-108"
+      ],
+      "files": [
+        "server/src/app.js",
+        "tests/generate-accepts-a-multipart-upload.test.mjs"
+      ],
+      "verify": "node --test tests/generate-accepts-a-multipart-upload.test.mjs",
+      "doneWhen": "Measured against the running system, not the tests. With the perception service and the Node API both up, `curl -X POST /api/generate -F mode=wireframe -F wireframe=@gpu-test/wireframe.png` answers 400 'mode is required and must be one of: wireframe, code, prompt, combined' — the MODE does not arrive, let alone the file. app.js mounts `express.json()` and nothing else, so a multipart request reaches the handler with an empty body and empty files. T-108 made the handler work and nothing can feed it. server/src/pipeline/stage1InputAcquisition.js carries a multer configuration and has zero callers, and its field name is `image` while §13.1, the client and generate.js all say `wireframe`. Done when a real multipart POST reaches postGenerate with body fields populated and `ctx.files.wireframe` carrying the bytes; when §13.1's limits produce §13's envelopes rather than multer's own errors — over 8 MB is 413, a non-image type is 400; when JSON requests are unaffected; and when the demo path is exercised end to end with curl against a running server, not only against an injected ctx."
     }
   ]
 }
