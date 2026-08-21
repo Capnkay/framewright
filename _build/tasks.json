@@ -2089,6 +2089,32 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_fuse.py",
       "doneWhen": "Measured on gpu-test/wireframe.png with stage 3b succeeding: OCR bound HEADLINE (0.99), LABEL (0.97), SUBMIT (0.92) and Image (0.86) to regions, and _slot_assignments' positional rule placed 0 of 7 texts in the correct slot — headlineSub took 'Image', heroImage took the bleed-through string 'eeneb', and ctaButton kept its template default while still reporting sourceOf 'wireframe'. Slot assignment must consult the text first: a keyword match claims its slot, the existing kind=='group' rule keeps statBadges, and position survives only as the fallback for what is left. Junk readings must be excluded by a confidence floor rather than by naming them. The reference set stays covered in full whatever the extraction contains (AGENTS.md rule 5), an unclaimed slot still carries null and not a fabricated number (§10), and the before/after slot-assignment score is recorded in docs/BENCHMARK-RESULTS.md as B-004."
+    },
+    {
+      "id": "T-101",
+      "phase": 3,
+      "track": "perception",
+      "title": "Wire /perceive to the pipeline it already has — stages 2, 3a, 3b and 4 instead of the T-054 scaffold",
+      "size": "50m",
+      "contract": [
+        "§12",
+        "§11",
+        "§10",
+        "§6"
+      ],
+      "deps": [
+        "T-055",
+        "T-056",
+        "T-098",
+        "T-057",
+        "T-100"
+      ],
+      "files": [
+        "perception/app.py",
+        "perception/tests/test_perceive.py"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_perceive.py",
+      "doneWhen": "Measured by calling POST /perceive with gpu-test/wireframe.png against the board at 100/100: every element came back sourceOf 'default' with bbox null, normalisation was the identity {scale 1.0, width null, height null}, confidence was null, and stages 2, 3 and 4 were all 'skipped' naming T-055/T-056/T-057 — tasks that are done, tested and unreachable from the endpoint. No task covered the seam: T-054 built the scaffold and T-058 owns the Node side, so the wiring belonged to nobody and a 100/100 board could not see it. /perceive must run normalise → detect_regions → extract_text → fuse and return what they produce: the real transform (§6 requires the normaliser to record it), real bboxes in normalised space, measured confidences and never fabricated ones (§10), and stage records carrying real status, timings and inline artifacts (§11.1, §11.2). Degradation stays supported rather than fatal: OCR absent or a dead worker is a 'degraded' stage and regions-without-text, not a 500, and an undecodable upload is still §12's 422 PARSE_FAILURE. The service still writes no file and allocates no fieldId. Pinned by a test that feeds the reference wireframe through the endpoint and asserts sourceOf 'wireframe' on the elements a detection actually claimed."
     }
   ]
 }
