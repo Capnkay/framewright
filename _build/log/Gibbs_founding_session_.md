@@ -77,3 +77,17 @@
 - Device: Karans-PC
 - Files: server/src/routes/regenerate.js, tests/regenerate-card-slots.test.mjs
 
+## T-084 — Implement embed() and rerank() with the deterministic lexical fallback (§16.1)
+- Started: 2026-08-21T14:19:42.701Z
+- Finished: 2026-08-21T15:16:20.265Z
+- Duration: 57m
+- Device: Karans-PC
+- Files: server/src/models/embedding.js, server/src/models/rerank.js, tests/embedding-rerank.test.mjs
+
+## T-087 — Implement GET /api/metrics in Prometheus text format, no server required (§17.2)
+- Started: 2026-08-21T14:19:42.838Z
+- Finished: 2026-08-21T15:16:21.557Z
+- Duration: 57m
+- Device: Karans-PC
+- Files: server/src/observability/metrics.js, server/src/routes/metrics.js, tests/metrics.test.mjs
+
