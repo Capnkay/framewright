@@ -21,3 +21,10 @@
 - Device: Karans-PC
 - Files: server/src/observability/tracing.js, tests/tracing.test.mjs
 
+## T-082 — Implement the object storage adapter and the local-disk backend (§15.2)
+- Started: 2026-08-21T12:11:43.381Z
+- Finished: 2026-08-21T12:28:19.893Z
+- Duration: 17m
+- Device: Karans-PC
+- Files: server/src/storage/index.js, server/src/storage/localDisk.js, tests/storage-local.test.mjs
+
