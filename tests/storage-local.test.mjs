@@ -107,4 +107,8 @@ test('local disk adapter rejects keys outside the §15.2 key shapes', async (t) 
   const ok2 = await storage.putObject('artifacts/job-1/3-regions.json', Buffer.from('{}'), 'application/json');
   assert.equal(ok2.key, 'artifacts/job-1/3-regions.json');
   await storage.deleteObject('artifacts/job-1/3-regions.json');
+  // deleteObject removes the object, not the per-job directory it lived in.
+  // Leaving that directory behind is what makes a later rmdir in another suite
+  // fail with ENOTEMPTY, so this suite takes its own directory with it.
+  await fs.rm('artifacts/job-1', { recursive: true, force: true });
 });
