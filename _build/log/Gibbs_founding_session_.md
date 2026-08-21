@@ -7,3 +7,10 @@
 - Device: Karans-PC
 - Files: docs/, tools/, client/, seed/, tests/, .claude/, .githooks/
 
+## T-086 — Implement structured JSON logging, subject to §14 in full (§17.1)
+- Started: 2026-08-21T12:11:43.483Z
+- Finished: 2026-08-21T12:23:25.205Z
+- Duration: 12m
+- Device: Karans-PC
+- Files: server/src/observability/log.js, tests/logging.test.mjs
+
