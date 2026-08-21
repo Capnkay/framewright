@@ -2201,6 +2201,80 @@
       ],
       "verify": "node tools/test.mjs studio-progress-errors",
       "doneWhen": "Measured on a 500 response from /api/jobs: UI displays an error banner instead of crashing or hanging on running"
+    },
+{
+      "id": "T-107",
+      "phase": 6,
+      "track": "studio-preview",
+      "title": "Mount the Generator Studio's built components into GeneratePage — it is still the T-001 route shell",
+      "size": "60m",
+      "contract": [
+        "§13",
+        "§11.1"
+      ],
+      "deps": [],
+      "files": [
+        "client/src/routes/GeneratePage.jsx",
+        "tests/studio-page-mounts-its-controls.test.mjs"
+      ],
+      "verify": "node --test tests/studio-page-mounts-its-controls.test.mjs",
+      "doneWhen": "Audited on main at 4bc768f with the board reading 100 of 100: client/src/routes/GeneratePage.jsx imports React and Link and nothing else, and renders a <ul> of the nine FR-G requirements with their task ids beside them — a to-do list, not a studio. All 14 components in client/src/studio/ are unreachable from the running app: twelve have no production importer at all, and UploadForm and ConfidenceBadge are imported only by components that are themselves unreachable. T-043 through T-049, T-051 through T-053, T-066 and T-068 each built and tested their component; no task after T-001 declared GeneratePage.jsx, so no task could mount one. Every component's test passes because the tests import it directly, which is why this survived a full board. GeneratePage must mount the built controls so FR-G01 to FR-G09 are reachable by a user, and the test must assert reachability from the ROUTE rather than from a direct import — a test that imports its own subject cannot tell mounted from orphaned, which is the exact hole this fell through. The Studio is its own 10-point line item."
+    },
+    {
+      "id": "T-108",
+      "phase": 6,
+      "track": "api-glassbox",
+      "title": "Implement mode=wireframe on POST /api/generate — stages 1, 2 and 3 never run in this system",
+      "size": "75m",
+      "contract": [
+        "§13",
+        "§11.0",
+        "§11.2",
+        "§12"
+      ],
+      "deps": [
+        "T-101"
+      ],
+      "files": [
+        "server/src/routes/generate.js",
+        "tests/generate-wireframe-mode.test.mjs"
+      ],
+      "verify": "node --test tests/generate-wireframe-mode.test.mjs",
+      "doneWhen": "Measured on main at 4bc768f: server/src/routes/generate.js:35 returns 501 NOT_IMPLEMENTED for every mode but prompt, citing T-033, and regenerate.js:40 does the same citing T-041 — so of §13's four modes only one works. generate.js:54-56 calls skipStage for stages 1, 2 and 3 with reason 'mode=prompt uses no image', and runStage is only ever called for stages 4, 5 and 7, so stages 1, 2 and 3 never run anywhere in this system. server/src/generate/perceiveAndAssembleIr.js (T-058) and server/src/pipeline/stage1InputAcquisition.js (T-024) are both built, tested, and have zero callers. mode=wireframe must create a job, run stage 1 over the upload, run stages 2 and 3 through perceiveAndAssembleIr under runStage so their records and artifacts persist per §11.2, then join the existing stage-4-onward path. AGENTS.md rule 5 still binds: with the perception service stopped the stage degrades and the job still completes — T-058's StageDegraded path already defines that and must be used rather than reimplemented. Also closes the reason nothing writes s2-normalised.png, which blocks T-102."
+    },
+    {
+      "id": "T-109",
+      "phase": 6,
+      "track": "generation",
+      "title": "Apply the §8 CSS allow-list and the document validators at the write path — all three are built and never called",
+      "size": "45m",
+      "contract": [
+        "§8",
+        "§2",
+        "§3"
+      ],
+      "deps": [],
+      "files": [
+        "server/src/routes/generate.js",
+        "tests/write-path-validation.test.mjs"
+      ],
+      "verify": "node --test tests/write-path-validation.test.mjs",
+      "doneWhen": "Audited on main at 4bc768f: server/src/sanitise/cssAllowList.js (T-032), server/src/validate/sectionValidator.js (T-020) and server/src/models/sectionDoc.js and elementDoc.js (T-007) are imported by their own tests and by nothing else. generate.js:91 and :107 build the section and element documents as inline object literals — the sectionDoc and elementDoc identifiers there are local variable names, not those modules. sanitiseWrite.js is wired; the CSS half of §8 is not. This does not show the documents are malformed; it shows nothing checks them at the one moment it matters, which is when they are written to the store. The validators and the allow-list must run at the insert path, and the test must show a document violating each one being REJECTED rather than only a valid one passing — a test that feeds only valid input cannot tell a wired validator from an absent one."
+    },
+    {
+      "id": "T-110",
+      "phase": 6,
+      "track": "any",
+      "title": "AGENTS.md: a task that builds a module must wire it or name the task that will",
+      "size": "20m",
+      "contract": [],
+      "deps": [],
+      "files": [
+        "AGENTS.md",
+        "docs/corrections/REGISTER.md"
+      ],
+      "verify": null,
+      "doneWhen": "Three gaps of one shape were found in two days, each sitting between two individually complete tasks: /perceive answered with the T-054 scaffold while stages 2-4 sat built and unreachable (fixed as T-101); mode=wireframe returns 501 while perceiveAndAssembleIr has zero callers (T-108); and the Generator Studio mounts none of its 14 built components (T-107). None was visible on a board reading 100 of 100, because a task's files list covers a module and nothing owns the call from one module to the next — a dependency graph over tasks cannot express 'and something must invoke this'. AGENTS.md must carry the rule that closes the class: a task that builds a module either wires it into a caller or names the task that will, and a task whose only test imports its own subject has not shown the module is reachable. Manual task: the note records where the rule landed."
     }
   ]
 }
