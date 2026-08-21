@@ -133,3 +133,10 @@
 - Device: Jainam
 - Files: client/src/studio/JobHistory.jsx, tests/job-history.test.mjs
 
+## T-049 — Build the Generator Studio’s read-only generated JSX view and preview link (FR-G06)
+- Started: 2026-08-21T17:08:40.234Z
+- Finished: 2026-08-21T17:09:20.345Z
+- Duration: 1m
+- Device: Jainam
+- Files: client/src/studio/GeneratedSourceView.jsx, tests/generated-source-view.test.mjs
+
