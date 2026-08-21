@@ -2427,6 +2427,25 @@
       ],
       "verify": "node --test tests/write-component-file-path.test.mjs",
       "doneWhen": "Found by running the demo, not by reading code. writeComponentFile.js computes REPO_ROOT as path.resolve(__dirname, '..', '..', '..', '..') from server/src/generate — four levels, which lands on the PARENT of the repository. Its own comment on the line above says 'up 3 levels'; the comment is right and the code is wrong. Every component this project has ever generated was written to D:/SIH/client/src/sections/generated/ instead of framewright/client/src/sections/generated/, and PreviewPage.jsx discovers sections with import.meta.glob('../sections/generated/*.jsx') — so it has never seen a single one of them and every generated section renders the 'file was not found by Vite eager-glob' branch. Verified on disk: the out-of-tree directory holds dozens of Custom-*.jsx files and the in-tree one holds only the golden HeroSection. Done when the file lands inside the repository, when a test asserts the resolved directory is under the repo root rather than asserting a hardcoded absolute path, and when a generated section is confirmed discoverable by the same glob the preview uses."
+    },
+{
+      "id": "T-118",
+      "phase": 6,
+      "track": "any",
+      "title": "Generated sections now land in-tree and nothing ignores them, so every demo run dirties the working copy",
+      "size": "20m",
+      "contract": [
+        "§7"
+      ],
+      "deps": [
+        "T-117"
+      ],
+      "files": [
+        ".gitignore",
+        "tests/generated-sections-are-not-committed.test.mjs"
+      ],
+      "verify": "node --test tests/generated-sections-are-not-committed.test.mjs",
+      "doneWhen": "T-117 moved generated components back inside the repository, which is correct and has a consequence: client/src/sections/generated/ now fills with Custom-<id>-v<n>.jsx on every generation and .gitignore has no rule for it, so `git status` is dirty after any demo run and someone will eventually commit a demo artifact. AGENTS.md already forbids committing uploads/ and artifacts/ for the same reason. The directory cannot simply be ignored: the golden HeroSection.jsx and HeroSection.logic.js live there, are tracked, and are graded. Done when generated sections are ignored and the golden files are not, asserted by a test that checks the ignore rules rather than the current contents of the directory — a test reading the directory passes on a clean checkout and says nothing. ALSO: roughly 80 stray files sit in D:/SIH/client/src/sections/generated/, written outside the repo by every generation before T-117. Removing them is a human decision, not a build step — flag it, do not delete it."
     }
   ]
 }
