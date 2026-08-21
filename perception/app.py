@@ -1,32 +1,54 @@
 """FastAPI application for the perception service. CONTRACT.md section 12.
 
-T-054 scaffolds the two endpoints and pins their exact wire shapes. The real work
-arrives later and is deliberately not faked here:
+T-054 scaffolded the two endpoints and pinned their wire shapes. T-101 connected
+/perceive to the pipeline that had been built behind it:
 
     T-055  stage 2, preprocessing-normalization (OpenCV), recording the transform
-    T-056  stage 3, multimodal-understanding (contour detection + PaddleOCR)
-    T-057  fusion and hierarchy, assembling the layout/theme/cards sub-objects
+    T-056  stage 3a, contour and rectangle region detection
+    T-098  stage 3b, text extraction with PaddleOCR, bound to those regions
+    T-057  stage 4, fusion -- the IR's named sub-objects
+    T-100  slot assignment from what the wireframe says, before where it sits
 
-WHAT THIS SCAFFOLD RETURNS, AND WHY IT IS SHAPED THIS WAY. /perceive returns the
-complete section 12 response with the deterministic split-hero template in it, so
-the Node track can build and test its half of the seam today. Every element comes
-back with `confidence: null`, `bbox: null` and `sourceOf: "default"`, and the
-stage records come back `skipped` with a warning naming the task that fills them.
+WHY THAT WAS ITS OWN TASK, recorded because a reader will otherwise assume it was
+an oversight. It was: no task covered the seam. T-054 owned the scaffold and T-058
+owns the Node side, so the wiring between the endpoint and the stages belonged to
+nobody, and the board read 100 of 100 while /perceive still answered with the
+template. The stages were done, tested and unreachable. A board cannot see a gap
+that no task describes -- which is the argument for measuring the running system
+rather than reading the board.
 
-That is not a placeholder gap to be tidied up later -- it is the honest answer.
-Section 10: "Elements that did not come from an image carry null, not a fabricated
-number." Nothing here has looked at the image yet, so a confidence of 0.88 would be
-a lie that reads as a measurement, and it would be believed by the Glass Box
-timeline, by the confidence bands in section 10, and by whoever demos this.
+WHAT THE SCAFFOLD USED TO RETURN, AND WHY IT WAS RIGHT AT THE TIME. Every element
+came back `confidence: null`, `bbox: null`, `sourceOf: "default"`, with stages 2-4
+`skipped`. Section 10: "Elements that did not come from an image carry null, not a
+fabricated number." Nothing had looked at the image, so 0.88 would have been a lie
+that reads as a measurement. That reasoning still governs every value below -- the
+difference is that something has now actually looked.
+
+THE TEMPLATE DID NOT GO AWAY. `template_*` remains the reference shape and stage 4
+starts from it, because section 3's element set must be covered whatever the image
+turns out to contain (AGENTS.md rule 5). What changed is that a detection can now
+claim a slot and overwrite the default, and say so through `sourceOf`.
+
+NEVER 500. Section 12 gives this endpoint two outcomes: a 200 with the sub-objects,
+and a 422 for an unparseable upload. A stage that fails is therefore reported as a
+failed stage inside a 200, not raised -- the same rule stage 3b already applies to
+a missing OCR engine. A perception service that dies takes the generation with it.
 """
 
 from __future__ import annotations
 
 import json
+import time
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
+
+from .stages.detect_regions import detect_regions
+from .stages.extract_text import extract_text, load_reader
+from .stages.fuse import fuse
+from .stages.normalise import NormalisationError, normalise
 
 # Accepted image types, section 13.1. Node enforces this too; doing it here as well
 # means the service is honest when called directly, which is how it gets tested.
@@ -241,6 +263,283 @@ def template_stages() -> list[dict[str, Any]]:
     ]
 
 
+def _timestamp() -> str:
+    """An ISO-8601 UTC instant for `startedAt`, section 11.1's shape.
+
+    The clock lives HERE and in no stage. Section 11 rule 3 makes a stage a pure
+    function of its persisted input, and a stage that timestamps itself is no longer
+    one -- two identical calls would differ. The service layer is where time belongs,
+    because the service is the thing being traced.
+    """
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace(
+        "+00:00", "Z"
+    )
+
+
+def _stage_record(
+    stage: int,
+    name: str,
+    status: str,
+    started_at: str,
+    ms: int,
+    *,
+    artifact: Any = None,
+    model: str | None = None,
+    confidence: float | None = None,
+    warnings: Any = (),
+) -> dict[str, Any]:
+    """One stage-trace record, section 11.1.
+
+    `inputRef` and `outputRef` are null and always will be from this side. Section
+    11.2: artifacts are owned by Node and live on the Node machine, and this service
+    "never writes artifacts -- it returns its stage outputs inline". A path written
+    here would resolve to nothing on the machine that reads it, so null is the honest
+    value and the real output travels in `artifact`.
+    """
+    return {
+        "stage": stage,
+        "name": name,
+        "status": status,
+        "startedAt": started_at,
+        "ms": ms,
+        "inputRef": None,
+        "outputRef": None,
+        "artifact": artifact,
+        "model": model,
+        "confidence": confidence,
+        "warnings": list(warnings),
+    }
+
+
+def _mean_confidence(values: list[float]) -> float | None:
+    """The mean of what was actually measured, or None if nothing was.
+
+    None rather than 0.0, for the reason section 10 gives and this module's docstring
+    repeats: they mean opposite things. 0.0 says we looked and saw nothing; None says
+    we did not look.
+    """
+    return float(sum(values) / len(values)) if values else None
+
+
+def _template_response(
+    normalisation: dict[str, Any],
+    stages: list[dict[str, Any]],
+    warnings: list[str],
+) -> dict[str, Any]:
+    """The deterministic answer, for a run where a stage failed after stage 2.
+
+    AGENTS.md rule 5: the deterministic path always works. A perception failure has to
+    degrade to the template rather than to an error, because the emitter downstream
+    builds a section from the reference set and a missing `ctaButton` is a missing
+    button in the demo. Every element keeps `sourceOf: "default"` and `confidence:
+    null`, which is true -- nothing claimed them.
+    """
+    return {
+        "layout": template_layout(),
+        "theme": template_theme(),
+        "cards": template_cards(),
+        "elements": template_elements(),
+        "normalisation": normalisation,
+        "confidence": None,
+        "questions": [],
+        "stages": stages,
+        "warnings": warnings,
+    }
+
+
+def perceive_image(payload: bytes, *, reader: Any | None = None) -> dict[str, Any]:
+    """Stages 2, 3 and 4 over one upload. Returns section 12's response body.
+
+    Raises `NormalisationError` and nothing else. An undecodable upload is section
+    12's 422 and belongs to the caller to shape; every other failure is reported as a
+    failed stage inside a successful response, because a 500 here is a dead generation
+    and section 12 does not define one.
+    """
+    stages: list[dict[str, Any]] = []
+
+    # --- stage 2: normalisation. Section 6 requires the transform to be recorded ---
+    started_at, clock = _timestamp(), time.perf_counter()
+    stage2 = normalise(payload)  # NormalisationError propagates -- see the docstring
+    stages.append(
+        _stage_record(
+            2,
+            "preprocessing-normalization",
+            "ok",
+            started_at,
+            int((time.perf_counter() - clock) * 1000),
+            artifact=stage2.to_dict(),
+            model="opencv",
+        )
+    )
+    height, width = stage2.image.shape[:2]
+
+    # --- stage 3: 3a finds WHERE, 3b reads WHAT IT SAYS. One stage in section 11.0 ---
+    started_at, clock = _timestamp(), time.perf_counter()
+    try:
+        regions = detect_regions(stage2.image)
+        extraction = extract_text(stage2.image, regions, reader=reader)
+    except Exception as exc:  # noqa: BLE001 - a failed stage, never a failed request
+        elapsed = int((time.perf_counter() - clock) * 1000)
+        stages.append(
+            _stage_record(
+                3,
+                "multimodal-understanding",
+                "failed",
+                started_at,
+                elapsed,
+                warnings=[f"Stage 3 failed: {type(exc).__name__}: {exc}"],
+            )
+        )
+        stages.append(
+            _stage_record(
+                4,
+                "semantic-planning-ir",
+                "skipped",
+                _timestamp(),
+                0,
+                warnings=["Stage 4 did not run because stage 3 failed."],
+            )
+        )
+        return _template_response(
+            stage2.to_dict(),
+            stages,
+            [
+                "Perception failed after normalisation; this is the deterministic "
+                "template, not a detection result."
+            ],
+        )
+
+    # "degraded" is section 11.1's word for a stage that did not do its real work and
+    # let the pipeline continue -- which is exactly regions-without-text. EC-015:
+    # `ocr_available` is false when the page was never actually read, as against read
+    # and found to be empty, and those must not be reported as the same thing.
+    ocr_ran = extraction.ocr_available
+    stages.append(
+        _stage_record(
+            3,
+            "multimodal-understanding",
+            "ok" if ocr_ran else "degraded",
+            started_at,
+            int((time.perf_counter() - clock) * 1000),
+            artifact=extraction.to_dict(),
+            model="opencv-contours+paddleocr" if ocr_ran else "opencv-contours",
+            confidence=_mean_confidence(
+                [r.effective_confidence for r in extraction.regions]
+            ),
+            warnings=extraction.warnings,
+        )
+    )
+
+    # --- stage 4: fusion. The reference set is covered whatever stage 3 returned ---
+    started_at, clock = _timestamp(), time.perf_counter()
+    try:
+        fused = fuse(
+            extraction,
+            width=width,
+            height=height,
+            layout=template_layout(),
+            theme=template_theme(),
+            cards=template_cards(),
+            elements=template_elements(),
+        )
+    except Exception as exc:  # noqa: BLE001
+        stages.append(
+            _stage_record(
+                4,
+                "semantic-planning-ir",
+                "failed",
+                started_at,
+                int((time.perf_counter() - clock) * 1000),
+                warnings=[f"Stage 4 failed: {type(exc).__name__}: {exc}"],
+            )
+        )
+        return _template_response(
+            stage2.to_dict(),
+            stages,
+            ["Fusion failed; this is the deterministic template."],
+        )
+
+    claimed = sum(1 for e in fused["elements"] if e.get("sourceOf") == "wireframe")
+
+    # A RESPONSE THAT IS THE TEMPLATE MUST SAY SO. Fusion warns when regions existed
+    # and claimed nothing, but says nothing at all when there were no regions to begin
+    # with -- and that is the case which looks most like a successful detection from
+    # the outside: a complete, plausible element set, every value a default. The
+    # scaffold carried this warning permanently and it must not be lost now that the
+    # pipeline is real; a reader who cannot tell a detection from a default is exactly
+    # who section 6's `sourceOf` audit exists for.
+    template_warnings: list[str] = []
+    if claimed == 0:
+        template_warnings.append(
+            "Nothing in this image claimed an element; every value below is the "
+            "deterministic template, not a detection result. "
+            f"{len(extraction.regions)} region(s) were detected."
+        )
+    stages.append(
+        _stage_record(
+            4,
+            "semantic-planning-ir",
+            "ok",
+            started_at,
+            int((time.perf_counter() - clock) * 1000),
+            # The artifact is the ASSIGNMENT, not the elements -- those are already in
+            # the response body, and section 11.2's artifacts are persisted separately
+            # by Node. Repeating them would double the payload to say nothing new.
+            artifact={
+                "slots": {
+                    e["elementName"]: {
+                        "bbox": e.get("bbox"),
+                        "confidence": e.get("confidence"),
+                        "sourceOf": e.get("sourceOf"),
+                    }
+                    for e in fused["elements"]
+                },
+                "claimedFromWireframe": claimed,
+                "cardCount": (fused.get("cards") or {}).get("count"),
+            },
+            confidence=fused.get("confidence"),
+            warnings=fused.get("warnings", []),
+        )
+    )
+
+    return {
+        "layout": fused["layout"],
+        "theme": fused["theme"],
+        "cards": fused["cards"],
+        "elements": fused["elements"],
+        "normalisation": stage2.to_dict(),
+        "confidence": fused["confidence"],
+        "questions": fused["questions"],
+        "stages": stages,
+        "warnings": template_warnings + list(fused.get("warnings", [])),
+    }
+
+
+# The OCR reader, built at most once per process. `load_reader()` probes the worker by
+# asking it to read a real image (EC-014), which costs a subprocess and several seconds,
+# and doing that per request would put that cost on every upload. `extract_text` is
+# explicit that caching this is the service layer's decision and not the stage's: "the
+# service layer owns that decision, not this stage."
+#
+# None is cached as a real answer, so a machine with no usable worker probes once and
+# then degrades quickly rather than paying the probe on every call. `_READER_PROBED` is
+# what distinguishes "cached None" from "not yet asked" -- the same distinction section
+# 12's degradation path turns on everywhere else in this service.
+_READER: Any = None
+_READER_PROBED = False
+
+
+def _reader() -> Any | None:
+    global _READER, _READER_PROBED  # noqa: PLW0603 - process-wide, by design
+    if not _READER_PROBED:
+        try:
+            _READER = load_reader()
+        except Exception:  # noqa: BLE001 - absence is a supported state, not an error
+            _READER = None
+        _READER_PROBED = True
+    return _READER
+
+
 def parse_failure(message: str) -> JSONResponse:
     """Section 12's 422 shape, which is section 13's error envelope."""
     return JSONResponse(
@@ -288,32 +587,18 @@ def create_app() -> FastAPI:
         # Section 12: no irFragment. The named sub-objects are returned directly,
         # and Node assembles the full IR by taking irVersion, pageName,
         # sectionName, source and idPolicy from the request.
-        return {
-            "layout": template_layout(),
-            "theme": template_theme(),
-            "cards": template_cards(),
-            "elements": template_elements(),
-            # Section 6 requires the normaliser to record its transform, because a
-            # bbox without one is unusable by anyone who did not write the
-            # normaliser. Identity here: no normalisation has happened, and the
-            # real values arrive with T-055.
-            "normalisation": {
-                "scale": 1.0,
-                "offsetX": 0,
-                "offsetY": 0,
-                "width": None,
-                "height": None,
-            },
-            "confidence": None,
-            "questions": [],
-            "stages": template_stages(),
-            "warnings": [
-                "Perception is scaffolded but not implemented; this is the "
-                "deterministic split-hero template, not a detection result.",
-                "Every element carries confidence null and bbox null because "
-                "nothing has read the image yet (section 10).",
-            ],
-        }
+        #
+        # `hints` is parsed to validate it and then not used. That is deliberate and
+        # not an oversight: nothing in section 12 defines a hint that changes what
+        # perception does, so acting on one would be inventing a field. Validating it
+        # still earns its keep -- a malformed hint is the caller's bug and it should
+        # be told, not silently ignored.
+        try:
+            return perceive_image(payload, reader=_reader())
+        except NormalisationError as exc:
+            # The one failure section 12 gives a shape to. Everything else is a
+            # failed stage inside a 200; see perceive_image's docstring.
+            return parse_failure(str(exc))
 
     return app
 

@@ -129,3 +129,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/fuse.py, perception/tests/test_fuse.py, perception/benchmarks/slots_wireframe.py, docs/BENCHMARK-RESULTS.md
 
+## T-101 — Wire /perceive to the pipeline it already has — stages 2, 3a, 3b and 4 instead of the T-054 scaffold
+- Started: 2026-08-21T19:41:16.815Z
+- Finished: 2026-08-21T19:55:41.049Z
+- Duration: 14m
+- Device: Mohits_Victus
+- Files: perception/app.py, perception/tests/test_perceive.py, perception/tests/test_health.py
+

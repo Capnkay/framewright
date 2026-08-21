@@ -188,10 +188,22 @@ def test_scaffold_reports_null_confidence_rather_than_a_plausible_number(client:
         )
 
 
-def test_scaffold_warns_that_it_is_a_template_not_a_detection(client: TestClient) -> None:
+def test_a_response_that_is_the_template_says_so(client: TestClient) -> None:
+    """Rewritten at T-101, and the invariant is the same one the scaffold defended.
+
+    A 1x1 PNG has nothing in it, so nothing claims an element and the whole reference
+    set comes back at its default. From the outside that is indistinguishable from a
+    successful detection -- a complete, plausible element set. It was the scaffold's
+    permanent warning that made the difference visible, and wiring the real pipeline
+    in must not quietly remove it.
+
+    The test no longer asserts the words "not implemented", because that sentence is
+    now false: the pipeline IS implemented and it ran. What must survive is the claim
+    the sentence was carrying.
+    """
     warnings = upload(client).json()["warnings"]
     assert warnings, "a template returned as if it were a detection must say so"
-    assert any("not implemented" in w or "template" in w for w in warnings)
+    assert any("template" in w and "not a detection" in w for w in warnings), warnings
 
 
 def test_card_count_is_carried_in_the_ir_not_assumed(client: TestClient) -> None:

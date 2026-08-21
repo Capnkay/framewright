@@ -1691,3 +1691,39 @@ the number from a script that lives nowhere is not.
 §12's degradation rule and §6's `sourceOf` audit all described the correct behaviour
 already — the code did not implement them, which is a bug under rule 1 rather than a
 specification gap.
+
+---
+
+## 2026-08-22 · `_build/tasks.json` — T-101 added, and its `files` list extended mid-task
+
+**T-101 added.** `POST /perceive` was still the T-054 scaffold while the board read 100
+of 100. Called with `gpu-test/wireframe.png` it returned the identity transform
+(`width: null`), `confidence: null`, and all seven elements at `sourceOf: "default"`,
+`bbox: null`, with stages 2, 3 and 4 `skipped` naming T-055/T-056/T-057 — tasks that were
+done, tested and unreachable from the endpoint.
+
+**Why no task covered it.** T-054 owned the scaffold; T-058 owns the Node side. The seam
+between the endpoint and the stages was in nobody's `files` list, so no dependency could
+mark it undone and `baton next` reported the whole board clear. **A board cannot show a
+gap that no task describes** — which is the argument for measuring the running system
+rather than reading the board, and it is why this was found by calling `/perceive` rather
+than by looking at `_build/STATE.md`.
+
+**`files` extended after the claim**, to add `perception/tests/test_health.py`. That file
+carried `test_scaffold_warns_that_it_is_a_template_not_a_detection`, which asserted the
+response says "not implemented". T-101 makes that sentence false — the pipeline is
+implemented and it ran — so the test had to change with the behaviour it pinned.
+
+It was rewritten rather than deleted, because the invariant underneath it is still live
+and still worth defending: a 1×1 PNG detects nothing, so the full reference set comes back
+at its defaults, and from the outside that is indistinguishable from a successful
+detection. The scaffold's permanent warning was what made the difference visible. So
+`perceive_image` now emits that warning when **nothing claimed an element**, and the test
+asserts the claim rather than the wording.
+
+That is a behaviour change found by a test that was about to be deleted as obsolete, which
+is the argument against deleting one.
+
+**Not changed:** `docs/CONTRACT.md`. §12's response shape, §11.1's stage records and
+§10's null rule all described the correct behaviour already. The endpoint did not
+implement them, which is a bug under rule 1 rather than a specification gap.
