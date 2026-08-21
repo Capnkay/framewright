@@ -28,3 +28,17 @@
 - Device: Karans-PC
 - Files: server/src/storage/index.js, server/src/storage/localDisk.js, tests/storage-local.test.mjs
 
+## T-079 — Implement the cache adapter interface and the in-process TTL cache (§15.1)
+- Started: 2026-08-21T12:11:43.280Z
+- Finished: 2026-08-21T12:28:57.505Z
+- Duration: 17m
+- Device: Karans-PC
+- Files: server/src/cache/index.js, server/src/cache/memoryCache.js, tests/cache-memory.test.mjs
+
+## T-061 — Implement combined-mode conflict resolution across prompt, wireframe and code inputs
+- Started: 2026-08-21T12:11:43.748Z
+- Finished: 2026-08-21T12:28:58.188Z
+- Duration: 17m
+- Device: Karans-PC
+- Files: server/src/generate/resolveConflicts.js, tests/combined-mode-conflicts.test.mjs
+
