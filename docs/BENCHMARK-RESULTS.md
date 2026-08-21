@@ -299,3 +299,105 @@ seven, at sub-second speed, on the CPU, with nothing downloaded.
 
 This is the pivot. A wireframe is rectangles and text — the worst case for a detector
 trained on photographs and close to the best case for contour detection.
+
+---
+
+## B-004 · Does the right region reach the right slot? — fusion, before and after T-100
+
+**Date:** 2026-08-22 · **Status:** DEFINITIVE — T-100's measured result · **VERIFIED** (run on our hardware)
+
+B-003 asked whether stage 3a can **locate** the seven reference elements. It can: 7 of 7.
+This asks the question one stage later — whether stage 4 hands each located region to the
+element it actually **is**. The two are independent, and B-003 could not see the second:
+every region below was located correctly and then given to the wrong slot.
+
+Same machine, same image, same seven annotated targets as B-001 through B-003, imported
+from `perception/benchmarks/contours_wireframe.py` rather than re-annotated.
+
+```
+perception/.venv/Scripts/python -m perception.benchmarks.slots_wireframe ../gpu-test/wireframe.png
+```
+
+### Scored on two axes
+
+A slot can be wrong in two different ways, so both are reported and neither is collapsed
+into the other:
+
+- **geometry** — the slot's bbox overlaps that element's annotated target at IoU ≥ 0.5.
+- **text** — where the wireframe writes something in that element, the slot's copy
+  contains it. `description` and `statBadges` are excluded: four ruled lines and three
+  empty squares carry no text, and asserting that they do would assert a fiction.
+
+### The result
+
+| | Before (positional) | After (T-100) |
+|---|---|---|
+| **Slots with the right geometry** | **0 of 7** | **6 of 7** |
+| **Slots with the right text** | **0 of 4** | **4 of 4** |
+| Escalation questions raised | 2 | **0** |
+| Regions detected / with text | 35 / 7 | 35 / 7 |
+| Fusion time | < 0.01 s | < 0.01 s |
+
+Identical input to both — same detections, same OCR pass, 7 regions read either way. The
+only variable is the assignment rule.
+
+### Per slot
+
+| Slot | Before — text | After — text | After IoU |
+|---|---|---|---|
+| `heroImage` | `'eeneb'` (bleed-through) | *(image, no text)* | **0.88** |
+| `brandBadge` | template default | **`LABEL`** | 0.55 |
+| `headlineMain` | template default | **`HEADLINE`** | **0.29** ✗ |
+| `headlineSub` | **`'Image'`** | **`SUB HEADLINE`** | 0.86 |
+| `description` | template default | *(4 ruled lines)* | 0.74 |
+| `statBadges` | *(the paragraph's rules)* | *(the badge row)* | 0.83 |
+| `ctaButton` | template default | **`SUBMIT`** | 0.81 |
+
+### The one that still fails, stated rather than buried
+
+`headlineMain` scores **IoU 0.29** and is counted as a miss. The text is right and the
+box is real — it is the tight handwriting cluster around the word HEADLINE, 233×45 in
+normalised space. The annotated target is the full headline row, 800×110 in the original.
+So this is not a mis-assignment; it is a **tighter box than the ground truth describes**,
+and stage 3a produced it that way. Widening a claimed box to its row is a stage-3a
+question (T-056), not a fusion one, and inflating the score by loosening `HIT_IOU` here
+would break comparability with B-001 through B-003. Left as a miss.
+
+### Why the before column is 0 of 7 and not merely poor
+
+Three separate failures compounded, all of them measured:
+
+1. The detected outer **frame** survives T-056's area ceiling at 58% of the canvas, so
+   "largest viable region" chose the frame as the hero image. Its centre sits mid-page,
+   so `_side_of` called it *right*, and every genuine element on the left — including the
+   hero panel's own `Image` caption — was classified as content on the opposite side.
+2. That caption then took an ordinal content slot, which is how **`headlineSub` came to
+   contain the word "Image"**.
+3. The group rule took the **first** group in reading order for `statBadges`, which on
+   this wireframe is the description's four ruled lines rather than the three-badge row —
+   and would therefore have reported a card count of 4 for a row of 3 (§4 rule 4).
+
+Meanwhile PaddleOCR had already read `HEADLINE` at 0.99, `LABEL` at 0.97, `SUBMIT` at
+0.92 and `Image` at 0.86. Every one of those strings was in hand and discarded.
+
+### What changed
+
+Slot assignment now applies three rules in order: **what the region says** (keyword match
+against the reference set, floored at §10's escalate band so a weak reading cannot
+silently override position), then **which way a series runs** (T-056 already records
+`evidence["axis"]`, so a series running down the page is the paragraph and one running
+across it is the badge row), then **position**, for whatever is left. On this wireframe
+rule one resolves four slots, rule two resolves two, and `description` — which carries no
+text by design — is the only thing rule three has to place.
+
+**No model, no weights, no GPU, no network**, exactly as B-003. The words were already
+being paid for by stage 3b and were being thrown away.
+
+### The caveat that belongs next to the number
+
+This is **one image**, and it is the image the keyword table was written against. The
+table generalises only as far as wireframes that label their elements in English with the
+words it lists; a wireframe that writes "Buy tickets" on its button falls straight through
+to the positional fallback, which is the old behaviour and is what the fallback is for.
+The honest claim is that fusion no longer discards evidence it already has — not that
+slot assignment is solved.

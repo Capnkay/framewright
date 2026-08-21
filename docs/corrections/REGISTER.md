@@ -1666,3 +1666,28 @@ is the owner of neither.
 ## 2026-08-22 · CONTRACT v1.5 → v1.6 — Duplicate `elementName` rejection
 
 Logged by Generation track owner. `docs/CONTRACT.md` §6 only implied that `elementName` must be unique within a section (because `idPolicy.preserve.elements` is a name-keyed map). A validation rule explicitly rejecting duplicate `elementName`s was added to `validateIr`, making this uniqueness an enforced constraint rather than just structurally implied. This addition clarifies the rule for IR-producers to prevent them from discovering it solely through validation rejections.
+
+---
+
+## 2026-08-22 · `_build/tasks.json` — two tasks added after a spike found a live defect
+
+A spike into whether a vision-language model could label UI components measured the
+existing pipeline first, and found two defects in shipped, `done` work. Both belong to
+tasks already closed (T-098, T-057), so per AGENTS.md they were raised as new tasks
+rather than edited into someone else's finished file.
+
+| # | Added | Why it mattered |
+|---|---|---|
+| 1 | **T-099** — stage 3b reports a dead OCR worker as a death, not as a blank page | `SubprocessReader` never inspected `returncode`, so a worker killed by `0xC0000005` and a page with nothing written on it were the same value and carried the same warning. Measured at **2 runs in 3** on the reference wireframe: the Glass Box showed stage 3b green with an empty result, and the warning pointed a reader at the wireframe rather than at the worker. Recorded as EC-015 |
+| 2 | **T-100** — fusion assigns slots from the OCR text before falling back to position | With OCR working, `_slot_assignments` placed **0 of 7** texts in the right slot — `headlineSub` held the word `Image`, `heroImage` held bleed-through, and `ctaButton` kept the template's copy while reporting `sourceOf: "wireframe"`. `HEADLINE` had been read at 0.99 and discarded. Recorded as B-004 |
+
+**T-100's `files` list was extended mid-task**, after the claim, to add
+`perception/benchmarks/slots_wireframe.py`. The `doneWhen` required a before/after score
+recorded as B-004, and B-003 sets the precedent that a benchmark number which cannot be
+re-run is not evidence. Declaring the file is the honest way to satisfy that; producing
+the number from a script that lives nowhere is not.
+
+**Not changed:** `docs/CONTRACT.md`. Neither defect is a contract defect. §10's bands,
+§12's degradation rule and §6's `sourceOf` audit all described the correct behaviour
+already — the code did not implement them, which is a bug under rule 1 rather than a
+specification gap.

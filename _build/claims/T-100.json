@@ -1,0 +1,11 @@
+{
+  "taskId": "T-100",
+  "who": "Mohit Gupta",
+  "device": "Mohits_Victus",
+  "claimedAt": "2026-08-21T19:00:23.335Z",
+  "status": "done",
+  "takenFrom": null,
+  "takenAt": null,
+  "finishedAt": "2026-08-21T19:07:18.720Z",
+  "durationMs": 415385
+}

@@ -83,6 +83,49 @@ CONTENT_SLOTS = (
 )
 MEDIA_SLOT = "heroImage"
 
+# --- what the wireframe SAYS, not merely where it sits (T-100) --------------
+#
+# WHY THIS TABLE EXISTS. Measured on gpu-test/wireframe.png with stage 3b working:
+# PaddleOCR read HEADLINE at 0.99, LABEL at 0.97, SUBMIT at 0.92 and Image at 0.86,
+# and the purely positional rule below placed 0 of 7 of them in the right slot --
+# headlineSub took "Image", heroImage took a bleed-through string, and ctaButton kept
+# its template default while still reporting sourceOf "wireframe". Every one of those
+# is answered by the string the OCR had already returned.
+#
+# The previous docstring's defence was that the alternative "needs a model this stage
+# deliberately does not have". That was true of the alternative it had in mind, which
+# was inferring semantics from font size. It is not true of this one: the words are
+# already in hand, free, and they were being thrown away.
+#
+# ORDER IS LOAD-BEARING. "SUB HEADLINE" contains "HEADLINE", so the more specific
+# phrase is tested first and the first slot to match claims the region. Reordering
+# these tuples silently changes which slot wins.
+SLOT_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("headlineSub", ("SUB HEADLINE", "SUBHEADLINE", "SUB HEAD", "SUBTITLE", "TAGLINE")),
+    ("headlineMain", ("HEADLINE", "HEADING", "TITLE")),
+    ("ctaButton", ("SUBMIT", "SIGN UP", "GET STARTED", "BUY NOW", "CTA", "BUTTON")),
+    ("brandBadge", ("LABEL", "BADGE", "BRAND", "LOGO")),
+    ("description", ("DESCRIPTION", "PARAGRAPH", "BODY COPY", "LOREM")),
+)
+
+# The media panel is named the same way, but it does NOT work the same way, and the
+# difference is the whole reason it is a separate constant. "Image" is written INSIDE
+# the hero panel as a label for it; the region carrying that word is a small
+# handwriting cluster, not the panel. Letting it claim heroImage directly would set
+# the hero's bbox to the size of the word. So it is used as a POINTER -- the media
+# panel is the box that contains it -- and the word itself claims nothing.
+MEDIA_KEYWORDS = ("IMAGE", "IMG", "PHOTO", "PICTURE", "HERO")
+
+# A reading this weak does not get to claim a slot unasked. This is section 10's own
+# escalate boundary rather than a number fitted here: text the contract would stop and
+# ask a human about is not text confident enough to silently override position.
+#
+# On the reference wireframe the two junk readings -- bleed-through from the reverse of
+# the sheet, at 0.67 and 0.57 -- were in fact excluded by matching no keyword at all
+# rather than by this floor. The floor is here for the case where they DO match one,
+# which is a coincidence away.
+KEYWORD_FLOOR = ESCALATE_BELOW
+
 
 def _centre(bbox: tuple[int, int, int, int]) -> tuple[float, float]:
     x, y, w, h = bbox
@@ -93,21 +136,134 @@ def _area(bbox: tuple[int, int, int, int]) -> int:
     return bbox[2] * bbox[3]
 
 
+def _normalised_text(text: str | None) -> str:
+    """Upper-cased, with every run of non-alphanumerics collapsed to one space.
+
+    So `"SUBMIT."`, `"Sub-Headline"` and `"SUB  HEADLINE"` all reduce to something a
+    plain substring test can match. Matching the raw string instead means the table
+    has to enumerate punctuation, which is a table that is always one wireframe out
+    of date.
+    """
+    if not text:
+        return ""
+    out = []
+    for ch in text.upper():
+        out.append(ch if ch.isalnum() else " ")
+    return " ".join("".join(out).split())
+
+
+def _contains(outer: tuple[int, int, int, int], inner: tuple[int, int, int, int]) -> bool:
+    ox, oy, ow, oh = outer
+    ix, iy, iw, ih = inner
+    return ox <= ix and oy <= iy and ox + ow >= ix + iw and oy + oh >= iy + ih
+
+
+def _readable(candidate: RegionText) -> bool:
+    """Did this region produce a reading strong enough to act on? See KEYWORD_FLOOR."""
+    return candidate.text is not None and (candidate.confidence or 0.0) >= KEYWORD_FLOOR
+
+
+def _matches(candidate: RegionText, keywords: Sequence[str]) -> bool:
+    normalised = _normalised_text(candidate.text)
+    return any(keyword in normalised for keyword in keywords)
+
+
+def _strongest(candidates: Sequence[RegionText]) -> RegionText:
+    """Best-read first; ties fall through to position so the choice is total.
+
+    Two regions can both say HEADLINE -- one of them is the heading and the other is
+    a stray reading of the same ink through a larger box. The better-read one is the
+    better claim, and a tie must not depend on list order.
+    """
+    return max(
+        candidates,
+        key=lambda c: (c.confidence or 0.0, -c.region.bbox[1], -c.region.bbox[0]),
+    )
+
+
+def _media_hint(candidates: Sequence[RegionText]) -> RegionText | None:
+    """The region whose text NAMES the media panel, e.g. the word "Image" inside it."""
+    named = [c for c in candidates if _readable(c) and _matches(c, MEDIA_KEYWORDS)]
+    return _strongest(named) if named else None
+
+
+def _keyword_assignments(
+    candidates: Sequence[RegionText],
+) -> dict[str, RegionText]:
+    """Slots claimed by what the wireframe says, before anything is claimed by where
+    it sits.
+
+    One region claims at most one slot, and one slot is claimed by at most one region.
+    Slots are resolved in SLOT_KEYWORDS order, which is what makes "SUB HEADLINE" beat
+    "HEADLINE" on the same string.
+    """
+    assigned: dict[str, RegionText] = {}
+    available = list(enumerate(candidates))
+
+    for slot, keywords in SLOT_KEYWORDS:
+        matching = [
+            (i, c) for i, c in available if _readable(c) and _matches(c, keywords)
+        ]
+        if not matching:
+            continue
+        winner_index, winner = max(
+            matching,
+            key=lambda pair: (
+                pair[1].confidence or 0.0,
+                -pair[1].region.bbox[1],
+                -pair[1].region.bbox[0],
+            ),
+        )
+        assigned[slot] = winner
+        available = [(i, c) for i, c in available if i != winner_index]
+
+    return assigned
+
+
 def _pick_media(
-    candidates: Sequence[RegionText], width: int, height: int
+    candidates: Sequence[RegionText],
+    width: int,
+    height: int,
+    *,
+    hint: RegionText | None = None,
 ) -> RegionText | None:
-    """The hero image: the largest region that is big enough to be a media panel.
+    """The hero image: the region big enough to be a media panel, and named as one
+    where the wireframe says so.
 
     Deliberately NOT "the largest region". On a wireframe whose outer frame was
     detected, the largest region is the frame, and calling the frame the hero image
     puts every other element inside the media half. The area ceiling that would
     exclude a frame lives in T-056 (`MAX_AREA_FRACTION`), so anything reaching here
     is already frame-free; the floor below is the remaining half of the judgement.
+
+    THAT WAS NOT ENOUGH, MEASURED. On gpu-test/wireframe.png the frame survives
+    T-056's ceiling at 58% of the canvas, so "largest viable" chose it. Its centre
+    then sits dead in the middle of the page, `_side_of` called it "right", and every
+    genuine element on the left -- including the hero panel's own "Image" label --
+    was classified as content on the opposite side. That is the chain that ended with
+    headlineSub containing the word "Image".
+
+    So where a region is LABELLED as the media panel, the panel is the SMALLEST viable
+    box containing that label. Smallest, not largest, for exactly the frame's sake: the
+    frame contains the label too, and it contains everything else as well.
     """
     canvas = float(width * height) or 1.0
     viable = [c for c in candidates if _area(c.region.bbox) / canvas >= MEDIA_MIN_AREA]
     if not viable:
         return None
+
+    if hint is not None:
+        holding = [
+            c
+            for c in viable
+            if c is not hint and _contains(c.region.bbox, hint.region.bbox)
+        ]
+        if holding:
+            return min(
+                holding,
+                key=lambda c: (_area(c.region.bbox), c.region.bbox[1], c.region.bbox[0]),
+            )
+
     # Largest first; ties broken on position so the choice is total and stable.
     return max(viable, key=lambda c: (_area(c.region.bbox), -c.region.bbox[1], -c.region.bbox[0]))
 
@@ -125,33 +281,85 @@ def _reading_order(items: Sequence[RegionText]) -> list[RegionText]:
 def _slot_assignments(
     content: Sequence[RegionText],
 ) -> dict[str, RegionText]:
-    """Map content-column regions onto the named slots, in stacking order.
+    """Map content-column regions onto the named slots. Three rules, in order.
 
-    A GROUP REGION ALWAYS TAKES statBadges, wherever it appears in the stack, and it
-    is matched before anything else. T-056 emits `kind == "group"` only for an
-    aligned, evenly-spaced series of similar siblings, which is precisely what a row
-    of stat badges is and is not what a headline is. Letting the row of badges fall
-    into whatever ordinal slot it happened to occupy would put three cards in
-    `headlineSub` and leave `statBadges` empty -- and `statBadges` is the element the
-    section-9 store-liveness assertion patches at step 5, so getting it wrong breaks
-    the one check that catches a dead store.
+    ONE: WHAT THE REGION SAYS. A region whose text matches a slot's keywords claims
+    that slot outright (T-100). This runs first because it is the only rule of the
+    three that reads evidence specific to the element rather than to its neighbours:
+    "SUBMIT" is a claim about that box, while "third from the top" is a claim about
+    the six boxes around it, and the second is wrong the moment one of them is missed.
 
-    Everything else is assigned by position: the remaining slots, in order, take the
-    remaining regions, in reading order. It is a simple rule and it is the right kind
-    of simple -- the alternative is guessing semantics from font size, which needs a
-    model this stage deliberately does not have.
+    TWO: A GROUP REGION ALWAYS TAKES statBadges, wherever it appears in the stack.
+    T-056 emits `kind == "group"` only for an aligned, evenly-spaced series of similar
+    siblings, which is precisely what a row of stat badges is and is not what a
+    headline is. Letting the row of badges fall into whatever ordinal slot it happened
+    to occupy would put three cards in `headlineSub` and leave `statBadges` empty --
+    and `statBadges` is the element the section-9 store-liveness assertion patches at
+    step 5, so getting it wrong breaks the one check that catches a dead store.
+
+    THREE: POSITION, for whatever is left. The remaining slots, in order, take the
+    remaining regions in reading order. It is the same rule this function used to
+    apply to everything, demoted to the fallback it should always have been: it is the
+    right answer for a wireframe that labels nothing, and it was measurably the wrong
+    one for a wireframe that labels most things.
+
+    On the reference wireframe rule one resolves four slots, rule two resolves
+    statBadges, and `description` -- four ruled lines with no text in them by design --
+    falls out as the only thing left for rule three to place.
     """
-    assigned: dict[str, RegionText] = {}
-    remaining = list(_reading_order(content))
+    assigned: dict[str, RegionText] = dict(_keyword_assignments(content))
+    claimed = {id(c) for c in assigned.values()}
+    remaining = [c for c in _reading_order(content) if id(c) not in claimed]
 
-    group = next((c for c in remaining if c.region.kind == "group"), None)
-    if group is not None:
-        assigned["statBadges"] = group
+    for slot, group in _group_assignments(remaining).items():
+        if slot in assigned:
+            continue
+        assigned[slot] = group
         remaining.remove(group)
 
     open_slots = [s for s in CONTENT_SLOTS if s not in assigned]
     for slot, item in zip(open_slots, remaining):
         assigned[slot] = item
+    return assigned
+
+
+def _group_assignments(candidates: Sequence[RegionText]) -> dict[str, RegionText]:
+    """Which slot each detected series belongs to, decided by which way it runs.
+
+    A row of stat badges runs ACROSS. A paragraph's ruled lines stack DOWN. T-056
+    already measures that and records it as `evidence["axis"]` (1.0 vertical, 0.0
+    horizontal), so the distinction costs a lookup rather than a heuristic.
+
+    THIS MATTERS BECAUSE THE REFERENCE WIREFRAME HAS BOTH, measured: a 4-member
+    vertical series at [733, 368, 172, 87] and a 3-member horizontal one at
+    [687, 460, 233, 52]. The previous rule took the first group in reading order and
+    gave it to statBadges unconditionally, which handed statBadges the description's
+    four ruled lines and left the actual badge row to be placed by position.
+
+    A series whose axis was not recorded still goes to statBadges. That is the
+    conservative direction: statBadges is the element the section-9 store-liveness
+    assertion patches, so where the geometry is silent the slot that must not be
+    empty is the one that gets filled.
+    """
+    groups = [c for c in candidates if c.region.kind == "group"]
+    assigned: dict[str, RegionText] = {}
+
+    for slot, wanted in (("description", 1.0), ("statBadges", 0.0)):
+        matching = [g for g in groups if g.region.evidence.get("axis") == wanted]
+        if not matching:
+            continue
+        # Most members first -- a longer series is the more convincing one -- then
+        # position, so the choice is total.
+        winner = max(
+            matching,
+            key=lambda g: (g.region.members, -g.region.bbox[1], -g.region.bbox[0]),
+        )
+        assigned[slot] = winner
+        groups.remove(winner)
+
+    if "statBadges" not in assigned and groups:
+        assigned["statBadges"] = groups[0]
+
     return assigned
 
 
@@ -239,8 +447,12 @@ def fuse(
     warnings = list(extraction.warnings)
 
     # --- who is the media panel, and which side is it on ---
-    media = _pick_media(regions, width, height)
-    content_pool = [c for c in regions if c is not media]
+    # The label that NAMES the panel is found first, because it decides which box the
+    # panel is. It then claims nothing itself: it is the panel's caption, not content,
+    # and leaving it in the pool is how it ended up as headlineSub's text.
+    hint = _media_hint(regions)
+    media = _pick_media(regions, width, height, hint=hint)
+    content_pool = [c for c in regions if c is not media and c is not hint]
 
     if media is not None:
         media_side = _side_of(media.region.bbox, width)

@@ -2084,6 +2084,7 @@
       "files": [
         "perception/stages/fuse.py",
         "perception/tests/test_fuse.py",
+        "perception/benchmarks/slots_wireframe.py",
         "docs/BENCHMARK-RESULTS.md"
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_fuse.py",

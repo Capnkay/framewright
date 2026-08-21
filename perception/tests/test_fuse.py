@@ -32,10 +32,19 @@ REFERENCE_SET = [
 ]
 
 
-def rt(x, y, w, h, *, text=None, conf=0.8, kind="rect", members=1, geo=0.7):
-    """A stage-3b RegionText: a detected region plus whatever was read in it."""
+def rt(x, y, w, h, *, text=None, conf=0.8, kind="rect", members=1, geo=0.7, axis=None):
+    """A stage-3b RegionText: a detected region plus whatever was read in it.
+
+    `axis` mirrors what T-056 records on a group -- 1.0 for a series running down the
+    page, 0.0 for one running across it. Left unset by default so every test written
+    before T-100 describes a group whose direction was not recorded.
+    """
+    evidence = {} if axis is None else {"axis": axis}
     return RegionText(
-        region=Region(bbox=(x, y, w, h), kind=kind, confidence=geo, members=members),
+        region=Region(
+            bbox=(x, y, w, h), kind=kind, confidence=geo, members=members,
+            evidence=evidence,
+        ),
         text=text,
         confidence=conf if text else None,
     )
@@ -349,3 +358,149 @@ def test_the_template_arguments_are_not_mutated():
 
     assert layout["regions"][0]["side"] == before_side
     assert cards["count"] == before_count
+
+
+# ---------------------------------------------------------------------
+# T-100 -- slots are claimed by what the wireframe SAYS, before by where it sits
+# ---------------------------------------------------------------------
+
+
+def _slot(result, name):
+    return next(e for e in result["elements"] if e["elementName"] == name)
+
+
+def a_labelled_wireframe():
+    """The reference wireframe's shape: a hero panel that says "Image", and content
+    blocks that name themselves. Deliberately stacked in an order that does NOT match
+    CONTENT_SLOTS, so a positional rule cannot pass these tests by accident."""
+    return [
+        rt(20, 20, 420, 560, text=None, geo=0.9),                    # the panel
+        rt(120, 250, 90, 30, text="Image", conf=0.86),               # its label
+        rt(520, 40, 180, 44, text="SUBMIT", conf=0.92),              # ctaButton, first
+        rt(520, 120, 400, 60, text="HEADLINE", conf=0.99),
+        rt(520, 200, 380, 40, text="SUB HEADLINE", conf=0.95),
+        rt(520, 260, 120, 24, text="LABEL", conf=0.97),
+    ]
+
+
+def test_a_slot_is_claimed_by_its_keyword_not_by_its_position():
+    """SUBMIT sits at the TOP of the content column here. Position would make it
+    brandBadge; the word makes it the button."""
+    result = run(a_labelled_wireframe())
+
+    assert _slot(result, "ctaButton")["default"] == "SUBMIT"
+    assert _slot(result, "brandBadge")["default"] == "LABEL"
+    assert _slot(result, "headlineMain")["default"] == "HEADLINE"
+
+
+def test_sub_headline_beats_headline_on_the_same_string():
+    """"SUB HEADLINE" contains "HEADLINE". The more specific phrase must win, or the
+    subheading takes the main slot and the real headline is pushed out."""
+    result = run(a_labelled_wireframe())
+
+    assert _slot(result, "headlineMain")["default"] == "HEADLINE"
+    assert _slot(result, "headlineSub")["default"] == "SUB HEADLINE"
+
+
+def test_the_word_image_points_at_the_panel_and_claims_no_slot_itself():
+    """The measured bug: "Image" is the hero panel's own caption, and letting it claim
+    a content slot put the word "Image" in headlineSub."""
+    result = run(a_labelled_wireframe())
+
+    hero = _slot(result, "heroImage")
+    assert hero["bbox"] == [20, 20, 420, 560], "the panel, not the word inside it"
+    for name in ("headlineSub", "headlineMain", "brandBadge", "description"):
+        assert _slot(result, name)["default"] != "Image"
+
+
+def test_the_media_panel_is_the_smallest_box_containing_its_label():
+    """A detected outer frame contains the label too -- and everything else. Choosing
+    the largest container is how the frame became the hero image."""
+    frame = rt(0, 0, 990, 590, text=None, geo=0.6)
+    result = run([frame] + a_labelled_wireframe())
+
+    assert _slot(result, "heroImage")["bbox"] == [20, 20, 420, 560]
+
+
+def test_a_reading_below_the_escalate_band_does_not_claim_a_slot():
+    """Bleed-through from the reverse of a sheet reads as low-confidence noise. Text
+    the contract would stop and ask a human about is not text that silently overrides
+    position."""
+    regions = [
+        rt(20, 20, 420, 560, text=None, geo=0.9),
+        rt(520, 40, 180, 44, text="SUBMIT", conf=0.30),
+    ]
+    result = run(regions)
+
+    assert _slot(result, "ctaButton")["default"] != "SUBMIT"
+
+
+def test_one_region_claims_at_most_one_slot():
+    result = run(a_labelled_wireframe())
+    claimed = [tuple(e["bbox"]) for e in result["elements"] if e["sourceOf"] == "wireframe"]
+
+    assert len(claimed) == len(set(claimed))
+
+
+def test_position_still_places_whatever_the_wireframe_did_not_label():
+    """The fallback is demoted, not deleted. A wireframe that names nothing must
+    behave exactly as it did before T-100."""
+    result = run(a_split_hero())
+
+    assert _slot(result, "brandBadge")["default"] == "PULSE FIT"
+    assert _slot(result, "headlineMain")["default"] == "CHALLENGE YOUR LIMITS"
+
+
+# --- which series is which, by which way it runs ---------------------------
+
+
+def test_a_series_running_down_the_page_is_the_description():
+    """Measured on the reference wireframe: a 4-member vertical series (the ruled
+    lines) and a 3-member horizontal one (the badges). Taking the first group in
+    reading order gave statBadges the paragraph."""
+    regions = [
+        rt(20, 20, 420, 560, text=None, geo=0.9),
+        rt(520, 100, 170, 90, kind="group", members=4, axis=1.0, geo=0.69),
+        rt(520, 300, 230, 52, kind="group", members=3, axis=0.0, geo=0.90),
+    ]
+    result = run(regions)
+
+    assert _slot(result, "description")["bbox"] == [520, 100, 170, 90]
+    assert _slot(result, "statBadges")["bbox"] == [520, 300, 230, 52]
+
+
+def test_the_card_count_follows_the_horizontal_series_not_the_vertical_one():
+    """§4 rule 4: the card count is whatever the IR says. Handing statBadges the
+    4-line paragraph would report four cards for a three-badge row."""
+    regions = [
+        rt(20, 20, 420, 560, text=None, geo=0.9),
+        rt(520, 100, 170, 90, kind="group", members=4, axis=1.0, geo=0.69),
+        rt(520, 300, 230, 52, kind="group", members=3, axis=0.0, geo=0.90),
+    ]
+    result = run(regions)
+
+    assert result["cards"]["count"] == 3
+
+
+def test_a_series_with_no_axis_recorded_still_goes_to_statbadges():
+    """The conservative direction. statBadges is what the §9 store-liveness assertion
+    patches, so where the geometry is silent, the slot that must not be empty wins."""
+    regions = [
+        rt(20, 20, 420, 560, text=None, geo=0.9),
+        rt(520, 100, 230, 52, kind="group", members=3, geo=0.9),
+    ]
+    result = run(regions)
+
+    assert _slot(result, "statBadges")["bbox"] == [520, 100, 230, 52]
+
+
+def test_slot_assignment_is_deterministic_across_input_orderings():
+    """Section 11 rule 3. Two regions matching the same keyword must resolve the same
+    way whichever order stage 3 happened to emit them in."""
+    regions = a_labelled_wireframe()
+    first = run(regions)
+    second = run(list(reversed(regions)))
+
+    assert [e["bbox"] for e in first["elements"]] == [e["bbox"] for e in second["elements"]]
+    assert [e["default"] for e in first["elements"]] == [e["default"] for e in second["elements"]]
+

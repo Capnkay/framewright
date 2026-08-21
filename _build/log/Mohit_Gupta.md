@@ -122,3 +122,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, docs/EDGE-CASES.md
 
+## T-100 — Assign fusion slots from the OCR text before falling back to position
+- Started: 2026-08-21T19:00:23.335Z
+- Finished: 2026-08-21T19:07:18.720Z
+- Duration: 7m
+- Device: Mohits_Victus
+- Files: perception/stages/fuse.py, perception/tests/test_fuse.py, perception/benchmarks/slots_wireframe.py, docs/BENCHMARK-RESULTS.md
+
