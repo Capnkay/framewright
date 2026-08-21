@@ -2195,14 +2195,13 @@
       ],
       "deps": [],
       "files": [
-        "client/src/sections/HeroSection.jsx",
-        "client/src/studio/SideEditor.jsx",
-        "tests/studio-progress-errors.test.mjs"
+        "client/src/sections/generated/HeroSection.jsx",
+        "tests/cards-count.test.mjs"
       ],
-      "verify": "node tools/test.mjs studio-progress-errors",
-      "doneWhen": "Measured on a 500 response from /api/jobs: UI displays an error banner instead of crashing or hanging on running"
+      "verify": "node tools/test.mjs cards-count",
+      "doneWhen": "Verified dynamically: The component handles arbitrary cards.count sizes dynamically without assuming exactly 3 cards"
     },
-{
+    {
       "id": "T-107",
       "phase": 6,
       "track": "studio-preview",

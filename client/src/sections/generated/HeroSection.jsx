@@ -124,7 +124,7 @@ export default function HeroSection({ pageName = 'Home', section = {} }) {
           }}
         />
 
-        <div id={ids.statBadges} className="grid grid-cols-3 gap-4 py-2">
+        <div id={ids.statBadges} className="grid gap-4 py-2" style={{ gridTemplateColumns: `repeat(${items.length || 1}, minmax(0, 1fr))` }}>
           {items.map((item, index) => (
             <div key={item.fieldId1 || index} className="flex flex-col">
               <span

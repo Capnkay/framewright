@@ -150,3 +150,10 @@
 - Device: Mohits_Victus
 - Files: client/src/studio/StageInspector.jsx, tests/stage-inspector.test.mjs
 
+## T-106 — cards.count ≠ 3 renders correctly
+- Started: 2026-08-21T20:14:57.805Z
+- Finished: 2026-08-21T20:18:18.854Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: client/src/sections/generated/HeroSection.jsx, tests/cards-count.test.mjs
+
