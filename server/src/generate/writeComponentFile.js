@@ -19,8 +19,19 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Absolute path to the repo root (server/src/generate → up 3 levels)
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
+// Absolute path to the repo root (server/src/generate → up 3 levels).
+//
+// IT WAS FOUR. The comment above has always said three and the code passed four, so
+// REPO_ROOT resolved to the PARENT of the repository and every component this project
+// generated was written outside it. PreviewPage.jsx discovers sections with
+// import.meta.glob('../sections/generated/*.jsx'), which cannot see outside the tree --
+// so no generated section has ever been previewable, and every one of them rendered the
+// "file was not found by Vite eager-glob" branch instead.
+//
+// Nothing failed. The write succeeded, the job reported ok, stage 7 recorded success,
+// and the file existed -- one directory too high. Found by running the demo and looking
+// for the file, which is the only way it could have been found.
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const GENERATED_DIR = path.join(REPO_ROOT, 'client', 'src', 'sections', 'generated');
 
 /**

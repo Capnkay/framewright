@@ -229,3 +229,17 @@
 - Device: Mohits_Victus
 - Files: server/src/app.js, tests/generate-accepts-a-multipart-upload.test.mjs
 
+## T-114 — The Studio mounts its controls but never calls the API — submitting a wireframe does nothing
+- Started: 2026-08-21T20:54:31.294Z
+- Finished: 2026-08-21T21:11:26.575Z
+- Duration: 17m
+- Device: Mohits_Victus
+- Files: client/src/routes/GeneratePage.jsx, tests/studio-submits-and-renders-a-job.test.mjs
+
+## T-117 — Every generated component is written OUTSIDE the repository, so no generated section can ever be previewed
+- Started: 2026-08-21T21:11:40.534Z
+- Finished: 2026-08-21T21:13:12.921Z
+- Duration: 2m
+- Device: Mohits_Victus
+- Files: server/src/generate/writeComponentFile.js, tests/write-component-file-path.test.mjs
+
