@@ -187,3 +187,10 @@
 - Files: client/src/studio/ConfidenceBadge.jsx
 - Note: Replaced hardcoded badge with ConfidenceBadge in StageInspector
 
+## T-112 — Nothing produces s2-normalised.png, so the human-in-the-loop overlay has no image behind it
+- Started: 2026-08-21T20:36:21.683Z
+- Finished: 2026-08-21T20:43:42.364Z
+- Duration: 7m
+- Device: Mohits_Victus
+- Files: perception/app.py, perception/tests/test_perceive.py, server/src/routes/generate.js, tests/generate-wireframe-mode.test.mjs
+
