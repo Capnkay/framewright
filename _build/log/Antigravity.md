@@ -126,3 +126,10 @@
 - Device: Jainam
 - Files: client/src/studio/GenerationProgress.jsx, client/src/studio/ErrorBanner.jsx, tests/studio-progress-errors.test.mjs
 
+## T-048 — Build the Generator Studio’s job history (FR-G08)
+- Started: 2026-08-21T17:06:13.332Z
+- Finished: 2026-08-21T17:07:14.780Z
+- Duration: 1m
+- Device: Jainam
+- Files: client/src/studio/JobHistory.jsx, tests/job-history.test.mjs
+
