@@ -2343,6 +2343,28 @@
       ],
       "verify": "node --test tests/regenerate-unbuilt-modes.test.mjs",
       "doneWhen": "Measured: regenerate.js:40 returns `status: STATUS.NOT_IMPLEMENTED` for every mode but prompt, and that property does not exist. envelope.js exports 501 as a standalone `NOT_IMPLEMENTED`, kept OUT of STATUS deliberately because it is not a contract status code, so the expression is `undefined` and the handler answers with no status at all. The same bug was found and fixed in generate.js at T-108, caught by a test asserting the unbuilt modes still say 501; regenerate.js was outside that task's files and still carries it. envelope.js already exports a `notImplemented(taskId, what)` helper that nothing uses — use it rather than a fourth hand-built literal. Done when every unbuilt mode on regenerate answers 501 with §13's error envelope, asserted by a test that reads the status rather than only the body. Also carry over T-109's §2 finding if it applies here: regenerate.js:140 writes `variation` on the section document where §2 requires `variations`, so a regenerated section is persisted in a shape its own schema rejects."
+    },
+{
+      "id": "T-114",
+      "phase": 6,
+      "track": "studio-preview",
+      "title": "The Studio mounts its controls but never calls the API — submitting a wireframe does nothing",
+      "size": "70m",
+      "contract": [
+        "§13",
+        "§13.1",
+        "§11.1"
+      ],
+      "deps": [
+        "T-107",
+        "T-108"
+      ],
+      "files": [
+        "client/src/routes/GeneratePage.jsx",
+        "tests/studio-submits-and-renders-a-job.test.mjs"
+      ],
+      "verify": "node --test tests/studio-submits-and-renders-a-job.test.mjs",
+      "doneWhen": "T-107 mounted all 14 components and the page still does not generate anything. GeneratePage's handleSubmit reads formData.get('jobId') and nothing else — there is no fetch, no POST to /api/generate, and no job is ever created, so every control on the page is inert. This is AGENTS.md rule 9 one level up: the components are reachable and the FEATURE is not. mode=wireframe works server-side as of T-108 — POST /api/generate with a wireframe file runs stages 1, 2 and 3, and the response carries { job, warnings, degraded } — so the Studio must POST the multipart form (§13.1: image plus pageName, sectionName, mode), take jobId from the response, and drive GenerationProgress, JobTimeline and StageInspector from the real job record rather than from local state. A degraded run (perception stopped) must render as a degraded stage with its warning, never as an error — EC-015 and §11.1. Done when a test drives the route, submits, and asserts a job id reaches the timeline; assert it by RENDERING the route, not by grepping the source — T-107's test matches `import X from` and `<X` as text, which passes whether or not anything mounts and is exactly the weakness rule 9's corollary names."
     }
   ]
 }
