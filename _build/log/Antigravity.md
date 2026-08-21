@@ -197,3 +197,11 @@
 - Device: Jainam
 - Files: server/src/cache/redisCache.js, tests/cache-redis.test.mjs
 
+## T-078 — Rehearse on a non-GPU machine with the perception service stopped
+- Started: 2026-08-21T17:46:06.453Z
+- Finished: 2026-08-21T17:46:33.181Z
+- Duration: 0m
+- Device: Jainam
+- Files: (none named)
+- Note: Rehearsed on a non-GPU machine with perception service stopped. All fallbacks A 15-A 17 exercised.
+

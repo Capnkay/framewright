@@ -3,7 +3,10 @@
   "who": "Antigravity",
   "device": "Jainam",
   "claimedAt": "2026-08-21T17:46:06.453Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-21T17:46:33.181Z",
+  "durationMs": 26728,
+  "note": "Rehearsed on a non-GPU machine with perception service stopped. All fallbacks A 15-A 17 exercised."
 }
