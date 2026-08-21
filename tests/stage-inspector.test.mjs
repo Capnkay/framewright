@@ -63,4 +63,23 @@ test('StageInspector logic', async (t) => {
       global.fetch = originalFetch;
     }
   });
+  await t.test('fetchArtifactContent truncates large artifacts', async () => {
+    const originalFetch = global.fetch;
+    const largeText = 'A'.repeat(60000);
+    global.fetch = async (url) => {
+      return {
+        ok: true,
+        headers: new Headers({ 'content-type': 'text/plain' }),
+        text: async () => largeText
+      };
+    };
+    
+    try {
+      const content = await fetchArtifactContent('job-123', { outputRef: 'artifacts/job-123/large.txt' });
+      assert.equal(content.length, 50000 + '\n\n... [Truncated for performance]'.length);
+      assert.match(content, /\[Truncated for performance\]/);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

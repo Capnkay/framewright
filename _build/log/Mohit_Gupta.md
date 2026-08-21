@@ -143,3 +143,10 @@
 - Device: Mohits_Victus
 - Files: client/src/studio/JobTimeline.jsx, client/src/studio/StageInspector.jsx, tests/job-timeline-ui.test.mjs
 
+## T-105 — StageInspector handles a large inline artifact without freezing
+- Started: 2026-08-21T20:13:39.730Z
+- Finished: 2026-08-21T20:14:35.200Z
+- Duration: 1m
+- Device: Mohits_Victus
+- Files: client/src/studio/StageInspector.jsx, tests/stage-inspector.test.mjs
+

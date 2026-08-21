@@ -43,10 +43,18 @@ export async function fetchArtifactContent(jobId, stageRecord) {
   }
   
   const contentType = res.headers.get('content-type');
+  let textContent = '';
   if (contentType && contentType.includes('application/json')) {
     const json = await res.json();
-    return JSON.stringify(json, null, 2);
+    textContent = JSON.stringify(json, null, 2);
   } else {
-    return await res.text();
+    textContent = await res.text();
   }
+  
+  const MAX_LENGTH = 50000;
+  if (textContent.length > MAX_LENGTH) {
+    return textContent.slice(0, MAX_LENGTH) + '\n\n... [Truncated for performance]';
+  }
+  
+  return textContent;
 }
