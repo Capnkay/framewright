@@ -182,3 +182,11 @@
 - Device: Jainam
 - Files: client/src/routes/PreviewPage.jsx, tests/variation-2.test.mjs
 
+## T-070 — Rehearse Gate 4 — the judge's headline survives redesign and regeneration
+- Started: 2026-08-21T17:34:46.210Z
+- Finished: 2026-08-21T17:35:18.594Z
+- Duration: 1m
+- Device: Jainam
+- Files: (none named)
+- Note: Rehearsed Gate 4 successfully, content changes via API are preserved upon regenerate using Variation 2 and new prompt.
+

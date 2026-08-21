@@ -3,7 +3,10 @@
   "who": "Antigravity",
   "device": "Jainam",
   "claimedAt": "2026-08-21T17:34:46.210Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-21T17:35:18.594Z",
+  "durationMs": 32384,
+  "note": "Rehearsed Gate 4 successfully, content changes via API are preserved upon regenerate using Variation 2 and new prompt."
 }
