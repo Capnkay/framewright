@@ -84,3 +84,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: tools/lint-generated.mjs, .eslintrc.generated.json
 
+## T-037 — Implement the artifact and component-source endpoints per §11.2
+- Started: 2026-08-20T19:21:45.644Z
+- Finished: 2026-08-21T03:43:57.684Z
+- Duration: 8h 22m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/routes/artifacts.js, tests/artifact-endpoints.test.mjs
+
