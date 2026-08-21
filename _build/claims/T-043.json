@@ -3,7 +3,9 @@
   "who": "Gibbs (founding session)",
   "device": "Karans-PC",
   "claimedAt": "2026-08-21T15:19:21.167Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-21T15:25:24.364Z",
+  "durationMs": 363197
 }

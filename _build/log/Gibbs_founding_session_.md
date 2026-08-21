@@ -91,3 +91,10 @@
 - Device: Karans-PC
 - Files: server/src/observability/metrics.js, server/src/routes/metrics.js, tests/metrics.test.mjs
 
+## T-043 — Build the Generator Studio’s wireframe upload form (FR-G01)
+- Started: 2026-08-21T15:19:21.167Z
+- Finished: 2026-08-21T15:25:24.364Z
+- Duration: 6m
+- Device: Karans-PC
+- Files: client/src/studio/UploadForm.jsx, tests/upload-form.test.mjs
+
