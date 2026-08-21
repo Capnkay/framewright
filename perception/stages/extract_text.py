@@ -94,6 +94,18 @@ MIN_CONTAINMENT = 0.5
 # than this multiple of the shorter line's height. Used only for reading order.
 ROW_TOLERANCE = 0.6
 
+# How many extra times a worker that DIED is re-run before the page is given up on.
+# EC-015: on this repository's GPU machine the worker exits 0xC0000005 on roughly two
+# runs in three, independently each time -- three back-to-back pipeline runs on the
+# reference wireframe read 7 regions, 0 and 0. Two retries takes a 2-in-3 per-attempt
+# crash rate to about 1 page in 27 unread, which is the difference between a demo that
+# usually shows no text and one that usually does.
+#
+# ONLY A DEAD WORKER IS RETRIED. A worker that exits cleanly having found nothing has
+# answered the question, and re-asking it would burn 5s per attempt to receive the same
+# answer -- and would quietly turn a genuinely blank page into a slow one.
+WORKER_RETRIES = 2
+
 
 @dataclass(frozen=True)
 class TextLine:
@@ -257,56 +269,149 @@ class SubprocessReader:
 
     Never raises. A worker that dies, hangs, or prints something unparseable yields no
     lines, and `extract_text` degrades to regions-without-text per section 12.
+
+    BUT IT SAYS WHY, which is the whole of EC-015. The first version of this class
+    returned `[None]` for every failure and threw the exit code away inside a bare
+    `except`, so a worker killed by an access violation and a page with nothing written
+    on it arrived at `extract_text` as the same value -- and were reported with the same
+    sentence, "OCR ran but found no text in the image." That sentence was false two
+    times in three on this machine. `Extraction`'s own docstring makes those two facts
+    load-bearing: "a page where OCR ran and found nothing and a page where OCR never ran
+    are different facts, and the degradation path in section 12 depends on telling them
+    apart." So every failure now records `last_failure`, and a page that was genuinely
+    read clears it.
+
+    `last_failure` IS STATE, and it is worth being explicit about why that is allowed.
+    Section 11 rule 3 binds the STAGE: `extract_text` must be a pure function of its
+    persisted input. The reader is an injected collaborator, and this attribute is
+    overwritten at the top of every `ocr` call rather than accumulated, so the value
+    read after a call describes that call and nothing earlier.
     """
 
-    def __init__(self, *, python: str | None = None, timeout: float = 180.0) -> None:
+    def __init__(
+        self,
+        *,
+        python: str | None = None,
+        timeout: float = 180.0,
+        retries: int = WORKER_RETRIES,
+    ) -> None:
         # sys.executable by default: the interpreter running the service is the one
         # with paddleocr installed. Overridable so a future dedicated OCR venv is a
         # constructor argument rather than a rewrite.
         self.python = python or sys.executable
         self.timeout = timeout
+        self.retries = max(0, retries)
+        # Why the last call came back empty, or None if it did not come back empty.
+        # Read by `extract_text` through `getattr`, so a real PaddleOCR instance --
+        # which has no such attribute -- keeps working unchanged.
+        self.last_failure: str | None = None
 
     def ocr(self, image, cls=None):  # noqa: ARG002 - signature parity with PaddleOCR 2.x
+        """Read one page, retrying a worker that died. Returns the 2.x shape.
+
+        The retry is here rather than in `read_lines` because this is the only layer
+        that can tell the two empty answers apart: by the time a result reaches
+        `read_lines` a crash and a blank page are both `[None]`.
+        """
+        self.last_failure = None
+        reason: str | None = None
+
+        for attempt in range(1 + self.retries):
+            payload, failure = self._run_once(image)
+            if failure is None:
+                # A page that was read on attempt three was read. The earlier deaths
+                # are not this call's outcome, and leaving one in `last_failure` would
+                # make a successful read describe itself as a failure.
+                return _worker_payload_to_2x(payload)
+            # Keep the LAST failure, not the first. If the reasons differ across
+            # attempts the final one is what the caller's page actually ended on,
+            # and a first-attempt reason would describe a run that was superseded.
+            reason = (
+                failure if attempt == 0 else f"{failure} (after {attempt + 1} attempts)"
+            )
+
+        self.last_failure = reason
+        return [None]
+
+    def _run_once(self, image) -> tuple[dict[str, Any] | None, str | None]:
+        """One worker invocation. Returns `(payload, None)` or `(None, why_it_failed)`.
+
+        THE EXIT CODE IS INSPECTED, which is the fix EC-015 turns on. The previous
+        version parsed stdout inside a `try` and let a non-zero exit pass unexamined,
+        so a worker killed mid-run -- which still prints its startup warning to stdout
+        before dying -- was indistinguishable from one that finished with nothing to
+        say. On Windows the code that matters is 3221225477, and a reader who has not
+        seen 0xC0000005 written in decimal will not recognise it, so it is spelled out.
+        """
         import cv2  # noqa: PLC0415 - only needed on this path
 
         tmp = tempfile.mkdtemp(prefix="framewright-ocr-")
         path = os.path.join(tmp, "page.png")
         try:
             if not cv2.imwrite(path, image):
-                return [None]
-            proc = subprocess.run(
-                [self.python, "-m", "perception.stages.ocr_worker", path],
-                capture_output=True,
-                text=True,
-                timeout=self.timeout,
-                # cwd is the repo root so `-m perception.stages...` resolves. Derived
-                # from this file's location rather than the caller's cwd, because a
-                # service started from another directory must still find the worker.
-                cwd=str(pathlib.Path(__file__).resolve().parents[2]),
-            )
-            payload = json.loads((proc.stdout or "").strip().splitlines()[-1])
-        except Exception:
-            # Timeout, crash, empty stdout, unparseable JSON -- all the same fact to
-            # the caller: this page was not read.
-            return [None]
+                return None, "the page could not be written to a temporary file"
+            try:
+                proc = subprocess.run(
+                    [self.python, "-m", "perception.stages.ocr_worker", path],
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout,
+                    # cwd is the repo root so `-m perception.stages...` resolves.
+                    # Derived from this file's location rather than the caller's cwd,
+                    # because a service started from another directory must still find
+                    # the worker.
+                    cwd=str(pathlib.Path(__file__).resolve().parents[2]),
+                )
+            except subprocess.TimeoutExpired:
+                return None, f"the OCR worker did not answer within {self.timeout:g}s"
+            except Exception as exc:  # could not be started at all
+                return None, f"the OCR worker could not be started: {exc}"
+
+            code = getattr(proc, "returncode", 0)
+            if code:
+                return None, f"the OCR worker exited {code}{_exit_note(code)}"
+
+            try:
+                payload = json.loads((proc.stdout or "").strip().splitlines()[-1])
+            except Exception:
+                return None, "the OCR worker printed nothing a reader could parse"
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
         if not payload.get("ok"):
-            return [None]
+            reported = str(payload.get("error") or "no reason given")
+            return None, f"the OCR worker reported a failure: {reported}"
 
-        # Back into PaddleOCR's 2.x shape so _lines_from_result stays the one parser.
-        return [[
+        # A clean exit with an empty `lines` is NOT a failure. It is the answer to the
+        # question, and calling it one would retry a blank page twice for nothing and
+        # then describe it with the wrong warning -- the exact confusion this fixes.
+        return payload, None
+
+
+def _exit_note(code: int) -> str:
+    """A human-readable gloss for the exit codes we have actually seen."""
+    if code == 3221225477:  # 0xC0000005
+        return " (0xC0000005, ACCESS_VIOLATION -- see docs/EDGE-CASES.md EC-015)"
+    return ""
+
+
+def _worker_payload_to_2x(payload: dict[str, Any] | None) -> list:
+    """The worker's JSON, back into PaddleOCR's 2.x shape.
+
+    Kept as a function so `_lines_from_result` stays the single parser: the worker
+    speaks its own dialect and exactly one place translates it.
+    """
+    return [[
+        [
             [
-                [
-                    [b[0], b[1]], [b[0] + b[2], b[1]],
-                    [b[0] + b[2], b[1] + b[3]], [b[0], b[1] + b[3]],
-                ],
-                (line["text"], line["confidence"]),
-            ]
-            for line in payload.get("lines", [])
-            for b in [line["bbox"]]
-        ]]
+                [b[0], b[1]], [b[0] + b[2], b[1]],
+                [b[0] + b[2], b[1] + b[3]], [b[0], b[1] + b[3]],
+            ],
+            (line["text"], line["confidence"]),
+        ]
+        for line in (payload or {}).get("lines", [])
+        for b in [line["bbox"]]
+    ]]
 
 
 def _worker_is_usable(python: str | None = None) -> bool:
@@ -411,8 +516,26 @@ def read_lines(image: np.ndarray, reader: Any) -> list[TextLine]:
     than the same label read as part of the page. Binding afterwards costs a
     geometric comparison and loses nothing.
     """
+    return _read_lines_with_reason(image, reader)[0]
+
+
+def _read_lines_with_reason(
+    image: np.ndarray, reader: Any
+) -> tuple[list[TextLine], str | None]:
+    """`read_lines`, plus WHY it came back empty. EC-015.
+
+    Two separate channels, because there are two separate ways to fail and only one
+    of them raises. An engine that throws is caught here. An engine that swallows its
+    own failure and returns an empty result -- which is exactly what `SubprocessReader`
+    must do, since a dead worker is not an exception in this process -- reports through
+    `last_failure`. `getattr` rather than an isinstance check, so a real PaddleOCR
+    instance, which has neither, still reads as "no failure to report".
+
+    A reason is only meaningful alongside an empty result: a call that returned lines
+    succeeded, whatever happened on an earlier attempt inside the reader.
+    """
     if reader is None:
-        return []
+        return [], None
 
     # 2.x exposes .ocr(); 3.x renamed it to .predict() and deprecated the `cls`
     # keyword. Try the modern spelling first, then the older ones.
@@ -425,12 +548,16 @@ def read_lines(image: np.ndarray, reader: Any) -> list[TextLine]:
 
     for call in attempts:
         try:
-            return _lines_from_result(call())
+            lines = _lines_from_result(call())
         except TypeError:
             continue  # wrong signature for this version; try the next spelling
-        except Exception:
-            return []  # a genuine engine failure degrades, per section 12
-    return []
+        except Exception as exc:
+            # A genuine engine failure degrades, per section 12 -- but it is now
+            # degrading with the reason attached rather than anonymously.
+            return [], f"the OCR engine raised {type(exc).__name__}: {exc}"
+        return lines, (getattr(reader, "last_failure", None) if not lines else None)
+
+    return [], "the OCR reader exposes neither .ocr() nor .predict()"
 
 
 # --- binding ---------------------------------------------------------------
@@ -584,12 +711,24 @@ def extract_text(
             ocr_available=False,
         )
 
-    lines = read_lines(image, reader)
+    lines, failure = _read_lines_with_reason(image, reader)
     bound, unbound = bind_lines(lines, regions, min_containment=min_containment)
 
     warnings: list[str] = []
     if not lines:
-        warnings.append("OCR ran but found no text in the image.")
+        # THE TWO EMPTY ANSWERS, KEPT APART. EC-015. `Extraction.ocr_available` exists
+        # precisely so "OCR ran and found nothing" and "OCR never ran" stay separable,
+        # and until this branch existed both arrived here as the first sentence. On
+        # this machine the second was true two times in three, so the warning the Glass
+        # Box displayed was usually the wrong one -- and it pointed a reader at the
+        # wireframe, which was fine, instead of at the worker, which was not.
+        if failure is not None:
+            warnings.append(
+                f"OCR did not read this page: {failure}. The regions were detected "
+                "but not read (docs/EDGE-CASES.md EC-015)."
+            )
+        else:
+            warnings.append("OCR ran but found no text in the image.")
     if unbound:
         # Named as a detector signal, not an OCR one, because that is what it
         # usually is: text with no box around it means stage 3a missed a region.
@@ -602,5 +741,9 @@ def extract_text(
         regions=tuple(bound),
         unbound=tuple(unbound),
         warnings=tuple(warnings),
-        ocr_available=True,
+        # False when the page was never actually read. `ocr_available` is documented
+        # as separating "ran and found nothing" from "never ran", and a worker killed
+        # by an access violation is squarely the second -- reporting True there is what
+        # made a dead stage 3b look like a green one on the Glass Box timeline.
+        ocr_available=failure is None,
     )

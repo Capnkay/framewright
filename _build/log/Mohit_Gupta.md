@@ -115,3 +115,10 @@
 - Device: Mohits_Victus
 - Files: client/src/sections/generated/reference/HeroSection-reference.jsx, tests/reference-component-diff.test.mjs, tools/emit-reference.mjs
 
+## T-099 — Fix stage 3b's silent OCR-worker crash — tell "the worker died" apart from "the page had no text", and retry before degrading
+- Started: 2026-08-21T18:51:19.052Z
+- Finished: 2026-08-21T18:59:55.467Z
+- Duration: 9m
+- Device: Mohits_Victus
+- Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, docs/EDGE-CASES.md
+

@@ -2044,6 +2044,50 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_extract_text.py",
       "doneWhen": "Text is extracted per detected region and attached to that region, not to the page — an element needs its own copy, not a bag of strings. PaddleOCR is installed with -c perception/constraints.txt (EC-013), and its absence degrades to regions-without-text rather than failing the stage (§12). OCR confidence is carried through as the element confidence, never replaced by a constant."
+    },
+    {
+      "id": "T-099",
+      "phase": 3,
+      "track": "perception",
+      "title": "Fix stage 3b's silent OCR-worker crash — tell \"the worker died\" apart from \"the page had no text\", and retry before degrading",
+      "size": "30m",
+      "contract": [
+        "§12",
+        "§10"
+      ],
+      "deps": [
+        "T-098"
+      ],
+      "files": [
+        "perception/stages/extract_text.py",
+        "perception/tests/test_extract_text.py",
+        "docs/EDGE-CASES.md"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_extract_text.py",
+      "doneWhen": "Measured on this machine, gpu-test/wireframe.png, three back-to-back runs: two of them read 0 regions while reporting ocrAvailable true and the warning \"OCR ran but found no text in the image.\" The worker had in fact exited 3221225477 (0xC0000005, ACCESS_VIOLATION) and SubprocessReader.ocr discarded the exit code inside a bare except. extract_text's own docstring requires \"not read\" and \"read and found nothing\" to stay distinguishable because the §12 degradation path depends on it; this restores that. SubprocessReader must inspect returncode and stderr, surface a worker-death warning distinct from the empty-page one, and retry a died worker before degrading. Degrading must still never raise (§12) and no confidence may be fabricated for an unread region (§10). The read rate over 10 consecutive runs on the reference wireframe is recorded in docs/EDGE-CASES.md — a fix whose effect on the crash rate is not measured is not evidence of anything."
+    },
+    {
+      "id": "T-100",
+      "phase": 3,
+      "track": "perception",
+      "title": "Assign fusion slots from the OCR text before falling back to position",
+      "size": "45m",
+      "contract": [
+        "§6",
+        "§12",
+        "§3"
+      ],
+      "deps": [
+        "T-057",
+        "T-099"
+      ],
+      "files": [
+        "perception/stages/fuse.py",
+        "perception/tests/test_fuse.py",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_fuse.py",
+      "doneWhen": "Measured on gpu-test/wireframe.png with stage 3b succeeding: OCR bound HEADLINE (0.99), LABEL (0.97), SUBMIT (0.92) and Image (0.86) to regions, and _slot_assignments' positional rule placed 0 of 7 texts in the correct slot — headlineSub took 'Image', heroImage took the bleed-through string 'eeneb', and ctaButton kept its template default while still reporting sourceOf 'wireframe'. Slot assignment must consult the text first: a keyword match claims its slot, the existing kind=='group' rule keeps statBadges, and position survives only as the fallback for what is left. Junk readings must be excluded by a confidence floor rather than by naming them. The reference set stays covered in full whatever the extraction contains (AGENTS.md rule 5), an unclaimed slot still carries null and not a fabricated number (§10), and the before/after slot-assignment score is recorded in docs/BENCHMARK-RESULTS.md as B-004."
     }
   ]
 }

@@ -436,3 +436,73 @@ over-reports, which is the right direction to be wrong in, and fixing it means g
 `detect_models` a cached worker probe rather than an import — a `perception/app.py`
 change belonging to whoever owns T-054.
 
+
+---
+
+## EC-015 · The OCR worker dies at random, and reports it as "the page had no text"
+**Date:** 2026-08-22 · **Status:** reported honestly and retried; root cause NOT found
+
+Three back-to-back runs of the full perception pipeline on `gpu-test/wireframe.png`,
+same interpreter, same image, nothing changed between them:
+
+| Run | `ocrAvailable` | Regions with text | Worker exit |
+|---|---|---|---|
+| 1 | true | **7** | 0 |
+| 2 | true | **0** | `3221225477` |
+| 3 | true | **0** | `3221225477` |
+
+`3221225477` is `0xC0000005` — **ACCESS_VIOLATION**. The worker segfaults after printing
+its startup banner and before printing its JSON. This is next door to EC-014 and almost
+certainly the same underlying quarrel between torch and paddle over CUDA globals, but
+that is a guess and it is labelled as one: the cause was **not** established.
+
+### The part that cost real time: the failure was invisible
+
+`SubprocessReader.ocr` parsed stdout inside a `try` and returned `[None]` from a bare
+`except` for every failure. It never looked at `returncode`. So a killed worker and a
+blank page arrived at `extract_text` as the same value, and both were reported as:
+
+> `OCR ran but found no text in the image.`
+
+which was **false two times in three**, and which points a reader at the wireframe —
+where nothing is wrong — instead of at the worker. The Glass Box showed stage 3b green
+with an empty result. `Extraction`'s own docstring already said why this matters: "a
+page where OCR ran and found nothing and a page where OCR never ran are different facts,
+and the degradation path in §12 depends on telling them apart." The code had the field
+and threw away the input to it.
+
+**The rule worth carrying, and it is EC-014's rule one layer out:** a subprocess guard
+must inspect the **exit code**, not only the output. Output-only parsing cannot tell a
+process that finished with nothing to say from one that was killed mid-sentence, and on
+Windows the killed one still prints enough to look plausible.
+
+### What was changed
+
+- `_run_once` inspects `returncode` and returns a *reason*, distinguishing exit code,
+  timeout, unparseable output, and a worker that reported its own failure. `0xC0000005`
+  is glossed in words, because nobody recognises it in decimal.
+- A worker that **died** is retried (`WORKER_RETRIES = 2`). A worker that exited cleanly
+  having found nothing is **not** — it answered the question, and retrying it would
+  spend a 5 s start-up per attempt to hear the same answer and turn the one healthy case
+  into the slowest one.
+- `extract_text` emits the worker-death warning or the empty-page warning, never the
+  wrong one, and `ocrAvailable` is now `false` when the page was never actually read.
+
+### The measurement, and what it does and does not show
+
+Ten consecutive pipeline runs after the change: **10/10 read all 7 regions**, every run
+≈5 s.
+
+**That 10/10 is not evidence the retry works.** Every run took a single attempt — a
+rescued crash would have cost ≈10 s — so the crash simply did not recur in that window.
+Across the session it appeared in bursts: 2/2 crashes in one window, 0/8 in another,
+2/3 in a third, 0/10 in the last. It is **episodic**, and its trigger is unknown.
+
+The retry path itself is exercised under fault injection in
+`test_a_dead_worker_is_retried_before_the_page_is_given_up_on`, not by a live crash.
+Treat the retry as insurance whose premium has been paid and whose payout has not yet
+been observed in production.
+
+**Still open.** Root cause. If it recurs, the next thing to try is a dedicated
+paddle-only virtualenv — `SubprocessReader(python=...)` already takes the interpreter as
+a constructor argument precisely so that is a config change and not a rewrite.

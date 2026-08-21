@@ -442,15 +442,39 @@ def test_no_region_is_the_whole_canvas_claim_by_default():
 
 
 def _worker_payload(monkeypatch, payload, *, returncode=0):
-    """Stand in for the subprocess so these stay fast and CI-safe."""
+    """Stand in for the subprocess so these stay fast and CI-safe.
+
+    `returncode` was previously accepted and then ignored -- the inner class hardcoded
+    0 -- so no test could express "the worker died", which is EC-015's whole subject.
+    """
+    _worker_runs(monkeypatch, (payload, returncode))
+
+
+def _worker_runs(monkeypatch, *runs):
+    """Queue one `(payload, returncode)` per invocation; the last repeats forever.
+
+    Retry behaviour cannot be tested with a single canned answer -- the point of a
+    retry is that attempt two differs from attempt one. Returns the call counter so a
+    test can assert how many invocations actually happened, which is the only way to
+    show that a blank page is NOT retried.
+    """
     import subprocess as sp
     import json as js
 
-    class Result:
-        stdout = payload if isinstance(payload, str) else js.dumps(payload)
-        returncode = 0
+    calls = []
 
-    monkeypatch.setattr(sp, "run", lambda *a, **k: Result())
+    def run(*a, **k):
+        payload, code = runs[min(len(calls), len(runs) - 1)]
+        calls.append(a)
+
+        class Result:
+            stdout = payload if isinstance(payload, str) else js.dumps(payload)
+            returncode = code
+
+        return Result()
+
+    monkeypatch.setattr(sp, "run", run)
+    return calls
 
 
 def test_subprocess_reader_translates_worker_output_into_the_2x_shape(monkeypatch):
@@ -499,6 +523,145 @@ def test_subprocess_reader_leaves_no_temp_directory_behind(monkeypatch, tmp_path
 
     assert made, "a temp dir was expected"
     assert not os.path.exists(made[0]), "the temp dir must be removed"
+
+
+# --- EC-015: a dead worker is not a blank page -----------------------------
+
+# 0xC0000005 in decimal. The code the worker actually exits with on this machine.
+ACCESS_VIOLATION = 3221225477
+
+
+def test_a_dead_worker_is_retried_before_the_page_is_given_up_on(monkeypatch):
+    """Two crashes then a good read must still produce the read.
+
+    Measured three times back to back on the reference wireframe, the worker read the
+    page once and died twice. Without a retry that is a demo which usually shows no
+    text; the crash is independent per attempt, so re-asking is the whole fix.
+    """
+    _worker_runs(
+        monkeypatch,
+        (None, ACCESS_VIOLATION),
+        (None, ACCESS_VIOLATION),
+        ({"ok": True, "lines": [{"text": "SUBMIT", "bbox": [1, 2, 30, 10],
+                                 "confidence": 0.92}]}, 0),
+    )
+    lines = read_lines(BLANK, SubprocessReader())
+
+    assert [ln.text for ln in lines] == ["SUBMIT"]
+
+
+def test_a_worker_that_dies_every_time_gives_up_rather_than_looping(monkeypatch):
+    calls = _worker_runs(monkeypatch, (None, ACCESS_VIOLATION))
+    reader = SubprocessReader(retries=2)
+
+    assert read_lines(BLANK, reader) == []
+    assert len(calls) == 3, "one attempt plus two retries, and no more"
+
+
+def test_a_blank_page_is_answered_once_and_not_retried(monkeypatch):
+    """A clean exit with no text has answered the question.
+
+    Retrying it would spend a worker start-up per attempt to receive the same answer,
+    and would turn the one case that is genuinely fine into the slowest one.
+    """
+    calls = _worker_runs(monkeypatch, ({"ok": True, "lines": []}, 0))
+
+    assert read_lines(BLANK, SubprocessReader(retries=2)) == []
+    assert len(calls) == 1
+
+
+def test_a_dead_worker_is_reported_as_a_death_not_as_an_empty_page(monkeypatch):
+    """The bug this task exists for: the warning used to blame the wireframe."""
+    _worker_runs(monkeypatch, (None, ACCESS_VIOLATION))
+
+    result = extract_text(BLANK, [region(0, 0, 100, 40)], reader=SubprocessReader())
+
+    assert result.warnings, "a page that was never read must say so"
+    warning = " ".join(result.warnings)
+    assert "found no text" not in warning, (
+        "the worker died; saying the page had no text on it is false"
+    )
+    assert str(ACCESS_VIOLATION) in warning
+    assert "EC-015" in warning
+
+
+def test_the_access_violation_code_is_glossed_not_just_printed(monkeypatch):
+    """3221225477 is unrecognisable unless someone writes 0xC0000005 next to it."""
+    _worker_runs(monkeypatch, (None, ACCESS_VIOLATION))
+    reader = SubprocessReader(retries=0)
+    read_lines(BLANK, reader)
+
+    assert "0xC0000005" in reader.last_failure
+    assert "ACCESS_VIOLATION" in reader.last_failure
+
+
+def test_ocr_available_is_false_when_the_page_was_never_read(monkeypatch):
+    """`ocr_available` is documented as separating 'ran and found nothing' from
+    'never ran'. A killed worker is the second."""
+    _worker_runs(monkeypatch, (None, ACCESS_VIOLATION))
+
+    result = extract_text(BLANK, [region(0, 0, 100, 40)], reader=SubprocessReader())
+
+    assert result.ocr_available is False
+
+
+def test_ocr_available_stays_true_for_a_page_that_genuinely_has_no_text(monkeypatch):
+    _worker_runs(monkeypatch, ({"ok": True, "lines": []}, 0))
+
+    result = extract_text(BLANK, [region(0, 0, 100, 40)], reader=SubprocessReader())
+
+    assert result.ocr_available is True
+    assert any("found no text" in w for w in result.warnings)
+
+
+def test_a_successful_read_reports_no_failure_even_after_a_retry(monkeypatch):
+    """A page that was read is a page that succeeded, whatever attempt one did."""
+    _worker_runs(
+        monkeypatch,
+        (None, ACCESS_VIOLATION),
+        ({"ok": True, "lines": [{"text": "OK", "bbox": [0, 0, 9, 9],
+                                 "confidence": 0.9}]}, 0),
+    )
+    reader = SubprocessReader()
+    result = extract_text(BLANK, [region(0, 0, 100, 100)], reader=reader)
+
+    assert reader.last_failure is None
+    assert result.ocr_available is True
+    assert not any("EC-015" in w for w in result.warnings)
+
+
+def test_a_reader_that_throws_blames_the_engine_not_the_wireframe():
+    class Exploding:
+        def ocr(self, image, cls=None):
+            raise RuntimeError("paddle backend missing")
+
+    result = extract_text(BLANK, [region(0, 0, 100, 40)], reader=Exploding())
+
+    warning = " ".join(result.warnings)
+    assert "paddle backend missing" in warning
+    assert "found no text" not in warning
+
+
+def test_a_worker_reporting_its_own_failure_is_named_in_the_warning(monkeypatch):
+    _worker_runs(monkeypatch, ({"ok": False, "error": "paddle exploded"}, 0))
+
+    result = extract_text(BLANK, [region(0, 0, 100, 40)], reader=SubprocessReader())
+
+    assert "paddle exploded" in " ".join(result.warnings)
+
+
+def test_last_failure_describes_the_current_call_not_an_earlier_one(monkeypatch):
+    """It is mutable state on an injected collaborator, so its scope must be stated
+    and held: overwritten per call, never accumulated."""
+    reader = SubprocessReader(retries=0)
+
+    _worker_runs(monkeypatch, (None, ACCESS_VIOLATION))
+    read_lines(BLANK, reader)
+    assert reader.last_failure is not None
+
+    _worker_runs(monkeypatch, ({"ok": True, "lines": []}, 0))
+    read_lines(BLANK, reader)
+    assert reader.last_failure is None
 
 
 # --- the real thing, when the machine can actually run it ------------------
