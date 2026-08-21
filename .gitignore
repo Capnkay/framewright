@@ -49,3 +49,13 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# JSON-store runtime state. The store adapter's default path is
+# server/data/store.json (§2.1), and the job store sits beside it. Both are
+# written by simply running the app or the suite, so they are byproducts, not
+# source. Committed, they made the test suite order-dependent: one suite's
+# leftover artifacts/<jobId> directory failed another suite's rmdir with
+# ENOTEMPTY, and a stale job record failed regenerate-base. The seed SOURCE
+# under server/data/seed/ stays tracked -- that is real, scored input.
+server/data/store.json
+server/data/jobs.json
