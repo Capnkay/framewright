@@ -161,3 +161,10 @@
 - Device: Jainam
 - Files: server/src/routes/questions.js, server/src/routes/answers.js, tests/hitl-endpoints.test.mjs
 
+## T-066 — Build the human-in-the-loop UI — question, bbox overlay, options, submit
+- Started: 2026-08-21T17:20:38.210Z
+- Finished: 2026-08-21T17:21:53.348Z
+- Duration: 1m
+- Device: Jainam
+- Files: client/src/studio/QuestionPrompt.jsx, tests/hitl-ui.test.mjs
+
