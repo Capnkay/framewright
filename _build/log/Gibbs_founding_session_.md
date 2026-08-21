@@ -133,3 +133,10 @@
 - Device: Karans-PC
 - Files: client/src/studio/SideEditor.jsx, tests/side-editor.test.mjs
 
+## T-052 — Build the responsive toggle in the preview shell per R11
+- Started: 2026-08-21T16:35:54.121Z
+- Finished: 2026-08-21T16:40:44.570Z
+- Duration: 5m
+- Device: Karans-PC
+- Files: client/src/studio/ResponsiveToggle.jsx, tests/responsive-toggle.test.mjs
+
