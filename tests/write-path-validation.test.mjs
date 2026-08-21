@@ -101,29 +101,34 @@ test('every persisted section validates against §2', async () => {
 // §3 — the element documents, and the three fields that were missing
 // ---------------------------------------------------------------------
 
-test('the element document is still missing §3’s loop, projectName and pageName', async () => {
-  // NOT a passing state — a recorded one. §3 requires all three and this handler emits
-  // none of them, so elementValidator.js still cannot be wired. Supplying them fails
-  // the §9 store-liveness assertion, because `pageName` puts the generated section's
-  // elements on the same page as the golden one and the client hydrates a page with
-  // `GET /api/elements?pageName=Home` — no id filter — reducing every section's
-  // elements into one flat map.
-  //
-  // This test exists so the gap cannot be forgotten and cannot be closed silently:
-  // when T-111 fixes the hydration collision and supplies the fields, this test fails
-  // and is replaced by its opposite.
-  const env = await isolatedEnv('wp-element-gap');
+test('every persisted element carries §3’s loop, projectName and pageName', async () => {
+  // The opposite of the test that stood here through T-109, replaced rather than
+  // deleted so the change of state is visible in the history. T-109 could not supply
+  // these fields: adding `pageName` failed the §9 store-liveness assertion. The cause
+  // was the seed inserting hardcoded ids without advancing the allocator, so the first
+  // generated section duplicated every seeded id and `pageName` merely made the
+  // duplicates visible to hydrateElements. T-111 fixed the seed.
+  const env = await isolatedEnv('wp-element-fields');
   const { body } = await generatePrompt(env);
   const { elements } = await storedDocs(env, body.job.sectionId);
 
   assert.ok(elements.length, 'no elements were persisted');
-  const first = elements[0];
-  const missing = ['loop', 'projectName', 'pageName'].filter((f) => !(f in first));
-  assert.deepEqual(
-    missing.sort(),
-    ['loop', 'pageName', 'projectName'],
-    'the §3 fields are present now — wire elementValidator and replace this test (T-111)'
-  );
+  for (const element of elements) {
+    assert.ok('loop' in element, `${element.elementName} has no loop`);
+    assert.ok(element.projectName, `${element.elementName} has no projectName`);
+    assert.equal(element.pageName, 'ValidationPage', `${element.elementName} has no pageName`);
+  }
+});
+
+test('every persisted element validates against §3', async () => {
+  const env = await isolatedEnv('wp-element-valid');
+  const { body } = await generatePrompt(env);
+  const { elements } = await storedDocs(env, body.job.sectionId);
+
+  for (const element of elements) {
+    const result = validateElement(element);
+    assert.equal(result.valid, true, `${element.elementName}: ${JSON.stringify(result.errors)}`);
+  }
 });
 
 test('an element missing the three §3 fields is rejected by the validator', async () => {

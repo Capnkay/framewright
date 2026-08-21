@@ -208,3 +208,10 @@
 - Device: Mohits_Victus
 - Files: client/src/routes/GeneratePage.jsx, tests/studio-page-mounts-its-controls.test.mjs
 
+## T-111 — The seed inserts hardcoded IDs without advancing the allocator, so the first generated section duplicates every seeded ID
+- Started: 2026-08-21T20:50:43.516Z
+- Finished: 2026-08-21T20:55:37.276Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: server/src/store/seed.js, server/src/routes/generate.js, tests/seed-does-not-collide-with-allocated-ids.test.mjs, tests/write-path-validation.test.mjs
+

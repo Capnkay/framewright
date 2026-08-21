@@ -8,6 +8,8 @@ import { writeComponentFile } from '../generate/writeComponentFile.js';
 import { sanitiseGenerateBody } from '../sanitise/sanitiseWrite.js';
 import { perceiveOrDegrade, STAGE_DEGRADED } from '../generate/perceiveAndAssembleIr.js';
 import { validateSection } from '../validate/sectionValidator.js';
+import { validateElement } from '../validate/elementValidator.js';
+import { PROJECT_NAME } from '../models/elementDoc.js';
 import { isSafeCssText } from '../sanitise/cssAllowList.js';
 
 /**
@@ -306,27 +308,31 @@ export async function postGenerate(ctx = {}) {
         tag: el.tag,
         order: el.order,
         content: el.default,
-        css: safeCss(el.css, el.elementName, writeWarnings)
+        css: safeCss(el.css, el.elementName, writeWarnings),
+        // §3 REQUIRES ALL THREE and this handler emitted none of them, because
+        // elementValidator.js (T-021) was built and never called on the document being
+        // written. `loop` is null for everything that is not a Cards element -- §3
+        // makes it required, not optional, so setting it only for cards left every
+        // other element a field short.
+        //
+        // T-109 DEFERRED THIS, and the reason it could not land then is worth keeping:
+        // adding `pageName` failed the §9 store-liveness assertion. The cause was not
+        // §3 and not the hydration path -- it was that the seed inserted hardcoded ids
+        // without advancing the allocator, so the first generated section duplicated
+        // every seeded id. `pageName` merely made the duplicates visible to
+        // hydrateElements, which filters on it. T-111 fixed the seed; this is now safe.
+        loop: null,
+        projectName: PROJECT_NAME,
+        pageName: ir.pageName
       };
-      // THE ELEMENT DOCUMENT IS NOT VALIDATED HERE, AND THAT IS DELIBERATE. §3 also
-      // requires `loop`, `projectName` and `pageName`, none of which this handler
-      // emits, so wiring elementValidator.js would refuse every document. Supplying
-      // them is a one-line change and it FAILS THE §9 STORE-LIVENESS ASSERTION:
-      // `pageName` puts the generated section's elements on the same page as the
-      // golden one, and the client hydrates a page with
-      // `GET /api/elements?pageName=Home` — no id filter — reducing every section's
-      // elements into one flat map. Two sections on one page collide there.
-      //
-      // That is a real defect in the page-hydration path, not in §3, and it is bigger
-      // than this task. Left as T-111 rather than smuggled in behind a disabled gate:
-      // rule 2 says the §9 assertion is never disabled, and shipping the field with
-      // the gate red would be disabling it in everything but name.
       
       if (el.contentType === 'Cards' && ir.cards) {
         elementDoc.content = null; // Cards don't have text content
         elementDoc.loop = ir.cards.items;
       }
       
+      // §3, at the one moment it matters -- the same argument as the section above.
+      assertValid(validateElement(elementDoc), `the element document for ${el.elementName}`);
       await store.insertElement(elementDoc);
     }
     

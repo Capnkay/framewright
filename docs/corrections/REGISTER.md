@@ -1750,3 +1750,39 @@ assertion — `fetchElementsByIds` hydrates a page with no id filter, so a gener
 section's elements collide with the golden section's in one flat map. Raised as T-111.
 Rule 2 forbids disabling that assertion, and shipping a change that leaves it red is
 disabling it in everything but name.
+
+---
+
+## 2026-08-22 · T-111 — rescoped mid-task, because the diagnosis was wrong
+
+T-111 was raised from T-109 with a diagnosis that turned out to be wrong, and the entry
+is kept rather than rewritten because the wrong turn is the useful part.
+
+**What T-109 saw.** Adding §3's required `pageName` to generated element documents made
+the §9 store-liveness assertion fail at step 4 — *"TOP-LEVEL rendered text did not change
+after PATCH"*. `hydrateElements` filters on `el.pageName === pageName`, so the obvious
+reading was that two sections on one page collide in the flat map, and T-111 was written
+against the page-hydration path with `client/src/redux/fetchElementsByIds.js` in its
+`files`.
+
+**What was actually wrong.** `server/src/store/seed.js` inserts the Pulse Fit rows from
+`data/seed/*.json` with hardcoded ids — section `1000000001`, elements `2000000001`
+through `2000000007` — and never advanced the store's counters, which start at exactly
+`1000000001` and `2000000001`. **The first generated section was allocated the same
+sectionId and the same seven fieldIds as the seeded one, on every fresh store.** That is
+a rule 4 and §1 violation on its own, and the pre-submit gate's duplicate-ID check exists
+for it.
+
+`pageName` did not cause the collision. It made the duplicates *visible* to the reducer,
+which had been filtering them out. Fixing the seed fixed the assertion, and §3's three
+fields went in unchanged.
+
+**`files` changed after the claim**, from the client redux path to
+`server/src/store/seed.js`. Logged rather than left quiet: the task that was claimed and
+the task that was built are not the same task, and a reader comparing the two should be
+able to see why.
+
+**The lesson worth carrying:** the symptom appeared in the client, one layer above the
+cause, and the first plausible explanation fitted it. It was the *second* question —
+"why would that break a PATCH?" — that found the seed. A fix built on the first answer
+would have changed the hydration path, left duplicate ids in the store, and passed.
