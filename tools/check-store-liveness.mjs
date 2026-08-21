@@ -33,14 +33,28 @@ async function shutdown(server, code) {
   try { await esbuild.stop(); } catch { /* older esbuild builds have no stop() */ }
   try { await fs.unlink(tempBundle); } catch { /* already gone */ }
   try { await fs.unlink(scratchStorePath); } catch { /* already gone */ }
+  try { await fs.unlink(path.join(__dirname, '_jobs_scratch.json')); } catch { /* already gone */ }
   process.exitCode = code;
 }
 
 async function main() {
   // Use a scratch copy for the store so we don't mutate the real seed data
   try { await fs.unlink(scratchStorePath); } catch (e) {}
+  try { await fs.unlink(path.join(__dirname, '_jobs_scratch.json')); } catch (e) {}
 
-  const appEnv = { ...process.env, STORE_PATH: scratchStorePath, STORE_TYPE: 'json' };
+  // BOTH stores are scratch. The job store is a separate file from the element
+  // store, and leaving it on the default server/data/jobs.json made this gate
+  // depend on whatever runtime state the repo happened to be carrying: a job
+  // store left half-written by a previous run made /api/generate answer 500 and
+  // this check report a dead store, which is a false alarm on the one gate that
+  // must never cry wolf.
+  const scratchJobsPath = path.join(__dirname, '_jobs_scratch.json');
+  const appEnv = {
+    ...process.env,
+    STORE_PATH: scratchStorePath,
+    JOB_STORE_PATH: scratchJobsPath,
+    STORE_TYPE: 'json',
+  };
   const app = createApp({ env: appEnv });
   const dbStore = createDbStore(appEnv);
   await seedStore(dbStore);
