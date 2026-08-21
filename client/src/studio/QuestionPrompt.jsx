@@ -88,7 +88,7 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
             
             <div className="relative inline-block border border-gray-200 rounded overflow-hidden w-full max-w-xl">
               <img 
-                src={`/api/jobs/${jobId}/artifacts/s2-normalised.png`} 
+                src={`/api/jobs/${jobId}/artifacts/s2-normalised.jpg`} 
                 alt="Source context"
                 className="w-full h-auto block"
               />

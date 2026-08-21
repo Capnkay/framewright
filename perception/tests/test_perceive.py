@@ -199,6 +199,51 @@ def test_bboxes_are_in_normalised_space_not_upload_space() -> None:
 
 
 # ---------------------------------------------------------------------
+# T-112 -- the normalised canvas travels inline, because nothing else can carry it
+# ---------------------------------------------------------------------
+
+
+def test_stage_2_carries_the_normalised_canvas_as_well_as_the_transform() -> None:
+    """§11.2: the service "returns its stage outputs inline in the response body, and
+    Node persists them". The canvas IS stage 2's output, and until T-112 only the
+    transform was sent -- so the raster existed nowhere outside this process and the
+    human-in-the-loop overlay drew its bbox over a 404."""
+    body = perceive_image(a_drawn_wireframe(), reader=NoText())
+    artifact = next(s for s in body["stages"] if s["stage"] == 2)["artifact"]
+
+    assert artifact["width"] == 1024, "the transform must survive alongside the raster"
+    raster = artifact["raster"]
+    assert raster["contentType"] == "image/jpeg"
+    assert raster["extension"] == "jpg"
+    assert raster["bytes"] > 0
+
+
+def test_the_raster_is_a_real_decodable_image() -> None:
+    """Base64 that decodes to something is not the same as an image. A backdrop that
+    the browser refuses to render fails silently, which is the failure this replaces."""
+    import base64 as _b64
+
+    body = perceive_image(a_drawn_wireframe(), reader=NoText())
+    raster = next(s for s in body["stages"] if s["stage"] == 2)["artifact"]["raster"]
+    raw = _b64.b64decode(raster["base64"])
+
+    assert len(raw) == raster["bytes"], "the reported size must match the payload"
+    assert raw[:2] == bytes([0xFF, 0xD8]), "not a JPEG"
+    decoded = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
+    assert decoded is not None and decoded.shape[:2] == (1024, 1024)
+
+
+def test_the_raster_is_a_path_free_payload() -> None:
+    """§11.2 again: this service runs on a different machine, so a path written here
+    resolves to nothing there. The bytes travel; a filename would not."""
+    body = perceive_image(a_drawn_wireframe(), reader=NoText())
+    raster = next(s for s in body["stages"] if s["stage"] == 2)["artifact"]["raster"]
+
+    assert "path" not in raster and "ref" not in raster
+    assert set(raster) == {"contentType", "extension", "bytes", "base64"}
+
+
+# ---------------------------------------------------------------------
 # Degradation -- §12 makes it supported, not a failure
 # ---------------------------------------------------------------------
 
