@@ -66,6 +66,12 @@ VERIFY_BELOW = 0.85
 # of a split hero.
 MEDIA_MIN_AREA = 0.12
 
+# How much larger than the word its box may be before it stops being that word's
+# border and starts being the panel it happens to sit in. Measured on the reference
+# wireframe: the HEADLINE mark is 233x45 and the box drawn around it is 522x95, a
+# growth of 4.7x, while the next container up is the page frame at more than 50x.
+PROMOTE_MAX_GROWTH = 8.0
+
 # How far a region's centre may sit from a lateral edge, as a fraction of width,
 # and still count as "that side". 0.5 exactly would make every region belong to a
 # side and the classification meaningless.
@@ -238,10 +244,55 @@ def _keyword_assignments(
                 -pair[1].region.bbox[0],
             ),
         )
-        assigned[slot] = winner
+        assigned[slot] = _promoted_to_its_box(winner, candidates)
         available = [(i, c) for i, c in available if i != winner_index]
 
     return assigned
+
+
+def _promoted_to_its_box(
+    winner: RegionText, candidates: Sequence[RegionText]
+) -> RegionText:
+    """The word claims the slot; the box drawn around the word supplies its geometry.
+
+    THE SAME PROBLEM `_pick_media` ALREADY SOLVES FOR THE HERO PANEL, one slot over.
+    A keyword winner is chosen on confidence, and a tight handwriting cluster scores
+    higher than the wobbly rectangle someone drew around it -- on the reference
+    wireframe the "HEADLINE" mark is 0.9908 and its box is 0.7588. So the word won
+    and `headlineMain` took the bbox of the WORD, which is why its slot IoU was
+    0.291 while the detector had located the box at 0.727. The text was right and
+    the geometry was the size of the writing.
+
+    SMALLEST CONTAINING BOX, not largest, for exactly the reason `_pick_media` gives:
+    the page frame contains the word too, and it contains everything else as well.
+
+    The text, and the confidence it was chosen on, stay the winner's. Only the region
+    changes -- so a promotion cannot alter which slot was claimed or how sure we were,
+    only where the element is.
+    """
+    x, y, w, h = winner.region.bbox
+    holders = [
+        c
+        for c in candidates
+        if c.region.bbox != winner.region.bbox
+        and _contains(c.region.bbox, (x, y, w, h))
+        and _area(c.region.bbox) > _area(winner.region.bbox)
+    ]
+    if not holders:
+        # No box was drawn around it. The word is the element, which is the normal
+        # case for a bare label.
+        return winner
+
+    box = min(holders, key=lambda c: _area(c.region.bbox))
+
+    # A container far larger than the writing is a panel or a section, not this
+    # element's border. Bounded rather than left open, because "smallest containing"
+    # on a page with no drawn box would otherwise promote a word to whatever section
+    # happens to sit above it.
+    if _area(box.region.bbox) > PROMOTE_MAX_GROWTH * _area(winner.region.bbox):
+        return winner
+
+    return RegionText(region=box.region, text=winner.text, confidence=winner.confidence)
 
 
 def _pick_media(

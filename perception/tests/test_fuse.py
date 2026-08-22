@@ -587,3 +587,71 @@ def test_a_scored_reading_is_still_judged_on_its_own_score():
 
     strong_text_weak_box = rt(400, 560, 230, 45, text="HEADLINE", conf=0.95, geo=0.10)
     assert fuse_module._readable(strong_text_weak_box) is True
+
+
+# ---------------------------------------------------------------------------
+# T-133 — the word claims the slot, the box drawn around it supplies geometry.
+# ---------------------------------------------------------------------------
+
+
+def test_a_keyword_winner_takes_the_geometry_of_the_box_drawn_around_it():
+    """THE DEFECT: the slot got the bbox of the WRITING, not of the element.
+
+    A keyword winner is chosen on confidence, and a tight handwriting cluster
+    scores higher than the wobbly rectangle someone drew around it. On the
+    reference wireframe the "HEADLINE" mark is 0.9908 and its box is 0.7588, so
+    the word won and `headlineMain` took a bbox the size of the word: slot IoU
+    0.291, while the detector had located the box itself at 0.727.
+
+    This is the same problem `_pick_media` already solves one slot over for the
+    hero panel's "Image" label.
+    """
+    word = rt(427, 561, 233, 45, text="HEADLINE", conf=0.99, geo=0.99)
+    box = rt(252, 532, 522, 95, geo=0.76)
+
+    result = run([word, box])
+    headline = next(e for e in result["elements"] if e["elementName"] == "headlineMain")
+
+    assert headline["default"] == "HEADLINE", "the text no longer reaches the slot"
+    assert headline["bbox"] == [252, 532, 522, 95], "the slot kept the word's own bbox"
+
+
+def test_promotion_keeps_the_winner_s_text_and_confidence():
+    """Only the region moves.
+
+    A promotion must not be able to change which slot was claimed or how sure we
+    were about it — otherwise geometry quietly rewrites §10's answer.
+    """
+    word = rt(427, 561, 233, 45, text="HEADLINE", conf=0.99, geo=0.99)
+    box = rt(252, 532, 522, 95, geo=0.40)
+
+    promoted = fuse_module._promoted_to_its_box(word, [word, box])
+
+    assert promoted.text == "HEADLINE"
+    assert promoted.confidence == word.confidence
+    assert promoted.region.bbox == (252, 532, 522, 95)
+
+
+def test_a_word_with_no_box_around_it_is_left_alone():
+    # The normal case for a bare label. Nothing to promote to, and inventing a
+    # promotion would move the element somewhere nobody drew.
+    word = rt(427, 561, 233, 45, text="HEADLINE", conf=0.99)
+    assert fuse_module._promoted_to_its_box(word, [word]).region.bbox == (427, 561, 233, 45)
+
+
+def test_a_word_is_not_promoted_to_the_page_frame():
+    """SMALLEST containing box, and bounded — `_pick_media`'s own reason.
+
+    The frame contains the word, and it contains everything else as well. Promoting
+    to it would put one element on top of the entire page.
+    """
+    word = rt(427, 561, 233, 45, text="HEADLINE", conf=0.99)
+    box = rt(252, 532, 522, 95, geo=0.76)
+    frame = rt(10, 10, 1000, 1000, geo=0.9)
+
+    promoted = fuse_module._promoted_to_its_box(word, [word, box, frame])
+    assert promoted.region.bbox == (252, 532, 522, 95), "promoted past its own box"
+
+    # And with no intermediate box at all, the frame is too large to be a border.
+    only_frame = fuse_module._promoted_to_its_box(word, [word, frame])
+    assert only_frame.region.bbox == (427, 561, 233, 45), "promoted straight to the frame"

@@ -902,6 +902,38 @@ test pins that the threshold falls between them so a later nudge fails loudly.
 Above §10's accept band, and **no localisation was traded for it** — the number that would
 have made this a bad deal.
 
+### Change 2: the word claims the slot, the box drawn around it supplies the geometry
+
+A separate measurement — B-004's slot score, not confidence — was stuck at **6 of 7**, and
+the failure was `headlineMain` at IoU **0.291** while B-003 had located that box at 0.727.
+The text was right and the geometry was the size of the writing.
+
+A keyword winner is chosen on confidence, and a tight handwriting cluster scores higher
+than the wobbly rectangle drawn around it: the `HEADLINE` mark is 0.9908, its box 0.7588.
+So the word won, and the slot took the word's bbox.
+
+**This is the same problem `_pick_media` already solves one slot over** for the hero
+panel's `Image` label, and it is solved the same way — smallest containing box, for
+exactly the reason that function gives: the page frame contains the word too, and it
+contains everything else as well. Bounded at 8× the word's area, measured from the
+reference wireframe where the real box is 4.7× and the next container up is the frame at
+more than 50×.
+
+The winner's **text and confidence are kept**. Only the region moves, so a promotion
+cannot alter which slot was claimed or how sure we were — only where the element is.
+
+| slot | before | after |
+|---|---|---|
+| `headlineMain` | 0.291 | **0.727** |
+| `brandBadge` | 0.548 | **0.687** |
+| every other slot | — | unchanged |
+| **B-004 geometry** | **6 of 7** | **7 of 7** |
+| **B-004 text** | 4 of 4 | 4 of 4 |
+| overall confidence | 0.8744 | 0.8744 |
+
+Full marks on the slot benchmark for the first time, and confidence deliberately did not
+move, because nothing about how sure we are changed.
+
 ### What is left
 
 `heroImage` at 0.683 and `headlineSub` at 0.716 are correct measurements of a genuinely
