@@ -2742,6 +2742,28 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_fuse.py",
       "doneWhen": "MEASURED THROUGH /perceive, not through extract_text. fuse._readable is `candidate.text is not None and (candidate.confidence or 0.0) >= KEYWORD_FLOOR`. T-122's VLM reader sets confidence=None deliberately - section 10 says null is the honest value for a transcription that carries no score - so `None or 0.0` is zero, every reading falls below the floor, no reading is ever readable, and _keyword_assignments silently assigns nothing. Measured end to end with the reader on: headlineMain came back 'TV', description 'ago', headlineSub 'Image', and brandBadge and ctaButton fell back to the reference template, while the SAME run read HEADLINE, SUB HEADLINE, LABEL and SUBMIT correctly off the page. Overall confidence fell from 0.85 to 0.68 - WORSE than the path it was meant to improve. RegionText.effective_confidence already exists and already documents the right rule: the OCR score where there is text, the geometric score where there is not, both real measurements. Done when _readable uses it, when the four reference words land in their own slots on the VLM path, and when a test pins that a null-scored reading is not treated as a zero-scored one."
+    },
+    {
+      "id": "T-133",
+      "phase": 6,
+      "track": "perception",
+      "size": "3h",
+      "title": "Confidence sits at 0.83 because three elements are dragged by faint hand-drawn strokes",
+      "contract": [
+        "§10"
+      ],
+      "deps": [
+        "T-132"
+      ],
+      "files": [
+        "perception/stages/normalise.py",
+        "perception/stages/detect_regions.py",
+        "perception/tests/test_detect_regions.py",
+        "docs/BENCHMARK-RESULTS.md",
+        "docs/corrections/REGISTER.md"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_detect_regions.py",
+      "doneWhen": "Overall confidence is the MEAN of the seven element confidences and is 0.8295 on the VLM path, 0.8497 on the PaddleOCR one. Section 10's own accept band starts at 0.85 (VERIFY_BELOW), so both sit just under it. Three elements carry it: heroImage 0.683, where edge support is top 0.68 bottom 0.79 right 0.79 and LEFT 0.5486, and the geometric mean is deliberately dragged by the weakest; description 0.689, a group of four ruled lines with weakestMember 0.7993; and headlineSub 0.716 on the VLM path, which has no reading score of its own and falls back to geometry. All three are the same physical fact: a faint stroke on a hand-drawn sheet. Done when each change is measured SEPARATELY against B-003 and B-004 so it is knowable which one moved what, when no change lowers the 7-of-7 localisation or the 4-of-4 text score, and when every number is written up including the ones that did not improve. Any change to how confidence is AGGREGATED is a reversal of a documented decision - detect_regions' own docstring argues for the geometric mean because an arithmetic mean scores a three-sided bracket 0.75 - and belongs in docs/corrections/REGISTER.md with the reasoning, not in a commit message."
     }
   ]
 }
