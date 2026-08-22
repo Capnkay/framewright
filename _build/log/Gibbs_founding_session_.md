@@ -161,3 +161,11 @@
 - Device: Karans-PC
 - Files: client/src/routes/GeneratePage.jsx, client/src/App.jsx, client/src/studio/Composer.jsx, client/src/studio/StudioNav.jsx, client/src/studio/Logo.jsx, client/src/studio/ResponsiveToggle.jsx, client/src/studio/ErrorBanner.jsx, client/src/studio/SectionFields.jsx, client/src/routes/LoginPage.jsx, tests/studio-information-architecture.test.mjs, tests/studio-page-mounts-its-controls.test.mjs
 
+## T-134 — Lock the Studio design-system foundation: studio-* tokens, fonts, icon/motion deps, research docs
+- Started: 2026-08-22T20:05:54.585Z
+- Finished: 2026-08-22T20:06:40.187Z
+- Duration: 1m
+- Device: Karans-PC
+- Files: client/src/index.css, client/tailwind.config.js, client/src/main.jsx, client/package.json, client/package-lock.json, client/src/routes/DesignPreview.jsx, docs/DESIGN-TOKENS.md, docs/SURFACE-INSPO.md, docs/VISUAL-INSPO.md, docs/MOTION-INSPO.md, docs/UI-SYSTEM.md, .agents/rules/framewright.md
+- Note: Verified against the running dev server (same files this commit tracks): /generate, /login, /design-preview all render with zero console errors; package.json now declares lucide-react/motion/@fontsource deps the committed studio files import.
+
