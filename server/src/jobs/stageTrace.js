@@ -44,7 +44,28 @@ import path from 'node:path';
 
 import { STAGE_NAMES } from './jobStore.js';
 
+/**
+ * §11.2's default artifact root: `artifacts/`, relative to the process cwd.
+ *
+ * IT IS A DEFAULT, NOT A CONSTANT, and T-120 is why. Job ids restart at 1 in
+ * every isolated store, so two processes each holding their own job store both
+ * derive `artifacts/job-0000000001/s4-output.json` and write to the same file.
+ * Under `node --test` that is not hypothetical: each test FILE is its own
+ * process, they run in parallel, and a test that reads a stage's `outputRef`
+ * gets whichever file won the race. The suite went green or red depending on
+ * scheduling, which makes "green" mean nothing at all.
+ *
+ * So the root is per-trace, taken from `env.ARTIFACT_ROOT` where a caller sets
+ * one. Nothing about the deployed shape changes — unset, it is still
+ * `artifacts/<jobId>/...` exactly as §11.2 writes it.
+ */
 export const ARTIFACT_ROOT = 'artifacts';
+
+/** The root this trace writes under: an explicit env override, else §11.2's. */
+export function artifactRootFrom(env = {}) {
+  const configured = env && typeof env.ARTIFACT_ROOT === 'string' ? env.ARTIFACT_ROOT.trim() : '';
+  return configured || ARTIFACT_ROOT;
+}
 
 /**
  * A stage that could not do its real work but did not stop the pipeline.
@@ -78,10 +99,13 @@ export class StageDegraded extends Error {
  * (`s2-normalised.png`), and only a retry adds a discriminator:
  * `s3a2-regions.json`. Logged in docs/corrections/REGISTER.md.
  */
-export function artifactRef(jobId, stage, name, ext = 'json', attempt = 1) {
+export function artifactRef(jobId, stage, name, ext = 'json', attempt = 1, root = ARTIFACT_ROOT) {
   if (!/^job-\d{10}$/.test(jobId)) throw new Error('Invalid jobId');
   const suffix = attempt > 1 ? `a${attempt}` : '';
-  return `${ARTIFACT_ROOT}/${jobId}/s${stage}${suffix}-${name}.${ext}`;
+  // path.join, not template interpolation: an absolute root on Windows is
+  // `C:\...` and `${root}/${jobId}` would produce a mixed-separator path that
+  // fs tolerates and string comparison in a test does not.
+  return path.join(root, jobId, `s${stage}${suffix}-${name}.${ext}`).split(path.sep).join('/');
 }
 
 /** JSON unless it is already bytes or text; keeps images and JSX intact. */
@@ -108,6 +132,10 @@ async function defaultWriteArtifact({ ref, data, ext }) {
 export function createStageTrace({
   jobStore,
   writeArtifact = defaultWriteArtifact,
+  // Where this trace's artifacts land. Injected rather than read from
+  // process.env here so the module stays a pure function of its arguments —
+  // the routes read the env and pass the answer in.
+  artifactRoot = ARTIFACT_ROOT,
   now = () => Date.now(),
   clock = () => new Date().toISOString(),
 } = {}) {
@@ -115,8 +143,13 @@ export function createStageTrace({
     throw new Error('createStageTrace: a jobStore with appendStage is required');
   }
 
+  /** This trace's own ref builder, bound to its root. */
+  function refFor(jobId, stage, name, ext = 'json', attempt = 1) {
+    return artifactRef(jobId, stage, name, ext, attempt, artifactRoot);
+  }
+
   async function persist(jobId, stage, name, data, ext, attempt) {
-    const ref = artifactRef(jobId, stage, name, ext, attempt);
+    const ref = refFor(jobId, stage, name, ext, attempt);
     await writeArtifact({ ref, data, ext, jobId, stage, name, attempt });
     return ref;
   }
@@ -280,7 +313,10 @@ export function createStageTrace({
     return (job?.stages || []).filter((s) => s.stage === stage);
   }
 
-  return { runStage, skipStage, attemptsFor, artifactRef };
+  // The trace hands back its OWN ref builder, not the module-level one. A
+  // caller that used the exported `artifactRef` to predict where this trace
+  // wrote would be right only while the root is the default.
+  return { runStage, skipStage, attemptsFor, artifactRef: refFor, artifactRoot };
 }
 
 export default createStageTrace;

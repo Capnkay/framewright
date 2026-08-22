@@ -250,3 +250,10 @@
 - Device: Mohits_Victus
 - Files: server/src/routes/generate.js, tests/generate-combined-mode.test.mjs, tests/generate-wireframe-mode.test.mjs
 
+## T-120 — Stage artifacts are written to a shared relative path, so parallel tests overwrite each other's outputs
+- Started: 2026-08-22T03:55:53.446Z
+- Finished: 2026-08-22T14:56:41.440Z
+- Duration: 11h 1m
+- Device: Mohits_Victus
+- Files: server/src/jobs/stageTrace.js, server/src/routes/generate.js, server/src/routes/regenerate.js, server/src/routes/artifacts.js, tests/artifact-root-is-isolable.test.mjs
+

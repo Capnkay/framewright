@@ -20,18 +20,10 @@ import { postGenerate } from '../server/src/routes/generate.js';
 import { createStore } from '../server/src/store/index.js';
 import { deterministicIr } from '../server/src/generate/perceiveAndAssembleIr.js';
 
-// ARTIFACTS ARE WRITTEN TO A SHARED, RELATIVE PATH. stageTrace's ARTIFACT_ROOT is the
-// hardcoded string 'artifacts', resolved against the process cwd, and a job store
-// isolated per test restarts its job counter at 1 — so two test FILES running in
-// parallel both write `artifacts/job-0000000001/` under the repo root and overwrite
-// each other's stage outputs. These tests read a stage-4 artifact, so they passed alone
-// and failed in a full run until this line existed.
-//
-// node --test gives each file its own process, so moving this one's cwd isolates its
-// artifacts without touching anyone else's. The underlying defect is not fixed here —
-// it belongs to whoever owns stageTrace — but it is named so the next reader does not
-// spend the evening on it twice.
-process.chdir(await fs.mkdtemp(path.join(os.tmpdir(), 'fw-cb-artifacts-')));
+// The cwd workaround that used to sit here is gone: T-120 made the artifact root a
+// per-run value, and `isolatedEnv` below sets `ARTIFACT_ROOT` inside this test's own
+// temp directory. Moving the process cwd fixed the symptom for one file and left every
+// other file racing.
 
 const PNG_1PX = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
@@ -43,6 +35,10 @@ async function isolatedEnv(label) {
   await fs.writeFile(path.join(dir, 'jobs.json'), JSON.stringify({ counters: { job: 11001 }, jobs: [] }));
   return {
     JOB_STORE_PATH: path.join(dir, 'jobs.json'),
+    // T-120: artifacts share one relative root by default, and an isolated
+    // job store restarts ids at 1 — so without this two test files both write
+    // artifacts/job-0000000001/ and read each other's stage outputs.
+    ARTIFACT_ROOT: path.join(dir, 'artifacts'),
     STORE_PATH: path.join(dir, 'store.json'),
     MONGODB_URI: '',
   };

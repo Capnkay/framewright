@@ -31,6 +31,10 @@ async function isolatedEnv(label) {
   await fs.writeFile(path.join(dir, 'jobs.json'), JSON.stringify({ counters: { job: 16001 }, jobs: [] }));
   return {
     JOB_STORE_PATH: path.join(dir, 'jobs.json'),
+    // T-120: artifacts share one relative root by default, and an isolated
+    // job store restarts ids at 1 — so without this two test files both write
+    // artifacts/job-0000000001/ and read each other's stage outputs.
+    ARTIFACT_ROOT: path.join(dir, 'artifacts'),
     STORE_PATH: path.join(dir, 'store.json'),
     MONGODB_URI: '',
   };

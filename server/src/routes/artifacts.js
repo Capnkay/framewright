@@ -25,6 +25,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const ARTIFACTS_DIR = path.join(REPO_ROOT, 'artifacts');
 
+/**
+ * Where this request's artifacts live. §11.2's `artifacts/` under the repo
+ * unless the caller's env moves it — which it must be able to, because
+ * stageTrace WRITES to `env.ARTIFACT_ROOT` (T-120) and a reader pinned to the
+ * repo root would 404 on every artifact an isolated run produced.
+ *
+ * A relative override resolves against the repo root, matching how the default
+ * behaves; an absolute one is taken as given.
+ */
+function artifactsDirFor(env = {}) {
+  const configured = env && typeof env.ARTIFACT_ROOT === 'string' ? env.ARTIFACT_ROOT.trim() : '';
+  if (!configured) return ARTIFACTS_DIR;
+  return path.isAbsolute(configured) ? configured : path.join(REPO_ROOT, configured);
+}
+
 /** §11.1: job ids are `job-` followed by 10 digits. */
 const JOB_ID = /^job-\d{10}$/;
 
@@ -94,7 +109,7 @@ export async function getArtifact(ctx = {}) {
     return notFound(`No such job: ${jobId}`);
   }
 
-  const artifactPath = path.join(ARTIFACTS_DIR, jobId, safeName);
+  const artifactPath = path.join(artifactsDirFor(ctx.env), jobId, safeName);
   if (!fs.existsSync(artifactPath)) {
     return notFound(`No artifact '${safeName}' found for job ${jobId}.`);
   }

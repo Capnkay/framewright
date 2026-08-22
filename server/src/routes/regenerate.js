@@ -1,7 +1,7 @@
 import { STATUS, ok, badRequest, error, notImplemented } from '../http/envelope.js';
 import { createStore } from '../store/index.js';
 import { createJobStore } from '../jobs/jobStore.js';
-import createStageTrace from '../jobs/stageTrace.js';
+import createStageTrace, { artifactRootFrom } from '../jobs/stageTrace.js';
 import promptToIrHosted from '../generate/promptToIrHosted.js';
 import { emitComponent } from '../generate/emitComponent.js';
 import { writeComponentFile } from '../generate/writeComponentFile.js';
@@ -75,7 +75,10 @@ export async function postRegenerate(ctx = {}) {
   }
 
   const jobStore = createJobStore(env.JOB_STORE_PATH ? { filePath: env.JOB_STORE_PATH } : undefined);
-  const trace = createStageTrace({ jobStore });
+  // §11.2's root by default; `ARTIFACT_ROOT` in the env moves it. Job ids
+  // restart at 1 in every isolated store, so two callers with their own job
+  // stores and one shared root write over each other's stage outputs (T-120).
+  const trace = createStageTrace({ jobStore, artifactRoot: artifactRootFrom(env) });
 
   let job;
   try {

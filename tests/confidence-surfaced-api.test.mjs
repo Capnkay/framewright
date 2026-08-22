@@ -50,7 +50,7 @@ test('Confidence bands are surfaced in the API response and timeline (T-067)', a
 
     const ctx = {
       params: { jobId: job.jobId },
-      env: { JOB_STORE_PATH: jobsFile }
+      env: { JOB_STORE_PATH: jobsFile, ARTIFACT_ROOT: path.join(tmpDir, 'artifacts') }
     };
 
     const res = await getJob(ctx);

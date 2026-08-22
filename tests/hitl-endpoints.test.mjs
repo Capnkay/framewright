@@ -44,7 +44,7 @@ test('hitl-endpoints (T-065)', async (t) => {
   // Test GET /questions
   const getRes = await getQuestions({
     params: { jobId: job.jobId },
-    env: { JOB_STORE_PATH: jobsFile }
+    env: { JOB_STORE_PATH: jobsFile, ARTIFACT_ROOT: path.join(tmpDir, 'artifacts') }
   });
 
   assert.equal(getRes.status, 200, 'GET /questions should return 200');
@@ -55,7 +55,7 @@ test('hitl-endpoints (T-065)', async (t) => {
   const postRes = await postAnswers({
     params: { jobId: job.jobId },
     body: { answers: [{ questionId: 'q1', choice: 'Button' }] },
-    env: { JOB_STORE_PATH: jobsFile }
+    env: { JOB_STORE_PATH: jobsFile, ARTIFACT_ROOT: path.join(tmpDir, 'artifacts') }
   });
 
   assert.equal(postRes.status, 200, 'POST /answers should return 200');

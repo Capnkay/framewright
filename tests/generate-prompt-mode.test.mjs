@@ -13,6 +13,9 @@ test('POST /api/generate for mode=prompt end to end', async () => {
   const storeFile = path.join(tmpDir, 'store.json');
   const env = { 
     JOB_STORE_PATH: jobsFile,
+    // T-120: an isolated job store restarts ids at 1, so without a private
+    // artifact root two test files both write artifacts/job-0000000001/.
+    ARTIFACT_ROOT: path.join(tmpDir, 'artifacts'),
     STORE_PATH: storeFile,
     MONGODB_URI: '',
   };

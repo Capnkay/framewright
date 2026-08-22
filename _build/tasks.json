@@ -2468,7 +2468,7 @@
       "verify": "node --test tests/generate-combined-mode.test.mjs",
       "doneWhen": "§13 names four modes and this system now implements two. server/src/generate/resolveConflicts.js implements §6's conflict order in full — prompt wins for copy, colour, CTA behaviour and card count; wireframe wins for spatial layout; code wins for technical patterns — and has zero callers, the same class of gap as T-101, T-108 and T-116. Done when mode=combined builds a wireframe IR and a prompt IR from whichever inputs the caller supplied and merges them through resolveConflicts rather than a second implementation of §6's order; when a test proves the ORDER holds — the prompt's copy beating the wireframe's OCR text, and the wireframe's layout beating the prompt's — rather than only that a 200 comes back; when a combined run with the perception service stopped still completes on the prompt half (§12, rule 5); and when mode=code still answers 501 rather than half-working, since codeToIr.js is a separate uncalled module and not in this task."
     },
-{
+    {
       "id": "T-120",
       "phase": 6,
       "track": "api-glassbox",
@@ -2482,6 +2482,9 @@
       ],
       "files": [
         "server/src/jobs/stageTrace.js",
+        "server/src/routes/generate.js",
+        "server/src/routes/regenerate.js",
+        "server/src/routes/artifacts.js",
         "tests/artifact-root-is-isolable.test.mjs"
       ],
       "verify": "node --test tests/artifact-root-is-isolable.test.mjs",
