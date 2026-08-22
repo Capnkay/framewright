@@ -140,3 +140,10 @@
 - Device: Karans-PC
 - Files: client/src/studio/ResponsiveToggle.jsx, tests/responsive-toggle.test.mjs
 
+## T-118 — Generated sections now land in-tree and nothing ignores them, so every demo run dirties the working copy
+- Started: 2026-08-22T08:52:13.105Z
+- Finished: 2026-08-22T09:17:34.833Z
+- Duration: 25m
+- Device: Karans-PC
+- Files: .gitignore, tests/generated-sections-are-not-committed.test.mjs
+

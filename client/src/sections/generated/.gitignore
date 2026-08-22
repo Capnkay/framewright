@@ -1,0 +1,4 @@
+*-*-v*.jsx
+!HeroSection.jsx
+!HeroSection.logic.js
+!reference/
