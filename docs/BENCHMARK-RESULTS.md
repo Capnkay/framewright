@@ -817,3 +817,95 @@ If role classification is worth revisiting, the signal to try is **geometric con
 size relative to siblings, position within the parent, member count and axis — which is
 information the pipeline already has and currently uses only in `_group_assignments`. That
 is a stage-4 question and it needs no model at all.
+
+---
+
+## B-009 · Raising confidence: what moved it, and what turned out to be a correct measurement — T-133
+
+**Date:** 2026-08-23 · **Status:** in progress — change 1 measured · **VERIFIED**
+
+Overall confidence is the **mean of the seven element confidences**. It sat at 0.8497 on
+the PaddleOCR path and 0.8295 on the VLM one, both just under §10's own accept band
+(`VERIFY_BELOW = 0.85`). Three elements carried it:
+
+```
+heroImage    0.683    edge support: top 0.68  bottom 0.79  right 0.79  LEFT 0.5486
+description  0.689    a group of four ruled lines, weakestMember 0.7993
+headlineSub  0.716    top 0.88  bottom 0.76  left 0.59  right 0.67
+```
+
+Every change below is measured **separately**, against the same harness, so it is knowable
+which one moved what.
+
+### First, the two that turned out not to be fixable by tuning
+
+Before changing anything, the two low numbers were inspected rather than tuned.
+
+**`heroImage`'s left edge is not faint. A third of it is not drawn.** Reading down the best
+column of the left band:
+
+```
+344 of 627 px inked (55%)  in 2 segments  with a single 228 px gap
+```
+
+0.5486 is a **correct measurement of a genuinely incomplete edge**. No threshold, kernel or
+tolerance can honestly raise it, because the ink is not there. Notably the box is still
+*located* correctly — B-003 puts it at IoU 0.88 — so the geometry is right and the
+confidence is right, and they are saying different things about the same region, which is
+what having both is for.
+
+**`headlineSub` is the same story**, left 0.59 and right 0.67 on a hand-drawn box that
+wobbles.
+
+### Change 1: a stroke is scored on the sides it has
+
+The four ruled lines behind `description` showed this:
+
+```
+(746, 368, 159, 7)   top 1.0  bottom 1.0  left 0.7143  right 0.7143   ->  0.845
+(733, 390, 129, 7)   top 1.0  bottom 1.0  left 0.7143  right 0.5714   ->  0.799
+(745, 448, 116, 7)   top 1.0  bottom 1.0  left 0.5714  right 0.7143   ->  0.799
+```
+
+A line 7 px tall and 145 px wide has a top and a bottom. What it has at its left and right
+are **ends, not borders**. `_edge_support` was applying a rectangle's model to a stroke,
+scoring it on two sides that were never going to exist, and the geometric mean — which is
+deliberately dragged by the weakest component — then dragged the region down for the
+artefact. The two 1.0s were the real answer all along.
+
+**This is a correctness fix, not a leniency**, and it leaves the three-sided bracket
+argument that chose the geometric mean exactly where it was: a bracket is a rectangle
+*candidate* missing a side and still scores as one. A stroke is not a rectangle at all.
+
+`STROKE_RATIO` was measured rather than chosen. The two populations separate:
+
+```
+0.044  0.054  0.060  0.062     the four ruled lines
+--------------------------------------------------  0.10
+0.120  SUB HEADLINE box        0.182  HEADLINE box
+0.235  LABEL box               0.278  SUBMIT box
+```
+
+The nearest neighbours are named in the constant's comment because they are close, and a
+test pins that the threshold falls between them so a later nudge fails loudly.
+
+### Measured
+
+| | baseline | after change 1 |
+|---|---|---|
+| regions detected | 35 | 35 |
+| **B-003 located, IoU ≥ 0.5** | **7 of 7** | **7 of 7** |
+| `description` | 0.6889 | **0.8619** |
+| every other element | — | unchanged |
+| **overall confidence** | 0.8497 | **0.8744** |
+
+Above §10's accept band, and **no localisation was traded for it** — the number that would
+have made this a bad deal.
+
+### What is left
+
+`heroImage` at 0.683 and `headlineSub` at 0.716 are correct measurements of a genuinely
+incomplete drawing. The remaining honest levers are a **cleaner input drawing**, which
+raises them without touching a line of code, or a change to how confidence is
+**aggregated**, which reverses a documented decision and belongs in
+`docs/corrections/REGISTER.md` with its reasoning rather than in a commit message.

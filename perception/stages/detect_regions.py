@@ -194,26 +194,66 @@ def _smeared(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 # --- the measurements that become confidence -------------------------------
 
 
+# Below this ratio of short side to long side, a region is a STROKE rather than a
+# box, and only its two long sides are scored. MEASURED on the reference wireframe,
+# where the two populations separate:
+#
+#     0.044  0.054  0.060  0.062   the four ruled lines
+#     ------------------------------------------------  0.10
+#     0.120  SUB HEADLINE box      0.182  HEADLINE box
+#     0.235  LABEL box             0.278  SUBMIT box
+#
+# The nearest neighbours either side are named because they are close: 0.093 is a
+# page-wide band the detector picks up and no slot claims, and 0.120 is the
+# smallest real box on the page. A future image that draws a squatter box than
+# that will want this number revisited, and it should be revisited by measuring
+# rather than by nudging.
+STROKE_RATIO = 0.10
+
+
 def _edge_support(
     bbox: tuple[int, int, int, int], vertical: np.ndarray, horizontal: np.ndarray
 ) -> dict[str, float]:
-    """For each of the four sides: how much of that side is actually drawn.
+    """For each side that the shape actually HAS: how much of it is drawn.
 
     Read down the band nearest the edge and take the single best row (or column):
     a drawn side is one line, not a smear, so the best row is the honest measure
     and averaging the band would penalise a crisp rectangle for the whitespace
     beside its own border.
+
+    A STROKE IS SCORED ON TWO SIDES, NOT FOUR, and that is a correctness fix
+    rather than a leniency. A ruled line 7px tall and 145px wide has a top and a
+    bottom; what it has at its left and right are ENDS, not borders. Scoring it on
+    whether those ends look like drawn vertical edges measures something that was
+    never going to be there, and the geometric mean then drags the whole region
+    down for it. Measured on the reference wireframe's four ruled lines:
+
+        top 1.0, bottom 1.0, left 0.71, right 0.56  ->  0.80
+
+    The two 1.0s are the real answer and the two others are an artefact of
+    applying a rectangle's model to a line.
+
+    THIS DOES NOT SOFTEN THE THREE-SIDED BRACKET ARGUMENT that chose the geometric
+    mean. A bracket is a rectangle CANDIDATE missing a side, and it still scores as
+    one. A stroke is not a rectangle at all.
     """
     x, y, w, h = bbox
     band_y = max(1, int(round(EDGE_BAND_FRACTION * h)))
     band_x = max(1, int(round(EDGE_BAND_FRACTION * w)))
 
-    return {
+    sides = {
         "top": float(vertical[y : y + band_y, x : x + w].mean(axis=1).max()),
         "bottom": float(vertical[y + h - band_y : y + h, x : x + w].mean(axis=1).max()),
         "left": float(horizontal[y : y + h, x : x + band_x].mean(axis=0).max()),
         "right": float(horizontal[y : y + h, x + w - band_x : x + w].mean(axis=0).max()),
     }
+
+    if w and h and min(w, h) / max(w, h) < STROKE_RATIO:
+        # The long sides only. Which two those are depends on which way it runs.
+        keep = ("top", "bottom") if w >= h else ("left", "right")
+        return {k: sides[k] for k in keep}
+
+    return sides
 
 
 def _fill_support(bbox: tuple[int, int, int, int], mask: np.ndarray) -> dict[str, float]:

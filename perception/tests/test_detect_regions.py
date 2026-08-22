@@ -23,11 +23,15 @@ import numpy as np
 import pytest
 
 from perception.stages.detect_regions import (
+    MAX_AREA_FRACTION,
     Region,
+    STROKE_RATIO,
+    _edge_support,
+    _geometric_mean,
+    _smeared,
     detect_regions,
     ink_mask,
     to_artifact,
-    MAX_AREA_FRACTION,
 )
 
 
@@ -411,3 +415,82 @@ def test_ink_mask_returns_binary_uint8() -> None:
     assert mask.dtype == np.uint8
     unique = set(np.unique(mask))
     assert unique <= {0, 255}, f"mask contains values other than 0/255: {unique}"
+
+
+# ---------------------------------------------------------------------------
+# T-133 — a stroke is scored on the sides it has. §10.
+# ---------------------------------------------------------------------------
+
+
+def test_a_ruled_line_is_scored_on_its_length_not_on_its_ends():
+    """THE DEFECT: a rectangle's model applied to a line.
+
+    A ruled line 7px tall and 145px wide has a top and a bottom. What it has at
+    its left and right are ENDS, not borders. Scoring it on whether those ends
+    look like drawn vertical edges measures something that was never going to be
+    there, and the geometric mean then drags the region down for it. Measured on
+    the reference wireframe's four ruled lines before this change:
+
+        top 1.0, bottom 1.0, left 0.71, right 0.56  ->  0.80
+
+    The two 1.0s are the real answer. Downstream that fed `description`, whose
+    confidence rose from 0.6889 to 0.8619 once the artefact stopped counting.
+    """
+    canvas = np.zeros((200, 400), dtype=np.uint8)
+    # A clean horizontal rule: fully drawn along its length, nothing at its ends.
+    canvas[100:107, 120:280] = 255
+
+    vertical, horizontal = _smeared(canvas)
+    support = _edge_support((120, 100, 160, 7), vertical, horizontal)
+
+    assert set(support) == {"top", "bottom"}, f"a stroke was scored on {sorted(support)}"
+    assert support["top"] > 0.9
+    assert support["bottom"] > 0.9
+
+
+def test_a_vertical_stroke_is_scored_on_its_own_long_sides():
+    # Which two sides are the long ones depends on which way the stroke runs, and
+    # getting that backwards would score every vertical rule on its ends instead.
+    canvas = np.zeros((400, 200), dtype=np.uint8)
+    canvas[120:280, 100:107] = 255
+
+    vertical, horizontal = _smeared(canvas)
+    support = _edge_support((100, 120, 7, 160), vertical, horizontal)
+
+    assert set(support) == {"left", "right"}
+
+
+def test_a_box_is_still_scored_on_all_four_sides():
+    """The three-sided bracket argument is untouched.
+
+    A bracket is a rectangle CANDIDATE missing a side and must still be dragged
+    down for it — that is why the geometric mean was chosen. A stroke is not a
+    rectangle at all, which is the whole distinction. Getting this wrong in the
+    permissive direction would score an open bracket as a closed box.
+    """
+    canvas = np.zeros((400, 400), dtype=np.uint8)
+    # Three sides of a square: top, bottom, left. No right side at all.
+    canvas[100:107, 100:300] = 255
+    canvas[293:300, 100:300] = 255
+    canvas[100:300, 100:107] = 255
+
+    vertical, horizontal = _smeared(canvas)
+    support = _edge_support((100, 100, 200, 200), vertical, horizontal)
+
+    assert set(support) == {"top", "bottom", "left", "right"}
+    assert support["right"] < 0.2, "the missing side is not being noticed"
+    # And the aggregate must land below §10's escalate boundary, which is the
+    # behaviour the geometric mean exists to produce.
+    assert _geometric_mean(list(support.values())) < 0.60
+
+
+def test_the_stroke_threshold_separates_the_measured_populations():
+    """STROKE_RATIO is measured, not chosen.
+
+    On the reference wireframe the four ruled lines sit at 0.044-0.062 and the
+    smallest real box - SUB HEADLINE - at 0.120. The threshold has to fall between
+    them, and this pins that it does, so a later nudge to the constant fails here
+    rather than silently reclassifying a box as a stroke.
+    """
+    assert max(0.044, 0.054, 0.060, 0.062) < STROKE_RATIO
+    assert STROKE_RATIO < 0.120
