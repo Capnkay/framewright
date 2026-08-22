@@ -335,3 +335,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/fuse.py, perception/tests/test_fuse.py
 
+## T-133 — Confidence sits at 0.83 because three elements are dragged by faint hand-drawn strokes
+- Started: 2026-08-22T19:47:45.830Z
+- Finished: 2026-08-22T20:13:46.659Z
+- Duration: 26m
+- Device: Mohits_Victus
+- Files: perception/stages/normalise.py, perception/stages/detect_regions.py, perception/tests/test_detect_regions.py, docs/BENCHMARK-RESULTS.md, docs/corrections/REGISTER.md
+

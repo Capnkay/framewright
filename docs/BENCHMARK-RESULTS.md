@@ -934,10 +934,56 @@ cannot alter which slot was claimed or how sure we were — only where the eleme
 Full marks on the slot benchmark for the first time, and confidence deliberately did not
 move, because nothing about how sure we are changed.
 
-### What is left
+### Change 3, attempted: a cleaner drawing. It disproved the premise instead.
 
 `heroImage` at 0.683 and `headlineSub` at 0.716 are correct measurements of a genuinely
-incomplete drawing. The remaining honest levers are a **cleaner input drawing**, which
-raises them without touching a line of code, or a change to how confidence is
-**aggregated**, which reverses a documented decision and belongs in
-`docs/corrections/REGISTER.md` with its reasoning rather than in a commit message.
+incomplete drawing, so the remaining lever looked like a cleaner input — raising them
+without touching a line of code. To find out whether a clean drawing clears 0.90 at all, a
+**synthetic** wireframe was generated with the same layout, complete strokes, and a small
+deliberate hand wobble. It flatters the pipeline badly — no paper, no camera, no lighting
+gradient, no bleed-through — so it can only ever be a **ceiling**, not a prediction.
+
+It answered a different question than the one asked.
+
+| | real photograph | synthetic clean |
+|---|---|---|
+| regions detected | 35 | 15 |
+| regions with text | 7 | 5 |
+| **overall confidence** | 0.8744 | **0.9634** |
+| **B-004 geometry** | **7 of 7** | **4 of 7** |
+| **B-004 text** | **4 of 4** | 3 of 4 |
+| `headlineSub` slot IoU | 0.862 | **0.0** |
+| `description` slot IoU | 0.743 | **0.0** |
+
+**Confidence rose by 0.09 while accuracy fell by three slots.** Two elements were not
+located at all, and the pipeline was *more* sure of itself for it.
+
+The mechanism is not subtle once seen: overall confidence is the **mean of what was
+found**. Find fewer things, each of them cleaner, and the mean rises while coverage
+collapses. Nothing in the number reports the collapse — a slot that was never located
+contributes the reference template's confidence, not a zero.
+
+**So ">0.90 confidence" is not a safe target to optimise.** Pursued on its own it selects
+for a detector that finds less and is surer about it. The pair to watch is confidence
+*beside* B-004's geometry and text scores, which is why this table reports all three and
+why the two changes above were each measured against localisation before being kept.
+
+This does not say a real pen-and-paper redraw would score badly — the synthetic image is
+not evidence about that either way, because it changed the detection characteristics and
+not merely the cleanliness. It says the experiment could not answer the question, and that
+the number the question was about turns out not to mean what it was being asked to mean.
+
+The aggregation change — reversing the documented geometric-mean decision — was not made.
+After the above, the case for it is weaker than when it was proposed: `heroImage`'s 0.683
+is a correct reading of an edge that is a third undrawn, and raising it would be
+suppressing a true measurement to move a number that has just been shown not to track
+accuracy.
+
+### Where this leaves the numbers
+
+| | before T-133 | after |
+|---|---|---|
+| overall confidence | 0.8497 | **0.8744** — above §10's accept band |
+| B-004 geometry | 6 of 7 | **7 of 7** |
+| B-004 text | 4 of 4 | **4 of 4** |
+| B-003 localisation | 7 of 7 | **7 of 7** |
