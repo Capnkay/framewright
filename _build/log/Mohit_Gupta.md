@@ -363,3 +363,10 @@
 - Device: Mohits_Victus
 - Files: client/src/routes/PreviewPage.jsx, tests/preview-page-information-architecture.test.mjs, tools/reset-demo-store.mjs, .gitignore
 
+## T-140 — mode=code emits a section with empty text when the pasted file keeps its constants in a sibling module
+- Started: 2026-08-22T21:13:39.005Z
+- Finished: 2026-08-22T21:17:44.383Z
+- Duration: 4m
+- Device: Mohits_Victus
+- Files: server/src/generate/codeToIr.js, tests/generate-code-mode.test.mjs
+

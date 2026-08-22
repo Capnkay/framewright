@@ -2895,6 +2895,26 @@
       ],
       "verify": "node --test tests/preview-page-information-architecture.test.mjs",
       "doneWhen": "Measured on the live store: 163 sections on Home, 54 with a component file on this machine and 109 without. T-128 made the unbuilt case an explanatory card rather than a red error, which was right when there were three of them; at a hundred the explanation IS the page. Done when an unbuilt section renders nothing and is COUNTED instead - one line beside the section 9 diagnostics - and when a tool resets the local demo store to a clean seed, backing the old one aside rather than deleting it, with the backups gitignored."
+    },
+    {
+      "id": "T-140",
+      "phase": 6,
+      "track": "generation",
+      "size": "30m",
+      "title": "mode=code emits a section with empty text when the pasted file keeps its constants in a sibling module",
+      "contract": [
+        "§6",
+        "§13"
+      ],
+      "deps": [
+        "T-124"
+      ],
+      "files": [
+        "server/src/generate/codeToIr.js",
+        "tests/generate-code-mode.test.mjs"
+      ],
+      "verify": "node --test tests/generate-code-mode.test.mjs",
+      "doneWhen": "Found in a four-mode rehearsal against the live stack: wireframe gave headlineMain 'HEADLINE', prompt and combined gave 'CHALLENGE YOUR LIMITS', and code gave the empty string. All four returned 200 and no stage failed, so nothing announced it except 15 warnings nobody reads before a demo. The cause is real and documented: the golden HeroSection keeps `ids` and `DEFAULTS` in a sibling .logic.js, and codeToIr reads ONE pasted string, so `DEFAULTS[ids.x]` resolves to nothing. T-124 then fell back to '' - honest about having read nothing, and a blank section on screen. Done when an element whose default could not be resolved keeps the reference default for that element name instead of emptying it, when the warning still says the default did not come from the pasted code, and when a test pins that a component with its constants in a sibling module produces visible copy rather than blanks."
     }
   ]
 }

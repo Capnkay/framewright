@@ -298,3 +298,79 @@ test('combined may carry code, and the code half reaches the merge', async () =>
   const ir = JSON.parse(await fs.readFile(stage4.outputRef, 'utf8'));
   assert.ok(ir.elements.length >= 7, 'the reference set did not survive a combined code run');
 });
+
+
+// ---------------------------------------------------------------------
+// T-140 — a component whose constants live in a sibling module.
+// ---------------------------------------------------------------------
+
+test('a pasted file whose ids and DEFAULTS live elsewhere still yields visible copy', async () => {
+  // §7 LETS A SECTION SPLIT ITS CONSTANTS OUT, and the golden HeroSection does
+  // exactly that — `ids` and `DEFAULTS` are exported from HeroSection.logic.js.
+  // This reads one pasted string, so `DEFAULTS[ids.x]` resolves to nothing
+  // through no fault of the input.
+  //
+  // Emitting '' for that was honest about having read nothing and produced a
+  // section that renders blank. Found in a four-mode rehearsal against the live
+  // stack: wireframe gave "HEADLINE", prompt and combined gave "CHALLENGE YOUR
+  // LIMITS", and code gave "". All four returned 200 and no stage failed, so the
+  // only notice was fifteen warnings.
+  const split = `
+    import { ids, DEFAULTS } from './Thing.logic.js';
+    import { getHtml, getTextValue } from '../../utils/getHtml.js';
+
+    export default function Thing({ data }) {
+      return (
+        <section>
+          <h1 id={ids.headlineMain}
+              dangerouslySetInnerHTML={{ __html: getHtml(getTextValue(data, ids.headlineMain, DEFAULTS[ids.headlineMain]), DEFAULTS[ids.headlineMain]) }} />
+          <button id={ids.ctaButton}>{getTextValue(data, ids.ctaButton, DEFAULTS[ids.ctaButton])}</button>
+        </section>
+      );
+    }
+  `;
+
+  const ir = await codeToIr(split, { pageName: 'Home', sectionName: 'Split' });
+  const byName = Object.fromEntries(ir.elements.map((e) => [e.elementName, e]));
+
+  // The elements are found — the JSX is readable even when the constants are not.
+  assert.ok(byName.headlineMain, 'headlineMain was not found at all');
+
+  // And they are NOT blank.
+  assert.notEqual(byName.headlineMain.default, '', 'headlineMain came back empty');
+  assert.ok(byName.headlineMain.default, 'headlineMain has no default at all');
+
+  // The warning must still say the copy is not the caller's, or a reference
+  // default becomes indistinguishable from something we actually read.
+  assert.ok(
+    ir.warnings.some((w) => w.includes('headlineMain') && w.includes('no default content could be resolved')),
+    `no warning explains the fallback: ${JSON.stringify(ir.warnings)}`,
+  );
+  assert.ok(
+    ir.warnings.some((w) => w.includes('sibling module')),
+    'the warning does not say why it could not be read',
+  );
+});
+
+test('an element with no reference default is left empty rather than invented', async () => {
+  // The fallback is §3's reference set, not a guess. A name outside it has
+  // nothing legitimate to fall back to, and making something up would be worse
+  // than blank — blank is visibly wrong, invented copy is not.
+  const odd = `
+    import { ids, DEFAULTS } from './X.logic.js';
+    export default function X({ data }) {
+      return <p id={ids.somethingNobodyDefined}>{DEFAULTS[ids.somethingNobodyDefined]}</p>;
+    }
+  `;
+
+  const ir = await codeToIr(odd, { pageName: 'Home', sectionName: 'Odd' });
+  const el = ir.elements.find((e) => e.elementName === 'somethingNobodyDefined');
+
+  if (el) {
+    assert.equal(el.default, '', 'a default was invented for an element §3 does not define');
+    assert.ok(
+      ir.warnings.some((w) => w.includes('no reference default')),
+      'the empty case is not explained',
+    );
+  }
+});

@@ -356,11 +356,35 @@ export async function codeToIr(jsxString, options = {}) {
   // from the output. Keeping the code's element list therefore means REBUILDING
   // the regions around it, below. Skipping that step is how you get a valid IR
   // that emits an empty section.
+  // §3's reference defaults, by element name, for the case below.
+  const referenceDefault = new Map(
+    (scaffold.elements || []).map((el) => [el.elementName, el.default]),
+  );
+
   const elements = found.map((el, index) => {
     const resolved = el.contentType !== 'Cards' && Boolean(el.default);
+    // WHAT AN UNRESOLVED DEFAULT FALLS BACK TO, and T-140 is why it is not ''.
+    //
+    // §7 lets a section keep `ids` and `DEFAULTS` in a sibling module — the
+    // golden HeroSection does exactly that — and this reads ONE pasted string,
+    // so `DEFAULTS[ids.x]` resolves to nothing through no fault of the input.
+    // Emitting '' for that was honest about having read nothing and produced a
+    // section that renders blank. Measured in a four-mode rehearsal: wireframe
+    // gave "HEADLINE", prompt and combined gave "CHALLENGE YOUR LIMITS", and
+    // code gave "". Everything returned 200 and no stage failed, so the only
+    // notice was fifteen warnings.
+    //
+    // The reference default is a better answer than emptiness and a worse one
+    // than the caller's own copy, which is exactly what the warning says.
+    const fallback = referenceDefault.has(el.elementName)
+      ? referenceDefault.get(el.elementName)
+      : '';
     if (!resolved && el.contentType !== 'Cards') {
       warnings.push(
-        `Element "${el.elementName}" was found in the pasted code but no default content could be resolved from it; it will render from the store or from an empty fallback.`,
+        `Element "${el.elementName}" was found in the pasted code but no default content could be resolved from it` +
+          (referenceDefault.has(el.elementName)
+            ? '; §3’s reference default was used instead. §7 allows a section to keep `ids` and `DEFAULTS` in a sibling module, and only the file you pasted was read.'
+            : '; it has no reference default either, so it is empty.'),
       );
     }
     return {
@@ -368,7 +392,7 @@ export async function codeToIr(jsxString, options = {}) {
       contentType: el.contentType,
       tag: el.tag,
       order: index + 1,
-      default: el.contentType === 'Cards' ? null : el.default || '',
+      default: el.contentType === 'Cards' ? null : el.default || fallback,
       classes: el.css || '',
       css: el.css || null,
       // §6 field notes: confidence is null when the element did not come from an
