@@ -2682,6 +2682,25 @@
       ],
       "verify": "node --test tests/storage-serves-the-placeholder.test.mjs",
       "doneWhen": "getImage resolves an empty image to VITE_STORAGE_URL + 'default/images/hero-placeholder.jpg', defaulting to http://localhost:5000/storage/. Measured: that URL returns 404 and there is no express.static anywhere in server/src. So section 7 R7's placeholder has never existed, and the hero image - the largest element in the reference section - renders as a broken-image icon with alt text in every preview anyone has ever taken. Done when the server serves the storage directory, when a real placeholder asset exists at that path, and when a test asserts the exact URL getImage produces is fetchable rather than asserting that some file exists somewhere."
+    },
+    {
+      "id": "T-130",
+      "phase": 6,
+      "track": "perception",
+      "size": "45m",
+      "title": "Measure whether the VLM can give a role per crop before wiring one",
+      "contract": [
+        "§6",
+        "§10"
+      ],
+      "deps": [
+        "T-122"
+      ],
+      "files": [
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": null,
+      "doneWhen": "A SPIKE, and the deliverable is the number rather than the code. fuse.py resolves slots from SLOT_KEYWORDS, so a role from the reader would help exactly where keywords cannot - the regions carrying no text. Done when that is measured on the reference wireframe over at least two runs and written into BENCHMARK-RESULTS, whether the answer is yes or no. If the answer is yes, this task names the follow-up that wires it. If no, it records why, so the next person does not spend the afternoon discovering the same thing."
     }
   ]
 }

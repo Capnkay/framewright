@@ -1,0 +1,12 @@
+{
+  "taskId": "T-130",
+  "who": "Mohit Gupta",
+  "device": "Mohits_Victus",
+  "claimedAt": "2026-08-22T18:13:09.788Z",
+  "status": "done",
+  "takenFrom": null,
+  "takenAt": null,
+  "finishedAt": "2026-08-22T18:18:29.855Z",
+  "durationMs": 320067,
+  "note": "Measured over two runs and written up as B-008: 5 of 5 correct on regions that carry text, where SLOT_KEYWORDS already resolves them for free, and 1 unstable correct against 6 wrong on the textless regions where a role would be the only signal. Not wired."
+}

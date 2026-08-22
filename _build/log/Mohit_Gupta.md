@@ -313,3 +313,11 @@
 - Device: Mohits_Victus
 - Files: perception/stages/read_regions.py, perception/stages/extract_text.py, perception/app.py, perception/tests/test_read_regions.py, docs/BENCHMARK-RESULTS.md
 
+## T-130 — Measure whether the VLM can give a role per crop before wiring one
+- Started: 2026-08-22T18:13:09.788Z
+- Finished: 2026-08-22T18:18:29.855Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: docs/BENCHMARK-RESULTS.md
+- Note: Measured over two runs and written up as B-008: 5 of 5 correct on regions that carry text, where SLOT_KEYWORDS already resolves them for free, and 1 unstable correct against 6 wrong on the textless regions where a role would be the only signal. Not wired.
+

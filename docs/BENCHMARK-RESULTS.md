@@ -721,3 +721,79 @@ PaddleOCR — and it buys copy accuracy, not geometry.
 Four noise entries remain (`'ago'`, `'TV'`, `'√'`, and one hallucinated line). They sit on
 regions the detector found and no human would call elements. Reducing them further is a
 stage-3a question, not a reader question, and it is not attempted here.
+
+---
+
+## B-008 · Can the VLM give a ROLE per crop, not just text? — measured, and the answer is no
+
+**Date:** 2026-08-22 · **Status:** DEFINITIVE — a negative result, recorded so nobody spends the afternoon twice · **VERIFIED** (two runs)
+
+B-007 wired the VLM as stage 3b's reader and it reads well. The obvious next step is to
+ask it for a **role** as well — `fuse.py` currently resolves slots from keywords, so a
+role would help precisely where keywords cannot: the regions carrying no text at all.
+
+This was measured before it was built. It should not be built.
+
+```
+role per crop, same prompt shape as the reader, ROLES = headline|subheadline|body|
+button|input|label|image|card|nav|none
+```
+
+### Where it works, it adds nothing
+
+The five regions that carry handwriting were classified correctly on both runs:
+
+| region | role, run 1 | role, run 2 |
+|---|---|---|
+| `HEADLINE` | headline | headline |
+| `SUB HEADLINE` | subheadline | subheadline |
+| `SUBMIT` | button | button |
+| `LABEL` | label | label |
+| `Image` | image | image |
+
+**5 of 5, perfectly stable — and `SLOT_KEYWORDS` already resolves all five.** The role
+duplicates a deterministic, free, already-measured answer (B-004).
+
+### Where it would add something, it is wrong
+
+The textless regions are the only place a role could contribute, and they are where it
+falls apart:
+
+| region | what it is | run 1 | run 2 |
+|---|---|---|---|
+| four ruled lines | `input` | **input** | **body** |
+| three small squares | `card` | none | none |
+| the hero panel | `image` | card | card |
+| four detector-noise boxes | nothing | input ×4 | input ×4 |
+
+**One correct answer, and it is the unstable one.** Six wrong. `input` is the model's
+default guess for "a box with nothing in it", so wiring this would flood `description`
+with detector noise — a slot that is currently empty and honest would fill with confident
+nonsense.
+
+### Why, and it follows directly from B-006
+
+B-006 established that this model has no spatial grounding, which is why the reader gives
+it no coordinates and crops instead. **That same crop is what breaks the role.** Removing
+context is what makes transcription work — the model needs nothing but the ink in front of
+it — and role is inherently contextual. A 79 × 54 empty rectangle, shown alone, is
+genuinely ambiguous: a person cannot say whether it is an input, a card or a spacer
+either. The information is not in the crop.
+
+So the two questions want opposite framings, and one reader cannot serve both:
+
+| question | needs | crop |
+|---|---|---|
+| what does this say | the ink, nothing else | helps |
+| what is this | position, size relative to siblings, what is next to it | destroys it |
+
+### What was NOT changed
+
+`fuse.py` keeps resolving slots from keywords, and `_group_assignments` keeps inferring
+the textless ones from the axis of their members. That heuristic is deterministic, costs
+nothing, needs no key, and is scored at B-004 — and nothing measured here beats it.
+
+If role classification is worth revisiting, the signal to try is **geometric context** —
+size relative to siblings, position within the parent, member count and axis — which is
+information the pipeline already has and currently uses only in `_group_assignments`. That
+is a stage-4 question and it needs no model at all.
