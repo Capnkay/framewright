@@ -306,3 +306,10 @@
 - Device: Mohits_Victus
 - Files: client/src/routes/PreviewPage.jsx, tests/preview-page-information-architecture.test.mjs
 
+## T-122 — The VLM cannot place a box and reads every one perfectly, so it replaces PaddleOCR rather than detect_regions
+- Started: 2026-08-22T17:41:32.994Z
+- Finished: 2026-08-22T17:57:11.030Z
+- Duration: 16m
+- Device: Mohits_Victus
+- Files: perception/stages/read_regions.py, perception/stages/extract_text.py, perception/app.py, perception/tests/test_read_regions.py, docs/BENCHMARK-RESULTS.md
+

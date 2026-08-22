@@ -2527,11 +2527,13 @@
         "T-121"
       ],
       "files": [
+        "perception/stages/read_regions.py",
         "perception/stages/extract_text.py",
-        "perception/tests/test_extract_text.py",
-        "docs/EDGE-CASES.md"
+        "perception/app.py",
+        "perception/tests/test_read_regions.py",
+        "docs/BENCHMARK-RESULTS.md"
       ],
-      "verify": "perception/.venv/Scripts/python -m pytest perception/tests/test_extract_text.py -q",
+      "verify": "node tools/pytest.mjs perception/tests/test_read_regions.py",
       "doneWhen": "REWRITTEN after T-121 measured it. The original plan - the VLM replaces stage 3 - is dead: B-006 scores it 0 of 7 at IoU 0.5 with mean IoU 0.15 across three runs, and a probe that handed it OpenCV's own 7-of-7 boxes as a numbered list put 'button/SUBMIT' on the headline's box and 'label/LABEL' on the description's. It can neither emit coordinates nor consume them. What it CAN do is read: 7 of 7 on crops, 15.6s, 1320 tokens, including the two regions that carry no text and correctly came back empty rather than hallucinated. So: detect_regions keeps every box, and the VLM becomes an alternative READER inside extract_text, one crop per region, replacing PaddleOCR when a key is configured. AGENTS.md rule 5 is binding - with LLM_API_KEY unset, no network and no GPU, extract_text must behave exactly as it does today, and the SubprocessReader path stays. The reader in use must reach the stage record's warnings the way ocr_available already does, so a run that silently used the cheap reader is not mistakable for one that used the good one. Every call carries section 16.2's { purpose, model, ms, attempts, ok }. Done when the perception suite passes with the key unset AND a test proves the VLM reader is chosen when it is set, against a stubbed transport - and when B-006's caveat is closed by re-scoring against detect_regions' real boxes rather than the B-003 annotations, because the wired number will differ."
     },
     {

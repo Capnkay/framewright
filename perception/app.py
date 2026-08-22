@@ -50,6 +50,7 @@ from fastapi.responses import JSONResponse
 
 from .stages.detect_regions import detect_regions
 from .stages.extract_text import extract_text, load_reader
+from .stages.read_regions import RegionReader, load_region_reader
 from .stages.fuse import fuse
 from .stages.normalise import NormalisationError, normalise
 
@@ -290,6 +291,7 @@ def _stage_record(
     model: str | None = None,
     confidence: float | None = None,
     warnings: Any = (),
+    model_calls: Any = (),
 ) -> dict[str, Any]:
     """One stage-trace record, section 11.1.
 
@@ -311,6 +313,10 @@ def _stage_record(
         "model": model,
         "confidence": confidence,
         "warnings": list(warnings),
+        # Section 16.2's per-call trace. Present on every record and empty on most,
+        # because "this stage made no model calls" is a fact worth being able to
+        # read rather than infer from a missing key.
+        "modelCalls": [dict(c) for c in model_calls],
     }
 
 
@@ -389,7 +395,12 @@ def _template_response(
     }
 
 
-def perceive_image(payload: bytes, *, reader: Any | None = None) -> dict[str, Any]:
+def perceive_image(
+    payload: bytes,
+    *,
+    reader: Any | None = None,
+    region_reader: RegionReader | None = None,
+) -> dict[str, Any]:
     """Stages 2, 3 and 4 over one upload. Returns section 12's response body.
 
     Raises `NormalisationError` and nothing else. An undecodable upload is section
@@ -429,7 +440,9 @@ def perceive_image(payload: bytes, *, reader: Any | None = None) -> dict[str, An
     started_at, clock = _timestamp(), time.perf_counter()
     try:
         regions = detect_regions(stage2.image)
-        extraction = extract_text(stage2.image, regions, reader=reader)
+        extraction = extract_text(
+            stage2.image, regions, reader=reader, region_reader=region_reader
+        )
     except Exception as exc:  # noqa: BLE001 - a failed stage, never a failed request
         elapsed = int((time.perf_counter() - clock) * 1000)
         stages.append(
@@ -474,11 +487,21 @@ def perceive_image(payload: bytes, *, reader: Any | None = None) -> dict[str, An
             started_at,
             int((time.perf_counter() - clock) * 1000),
             artifact=extraction.to_dict(),
-            model="opencv-contours+paddleocr" if ocr_ran else "opencv-contours",
+            # NAMED FROM WHAT ACTUALLY RAN. T-122 gave stage 3b a second reader,
+            # so this had to stop being a constant: a page read by a hosted model
+            # and a page read by PaddleOCR are different facts, and a hardcoded
+            # label would report the first as the second on the Glass Box.
+            model=(
+                f"opencv-contours+{extraction.reader_name}" if ocr_ran else "opencv-contours"
+            ),
             confidence=_mean_confidence(
                 [r.effective_confidence for r in extraction.regions]
             ),
             warnings=extraction.warnings,
+            # Section 16.2: every hosted-model call carries
+            # { purpose, model, ms, attempts, ok }. Empty on the deterministic
+            # path, which makes the empty list itself a readable statement.
+            model_calls=extraction.model_calls,
         )
     )
 
@@ -592,6 +615,21 @@ def _reader() -> Any | None:
     return _READER
 
 
+def _region_reader() -> RegionReader | None:
+    """The hosted reader, or None. T-122.
+
+    NOT CACHED, unlike `_reader()` above, and the asymmetry is deliberate.
+    `load_reader()` probes a subprocess and imports a heavy library, which is why
+    paying that once per process matters. This reads three environment variables
+    and builds a closure. Caching it would mean a key added while the service is
+    running never takes effect, and someone chasing why would find a `global`.
+    """
+    try:
+        return load_region_reader()
+    except Exception:  # noqa: BLE001 - absence is a supported state, not an error
+        return None
+
+
 def parse_failure(message: str) -> JSONResponse:
     """Section 12's 422 shape, which is section 13's error envelope."""
     return JSONResponse(
@@ -646,7 +684,9 @@ def create_app() -> FastAPI:
         # still earns its keep -- a malformed hint is the caller's bug and it should
         # be told, not silently ignored.
         try:
-            return perceive_image(payload, reader=_reader())
+            return perceive_image(
+                payload, reader=_reader(), region_reader=_region_reader()
+            )
         except NormalisationError as exc:
             # The one failure section 12 gives a shape to. Everything else is a
             # failed stage inside a 200; see perceive_image's docstring.

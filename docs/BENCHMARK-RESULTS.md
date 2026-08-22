@@ -609,3 +609,115 @@ Two caveats on that number before anyone leans on it. The crops here come from t
 isolation; the wired version will score slightly differently because the detector's boxes
 are not the annotations. And it is seven network calls per wireframe — AGENTS.md rule 5
 means PaddleOCR stays the path that runs with no key, no network and no GPU.
+
+---
+
+## B-007 · The VLM reader wired into stage 3b — T-122
+
+**Date:** 2026-08-22 · **Status:** DEFINITIVE — T-122's measured result · **VERIFIED** (live, on the reference wireframe)
+
+B-006 closed with a caveat: its 7-of-7 reading score used crops of the **annotations**,
+not of what `detect_regions` actually returns, so "the wired version will score
+differently". This is the wired version. It does score differently, and the difference is
+worth more than the headline.
+
+```
+LLM_BASE_URL=…/openai/v1  VLM_MODEL=qwen.qwen3-vl-235b-a22b
+perception/.venv/Scripts/python -m perception.stages… (stage 2 → 3a → 3b, gpu-test/wireframe.png)
+```
+
+### First attempt: every detected region, read
+
+`detect_regions` returns **35 regions** for a wireframe with seven real elements — B-003
+already reports that ratio and calls it out. Reading all 35:
+
+| | |
+|---|---|
+| model calls | 35, all successful |
+| wall clock | **65.0 s** |
+| regions with text | 27 |
+
+All five handwritten strings came back correct **and on exactly the right boxes**:
+
+```
+(427, 561, 233, 45)  'HEADLINE'
+(246, 622, 551, 66)  'SUB HEADLINE'
+(745, 292, 161, 28)  'LABEL'
+(796, 521, 162, 45)  'SUBMIT'
+(143, 399, 294, 57)  'Image'
+```
+
+That is the result. Here is the rest of it:
+
+```
+(34, 166, 971, 627)  'Image\nLABEL\nHEADLINE\nSUB HEADLINE\nSUBMIT'   the page container
+(912, 538, 31, 18)   'MIT'        a piece of SUBMIT
+(427, 573, 26, 34)   'H'          a piece of HEADLINE
+(531, 637, 84, 30)   'LINE'       a piece of SUB HEADLINE
+(62, 166, 930, 58)   'conelise ad to prinsem adt generic'   hallucinated
+(896, 146, 36, 15)   '特约'        hallucinated
+```
+
+**The container is the dangerous one.** Every word merged into a single region matches
+every keyword slot in `fuse.py` at once, which is worse downstream than no text at all.
+
+### The filter, and why it is geometric
+
+Both failure classes are geometric — a wrapper, and a sliver — so both are filtered
+geometrically. Filtering by inspecting the model's *answers* would be guessing at which
+words are real, which is the model's job and not ours.
+
+- **A container is skipped**: a region wholly containing another *readable* region is a
+  wrapper, and its text is its children's merged.
+- **A fragment is skipped**: below 3,000 px² nothing legible fits.
+
+The floor was set from the measured areas, which separate cleanly:
+
+```
+49,590  HEADLINE box        real
+36,366  SUB HEADLINE box    real
+16,758  Image box           real
+ 7,290  SUBMIT box          real
+ 4,508  LABEL mark          real
+------------------------------------  3,000
+ 2,520  'LINE'              a piece of SUB HEADLINE
+   884  'H'                 a piece of HEADLINE
+   558  'MIT'               a piece of SUBMIT
+```
+
+**The floor does double duty, and the first version got that wrong.** It is also the size
+at which a region counts as a *child* for the container rule. At 1,200 the 2,520-area
+`LINE` fragment counted as a child, so the real SUB HEADLINE box looked like a wrapper and
+was dropped **in favour of a fragment of itself**. The filter kept `'LINE'` and threw away
+`'SUB HEADLINE'`. Caught by measuring which boxes survived, not by reasoning about the
+rule.
+
+### Second attempt: filtered
+
+| | all regions | filtered |
+|---|---|---|
+| model calls | 35 | **11** |
+| wall clock | 65.0 s | **21.9 s** |
+| regions with text | 27 | 9 |
+| reference words found | 5 of 5 | **5 of 5** |
+| noise entries | ~22 | 4 |
+
+Against what stage 3b does today on the same image:
+
+| | PaddleOCR | VLM reader, filtered |
+|---|---|---|
+| `headlineMain` | `HEADLINE` | `HEADLINE` |
+| `headlineSub` | `SUB HEADLINE evoleldno` | `SUB HEADLINE` |
+| other lines | `eeneb`, `bceanse.ad.ioipqincsm` | — |
+| cost | ~2 s, local | 21.9 s, 11 network calls |
+
+### What this does and does not license
+
+It is **not** the default and cannot become one. AGENTS.md rule 5: with `LLM_API_KEY`
+unset there is no reader, `extract_text` takes the PaddleOCR path unchanged, and 190 of
+190 perception tests pass in exactly that state. The 21.9 s is also a real cost — ten times
+PaddleOCR — and it buys copy accuracy, not geometry.
+
+Four noise entries remain (`'ago'`, `'TV'`, `'√'`, and one hallucinated line). They sit on
+regions the detector found and no human would call elements. Reducing them further is a
+stage-3a question, not a reader question, and it is not attempted here.

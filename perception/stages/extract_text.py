@@ -82,6 +82,7 @@ from typing import Any, Callable, Iterable, Sequence
 import numpy as np
 
 from .detect_regions import Region
+from .read_regions import RegionReader, crop_png, readable_regions
 
 # A line must have at least this much of its own area inside a region before it is
 # considered to belong to that region. Well below 1.0 because OCR boxes routinely
@@ -177,6 +178,15 @@ class Extraction:
     unbound: tuple[TextLine, ...] = ()
     warnings: tuple[str, ...] = ()
     ocr_available: bool = True
+    # WHICH READER PRODUCED THIS. T-122 added a second one, and a page read by a
+    # hosted model and a page read by PaddleOCR are different facts about the
+    # same image -- the same reason `ocr_available` is stated rather than
+    # inferred. A run that silently used the cheap reader must not be mistakable
+    # for one that used the good one.
+    reader_name: str = "paddleocr"
+    # Section 16.2's { purpose, model, ms, attempts, ok }, one per model call.
+    # Empty on the deterministic path, which makes an empty list itself readable.
+    model_calls: tuple[dict[str, Any], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -184,6 +194,8 @@ class Extraction:
             "unbound": [line.to_dict() for line in self.unbound],
             "warnings": list(self.warnings),
             "ocrAvailable": self.ocr_available,
+            "reader": self.reader_name,
+            "modelCalls": [dict(c) for c in self.model_calls],
         }
 
 
@@ -673,11 +685,109 @@ def bind_lines(
 # --- the stage ------------------------------------------------------------
 
 
+def _extract_with_region_reader(
+    image: np.ndarray,
+    regions: Sequence[Region],
+    region_reader: RegionReader,
+) -> Extraction:
+    """Stage 3b via a model that reads one crop at a time. T-122.
+
+    NO LINES, NO BINDING, NO COORDINATES ASKED OF THE MODEL. The PaddleOCR path
+    reads the whole page into lines that carry their own boxes and then assigns
+    each line to a region by containment. Nothing here needs that: the crop IS
+    the region, so its text is known the moment the call returns, and `unbound`
+    is empty by construction rather than by luck.
+
+    That is not a simplification, it is the finding. B-006 measured this model at
+    0 of 7 placing boxes and 0 of 7 labelling boxes it was handed, against 7 of 7
+    reading crops. Every coordinate stays with OpenCV.
+    """
+    readings: list[RegionText] = []
+    failures = 0
+    empty = 0
+
+    # WHICH REGIONS ARE WORTH A CALL. Stage 3a returns 35 boxes for a wireframe
+    # with seven real elements, and reading all 35 cost 65 seconds and produced
+    # the whole-page container's text (every word merged, which matches every
+    # keyword slot downstream) plus a dozen stroke fragments and two outright
+    # hallucinations on crops with no text in them. `readable_regions` filters
+    # geometrically, which is the right axis because both failures are geometric.
+    # 35 becomes 11 on that wireframe, and all five handwritten strings survive.
+    wanted = set(readable_regions(regions))
+
+    for index, region in enumerate(regions):
+        if index not in wanted:
+            # Skipped, not failed. It keeps its geometry and has no text, which is
+            # the same state as a region the reader could not read — so it is not
+            # counted as a failure and does not drag `ocr_available` down.
+            readings.append(RegionText(region=region, text=None, confidence=None))
+            continue
+
+        try:
+            png = crop_png(image, tuple(region.bbox))
+        except Exception as exc:  # noqa: BLE001 - a bad crop degrades one region
+            failures += 1
+            readings.append(RegionText(region=region, text=None, confidence=None))
+            continue
+
+        reading = region_reader.read(png)
+        if not reading.ok:
+            failures += 1
+            readings.append(RegionText(region=region, text=None, confidence=None))
+            continue
+
+        text = (reading.text or "").strip()
+        if not text:
+            empty += 1
+        readings.append(
+            RegionText(
+                region=region,
+                text=text or None,
+                # SECTION 10: null is the honest value for a stage that scored
+                # nothing. This model returns a transcription and no score, and
+                # inventing a number here -- 1.0 for "it answered" -- would put a
+                # fabricated confidence on the Glass Box beside real ones.
+                confidence=None,
+            )
+        )
+
+    warnings: list[str] = []
+    read_count = len(wanted) - failures
+    if failures:
+        warnings.append(
+            f"The hosted reader could not read {failures} of {len(wanted)} region(s); "
+            "those regions kept their geometry and have no text."
+        )
+    if len(wanted) < len(regions):
+        # Said out loud. A run that read a third of the detected regions and a run
+        # that read all of them are different facts, and the Glass Box should not
+        # have to infer which one it is looking at.
+        warnings.append(
+            f"{len(regions) - len(wanted)} of {len(regions)} detected region(s) were "
+            "containers or too small to hold text and were not sent to the reader."
+        )
+    if read_count and read_count == empty:
+        warnings.append("The hosted reader ran and found no text in any region.")
+
+    return Extraction(
+        regions=tuple(readings),
+        unbound=(),
+        warnings=tuple(warnings),
+        # False only when NOTHING was read. A page where every call failed is the
+        # same fact as a page PaddleOCR never ran on, and section 12's degradation
+        # depends on those being one state rather than two.
+        ocr_available=read_count > 0,
+        reader_name=f"vlm:{region_reader.model}",
+        model_calls=tuple(c.to_dict() for c in region_reader.calls),
+    )
+
+
 def extract_text(
     image: np.ndarray,
     regions: Sequence[Region],
     *,
     reader: Any | None = None,
+    region_reader: RegionReader | None = None,
     min_containment: float = MIN_CONTAINMENT,
 ) -> Extraction:
     """Stage 3b, end to end. `image` is stage 2's NORMALISED canvas.
@@ -692,6 +802,14 @@ def extract_text(
     12 makes that the required behaviour rather than a nicety.
     """
     regions = list(regions)
+
+    # THE HOSTED READER WINS WHERE ONE IS CONFIGURED, and is simply absent
+    # otherwise. `load_region_reader` returns None with no key, exactly as
+    # `load_reader` returns None with no PaddleOCR, so rule 5's "with no key, no
+    # network and no GPU the pipeline does what it does today" is a property of
+    # this branch not being taken rather than of a flag being read correctly.
+    if region_reader is not None and regions:
+        return _extract_with_region_reader(image, regions, region_reader)
 
     if reader is None:
         # Regions WITHOUT text, not an empty result. Every region keeps its
