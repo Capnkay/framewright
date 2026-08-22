@@ -110,6 +110,10 @@ export default function PreviewPage() {
   const keyCount = sections ? Object.keys(sections).length : 0;
   const missingCount = Array.isArray(missing) ? missing.length : 0;
 
+  // Sections whose component file is not on this machine. Collected while
+  // rendering and reported once, below, rather than a card each.
+  const unbuilt = [];
+
   const renderedSections = sectionDocs.map((section) => {
     const safeName = String(section.sectionName || 'Section').replace(/[^a-zA-Z0-9_]/g, '');
     const filename = `${safeName}-${section.sectionId}-v${section.variations || section.variation || '1'}.jsx`;
@@ -118,25 +122,22 @@ export default function PreviewPage() {
 
     if (!Component) {
       // In case the module is not found, render a fallback.
-      // NOT AN ERROR BOX. This is the normal state for a section that was
-      // generated on another machine, or whose file was cleaned while its
-      // document stayed in the store. The section record is intact and the
-      // component is simply not on this disk. A red alarm for that trains
-      // everyone to ignore red.
-      return (
-        <div
-          key={section.sectionId}
-          className="my-4 rounded border border-dashed border-border p-4 text-muted-foreground"
-        >
-          <p className="text-sm font-medium text-foreground">
-            {section.sectionName || 'This section'} isn’t built on this machine yet.
-          </p>
-          <p className="mt-1 text-sm">
-            Its content is saved, but the component file has not been generated here. Generate it
-            again from the Studio to see it render.
-          </p>
-        </div>
-      );
+      // NOTHING IS RENDERED FOR A SECTION THIS MACHINE CANNOT BUILD, and that is a
+      // change from showing an explanatory card for each one.
+      //
+      // The card was right when there were three of them. Measured on a store that
+      // had accumulated a few weeks of runs: 163 sections on `Home`, 54 with a
+      // component file and **109 without** — so the page opened with a hundred
+      // identical "isn't built here" blocks and the real sections were somewhere
+      // past them. An explanation repeated a hundred times is not an explanation,
+      // it is the page.
+      //
+      // The state is not hidden, it is COUNTED, and the count sits with the other
+      // §9 diagnostics below. One line saying "109 sections are not built here"
+      // tells a reader more than a hundred cards saying it individually, and it
+      // keeps the fact available rather than silently dropping it.
+      unbuilt.push(section);
+      return null;
     }
     
     return <SectionWrapper key={section.sectionId} section={section} Component={Component} pageName={pageName} />;
@@ -186,7 +187,18 @@ export default function PreviewPage() {
 
           <dt className="text-muted-foreground">Missing IDs</dt>
           <dd className="font-mono text-foreground">{missingCount}</dd>
+
+          <dt className="text-muted-foreground">Not built here</dt>
+          <dd className="font-mono text-foreground">{unbuilt.length}</dd>
         </dl>
+
+        {unbuilt.length > 0 ? (
+          <p className="mt-3 text-muted-foreground">
+            {unbuilt.length} section{unbuilt.length === 1 ? '' : 's'} on this page {unbuilt.length === 1 ? 'has' : 'have'} content
+            saved but no component file on this machine, so {unbuilt.length === 1 ? 'it is' : 'they are'} not shown. Generate
+            {unbuilt.length === 1 ? ' it' : ' them'} again from the Studio to see {unbuilt.length === 1 ? 'it' : 'them'} render.
+          </p>
+        ) : null}
 
         {error ? (
           <p className="mt-3 rounded-md bg-destructive/10 p-3 text-destructive">{error}</p>

@@ -59,6 +59,10 @@ venv/
 # under server/data/seed/ stays tracked -- that is real, scored input.
 server/data/store.json
 server/data/jobs.json
+# Timestamped copies left by tools/reset-demo-store.mjs. Same content as the two
+# files above, same reason to keep them out, and half a megabyte each.
+server/data/store.json.*.bak
+server/data/jobs.json.*.bak
 
 # tools scratch files — not deliverables (duplicate seed IDs → pre-push gate)
 tools/_store_scratch.json

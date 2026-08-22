@@ -86,25 +86,33 @@ test('the rendered sections come before the diagnostics in the document', async 
   );
 });
 
-test('a section whose file is absent reads as an explanation, not an alarm', async () => {
-  // It is the normal state for a section generated on another machine, or one
-  // whose file was cleaned while its document stayed in the store. A red error
-  // box for a routine condition trains everyone to ignore red.
+test('sections this machine cannot build are counted, not listed one card each', async () => {
+  // THIS ASSERTION USED TO REQUIRE THE CARD, and the change is deliberate.
+  //
+  // T-128 replaced a red "Missing component file" error with a plain-language
+  // card, because a section generated on another machine is a routine condition
+  // and a red alarm for routine conditions trains everyone to ignore red. That
+  // was right when there were three of them.
+  //
+  // Measured on a store with a few weeks of runs in it: 163 sections on `Home`,
+  // 54 with a component file and 109 without. The page opened with a hundred
+  // identical cards and the real sections were somewhere past them. An
+  // explanation repeated a hundred times is not an explanation, it is the page.
+  //
+  // So the state is COUNTED rather than hidden — one line beside the other §9
+  // diagnostics — which keeps the fact available and gives the page back.
   const code = await userFacingSource();
 
-  assert.equal(
-    /Missing component file/.test(code),
-    false,
-    'the raw "Missing component file" alarm is still there',
-  );
-  assert.equal(
-    /Vite eager-glob/.test(code),
-    false,
-    'the fallback explains itself in terms of the bundler',
-  );
-  assert.match(code, /isn’t built on this machine yet|is not built on this machine yet/, 'no plain-language explanation');
-  // And it must not be styled as an error.
-  assert.equal(/text-red-600/.test(code), false, 'the fallback is still red');
+  // The original alarm stays gone.
+  assert.equal(/Missing component file/.test(code), false, 'the raw alarm is back');
+  assert.equal(/Vite eager-glob/.test(code), false, 'the fallback explains itself in bundler terms');
+  assert.equal(/text-red-600/.test(code), false, 'the fallback is styled as an error');
+
+  // Nothing is rendered per unbuilt section...
+  assert.match(code, /unbuilt\.push\(section\)/, 'unbuilt sections are not being collected');
+  // ...and the count is reported once, in words, with the diagnostics.
+  assert.match(code, /Not built here/, 'the count is not reported at all');
+  assert.match(code, /unbuilt\.length/, 'the count is never read back');
 });
 
 test('the empty state tells someone what to do rather than what is unbuilt', async () => {
