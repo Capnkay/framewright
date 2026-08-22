@@ -147,3 +147,10 @@
 - Device: Karans-PC
 - Files: .gitignore, tests/generated-sections-are-not-committed.test.mjs
 
+## T-132 — Build the Login page (mock-wired session entry) per docs/UI-SYSTEM.md §4
+- Started: 2026-08-22T19:38:03.742Z
+- Finished: 2026-08-22T19:43:57.430Z
+- Duration: 6m
+- Device: Karans-PC
+- Files: client/src/routes/LoginPage.jsx, client/src/studio/auth/mockAuth.js, client/src/App.jsx, tests/login-mock-auth.test.mjs
+

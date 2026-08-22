@@ -21,6 +21,8 @@ import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import LandingPage from './routes/LandingPage.jsx';
 import GeneratePage from './routes/GeneratePage.jsx';
 import PreviewPage from './routes/PreviewPage.jsx';
+import DesignPreview from './routes/DesignPreview.jsx';
+import LoginPage from './routes/LoginPage.jsx';
 
 function Nav() {
   const { pathname } = useLocation();
@@ -63,10 +65,13 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<StudioLayout><LandingPage /></StudioLayout>} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/generate" element={<StudioLayout><GeneratePage /></StudioLayout>} />
         {/* §1: pageName defaults to Home. */}
         <Route path="/preview" element={<Navigate to="/preview/Home" replace />} />
         <Route path="/preview/:pageName" element={<PreviewPage />} />
+        {/* Dev-only, unreachable from Nav — see routes/DesignPreview.jsx. */}
+        <Route path="/design-preview" element={<DesignPreview />} />
         <Route
           path="*"
           element={
