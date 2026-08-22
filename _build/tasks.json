@@ -2785,6 +2785,23 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_detect_regions.py",
       "doneWhen": "A DELIBERATE REVERSAL OF A DOCUMENTED DECISION, requested after the evidence against it was presented. detect_regions._geometric_mean was chosen over an arithmetic mean with a stated reason: an arithmetic mean scores a three-sided bracket 0.75, which lands in section 10's verify band when the right answer is to escalate. That reasoning still holds for a bracket. What it also does is score heroImage 0.683 on the reference wireframe, where one side is a third undrawn while the box is located at IoU 0.88 - the geometry is right and the confidence says medium. B-009 further measured that overall confidence does not track accuracy: a synthetic clean image scored 0.9634 while B-004 geometry fell from 7 of 7 to 4 of 7. Done when the aggregation distinguishes A SIDE THAT IS PRESENT BUT INCOMPLETE from A SIDE THAT IS ABSENT, so the bracket case still escalates and a drawn-but-gappy box does not; when B-003 localisation and B-004 geometry and text are re-measured and neither regresses; when the before and after confidence is written into B-009; and when the reversal and its reasoning are logged in docs/corrections/REGISTER.md, not in a commit message."
+    },
+    {
+      "id": "T-135",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "40m",
+      "title": "Build the Login page (mock-wired session entry) per docs/UI-SYSTEM.md §4",
+      "contract": [],
+      "deps": [],
+      "files": [
+        "client/src/routes/LoginPage.jsx",
+        "client/src/studio/auth/mockAuth.js",
+        "client/src/App.jsx",
+        "tests/login-mock-auth.test.mjs"
+      ],
+      "verify": "npm test -- login-mock-auth",
+      "doneWhen": "docs/UI-SYSTEM.md section 4 is satisfied exactly: a new /login route renders a real, polished card (email + password fields, one primary button) styled entirely with the studio-* token system from docs/DESIGN-TOKENS.md — no bg-background/text-accent/bg-card/etc. frozen-token classes anywhere in the new files, and nothing under client/src/sections/generated/, client/src/index.css :root/.dark blocks, the colors block in tailwind.config.js, client/src/redux/reducers.js, or client/src/redux/cmsSlice.js is touched. studio/auth/mockAuth.js exports one login({ email, password }) function returning a Promise (simulated latency) that resolves { user: { email } }, shaped so a real fetch('/api/auth/login', ...) can replace its body later without changing any caller. On success the page persists { email } to localStorage under the key framewright.session and navigates to /generate. No Redux slice is added. No route guarding is added — /generate and /preview/:pageName stay reachable regardless of session state. tests/login-mock-auth.test.mjs unit-tests mockAuth.js directly (resolves with the right shape, rejects or handles empty email/password per whatever validation the module implements) without needing React installed, matching the project convention of testing pure logic modules with a bare node --test run."
     }
   ]
 }
