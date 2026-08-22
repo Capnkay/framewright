@@ -10,8 +10,14 @@ const read = (rel) => fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8');
 test('GeneratePage mounts all 14 studio components (T-107)', () => {
   const source = read('client/src/routes/GeneratePage.jsx');
 
+  // ModeSelector + CodePromptInputs (and the UploadForm/TextModeForm split they
+  // routed between) were replaced by Composer — one card, one mode-appropriate
+  // input, per docs/UI-SYSTEM.md §2-3 and docs/SURFACE-INSPO.md §1-2. Composer
+  // still imports ModeSelector.logic.js (MODES, visibleInputsFor) and
+  // CodePromptInputs.logic.js (buildFormData) directly, so no §13 mode logic
+  // was dropped — only the JSX components that used to render around it.
   const directMounts = [
-    'ModeSelector',
+    'Composer',
     'SectionFields',
     'GenerationProgress',
     'JobTimeline',
@@ -22,7 +28,6 @@ test('GeneratePage mounts all 14 studio components (T-107)', () => {
     'ResponsiveToggle',
     'SideEditor',
     'ErrorBanner',
-    'CodePromptInputs'
   ];
 
   for (const comp of directMounts) {

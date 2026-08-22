@@ -2802,6 +2802,32 @@
       ],
       "verify": "npm test -- login-mock-auth",
       "doneWhen": "docs/UI-SYSTEM.md section 4 is satisfied exactly: a new /login route renders a real, polished card (email + password fields, one primary button) styled entirely with the studio-* token system from docs/DESIGN-TOKENS.md — no bg-background/text-accent/bg-card/etc. frozen-token classes anywhere in the new files, and nothing under client/src/sections/generated/, client/src/index.css :root/.dark blocks, the colors block in tailwind.config.js, client/src/redux/reducers.js, or client/src/redux/cmsSlice.js is touched. studio/auth/mockAuth.js exports one login({ email, password }) function returning a Promise (simulated latency) that resolves { user: { email } }, shaped so a real fetch('/api/auth/login', ...) can replace its body later without changing any caller. On success the page persists { email } to localStorage under the key framewright.session and navigates to /generate. No Redux slice is added. No route guarding is added — /generate and /preview/:pageName stay reachable regardless of session state. tests/login-mock-auth.test.mjs unit-tests mockAuth.js directly (resolves with the right shape, rejects or handles empty email/password per whatever validation the module implements) without needing React installed, matching the project convention of testing pure logic modules with a bare node --test run."
+    },
+    {
+      "id": "T-136",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "1h30m",
+      "title": "Wire Composer into GeneratePage; migrate Studio chrome onto studio-* tokens; add entrance motion",
+      "contract": [],
+      "deps": [
+        "T-135"
+      ],
+      "files": [
+        "client/src/routes/GeneratePage.jsx",
+        "client/src/App.jsx",
+        "client/src/studio/Composer.jsx",
+        "client/src/studio/StudioNav.jsx",
+        "client/src/studio/Logo.jsx",
+        "client/src/studio/ResponsiveToggle.jsx",
+        "client/src/studio/ErrorBanner.jsx",
+        "client/src/studio/SectionFields.jsx",
+        "client/src/routes/LoginPage.jsx",
+        "tests/studio-information-architecture.test.mjs",
+        "tests/studio-page-mounts-its-controls.test.mjs"
+      ],
+      "verify": "npm test -- studio-information-architecture && npm test -- studio-page-mounts-its-controls",
+      "doneWhen": "Composer (docs/SURFACE-INSPO.md section 1-2) replaces ModeSelector and CodePromptInputs as the mounted mode-selector in GeneratePage.jsx, still importing MODES/visibleInputsFor and buildFormData from their .logic.js modules so no section 13 mode logic is dropped, only the JSX that routed between UploadForm and a duplicated TextModeForm. GeneratePage submits through handleSubmit exactly as before; pageName/sectionName are now read back out of the submitted FormData since Composer owns naming, not passed in via props. A new StudioChrome (App.jsx) plus StudioNav.jsx renders a dark, studio-* themed nav (with a new Logo.jsx mark) around the /generate route only -- LandingPage stays on the old StudioLayout/Nav untouched, per docs/UI-SYSTEM.md section 2s last-priority rule for the landing page. GeneratePage own chrome (header, aside cards, tab bar, empty state) and the always-visible ResponsiveToggle/ErrorBanner/SectionFields wrapper chrome move off the frozen --color-*-based classes onto studio-* -- none of client/src/index.css, the colors block in tailwind.config.js, or anything under client/src/sections/generated/ is touched. LoginPage.jsx and Composer.jsx gain entrance motion (motion/react, timing from docs/DESIGN-TOKENS.md section 6, no new durations invented) and LoginPage gets the new Logo. tests/studio-information-architecture.test.mjs and tests/studio-page-mounts-its-controls.test.mjs are updated to assert Composer instead of ModeSelector/CodePromptInputs in their mounted-component lists -- both pass. KNOWN REMAINING GAP, not closed by this task: tests/studio-submits-and-renders-a-job.test.mjs boots the real server+store and mocks ModeSelector directly to drive a submit through the Studio; it now fails and needs its mock updated to target Composer, which requires the backend running to verify and was out of scope for a backend-free session -- flagged for whoever picks it up next, not silently left looking green."
     }
   ]
 }

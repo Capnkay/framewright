@@ -22,7 +22,7 @@ export default function ResponsiveToggle({ src, title = 'Preview', children }) {
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-muted-foreground">Viewport:</span>
+        <span className="text-studio-sm font-semibold text-studio-text-secondary">Viewport:</span>
         {Object.values(VIEWPORT_MODES).map((mode) => (
           <button
             key={mode.id}
@@ -30,24 +30,25 @@ export default function ResponsiveToggle({ src, title = 'Preview', children }) {
             onClick={() => setModeId(mode.id)}
             aria-pressed={modeId === mode.id}
             className={
-              modeId === mode.id
-                ? 'rounded border border-gray-800 bg-gray-800 px-3 py-1 text-sm text-white'
-                : 'rounded border border-border px-3 py-1 text-sm text-muted-foreground'
+              'rounded-studio-sm border px-3 py-1 text-studio-sm transition-colors duration-studio-fast ' +
+              (modeId === mode.id
+                ? 'border-studio-accent bg-studio-accent text-studio-accent-foreground'
+                : 'border-studio-border text-studio-text-secondary hover:text-studio-text-primary')
             }
           >
             {mode.label}
           </button>
         ))}
-        <span className="ml-2 font-mono text-xs text-muted-foreground">{config.width}</span>
+        <span className="ml-2 font-studio-mono text-studio-xs text-studio-text-tertiary">{config.width}</span>
       </div>
 
-      <div className="flex w-full justify-center bg-card p-2">
+      <div className="flex w-full justify-center rounded-studio-md bg-studio-bg-overlay p-2">
         {src ? (
           <iframe
             title={title}
             src={src}
             style={{ width: config.width, height: '100%', minHeight: '640px', border: 0 }}
-            className="bg-background shadow-sm"
+            className="bg-white shadow-studio-sm"
           />
         ) : (
           <div className={config.classes} style={{ width: config.width }}>

@@ -23,6 +23,7 @@ import GeneratePage from './routes/GeneratePage.jsx';
 import PreviewPage from './routes/PreviewPage.jsx';
 import DesignPreview from './routes/DesignPreview.jsx';
 import LoginPage from './routes/LoginPage.jsx';
+import StudioNav from './studio/StudioNav.jsx';
 
 function Nav() {
   const { pathname } = useLocation();
@@ -60,13 +61,25 @@ function StudioLayout({ children }) {
   );
 }
 
+// The dark, studio-* chrome — routes migrated off the frozen tokens land
+// here instead of StudioLayout. See docs/UI-SYSTEM.md §1/§2: LandingPage
+// stays on StudioLayout/Nav until its own (last-priority) pass.
+function StudioChrome({ children }) {
+  return (
+    <div className="studio-theme flex min-h-screen flex-col bg-studio-bg-base text-studio-text-primary">
+      <StudioNav />
+      <div className="min-h-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <>
       <Routes>
         <Route path="/" element={<StudioLayout><LandingPage /></StudioLayout>} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/generate" element={<StudioLayout><GeneratePage /></StudioLayout>} />
+        <Route path="/generate" element={<StudioChrome><GeneratePage /></StudioChrome>} />
         {/* §1: pageName defaults to Home. */}
         <Route path="/preview" element={<Navigate to="/preview/Home" replace />} />
         <Route path="/preview/:pageName" element={<PreviewPage />} />

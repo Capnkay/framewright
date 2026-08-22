@@ -154,3 +154,10 @@
 - Device: Karans-PC
 - Files: client/src/routes/LoginPage.jsx, client/src/studio/auth/mockAuth.js, client/src/App.jsx, tests/login-mock-auth.test.mjs
 
+## T-133 — Wire Composer into GeneratePage; migrate Studio chrome onto studio-* tokens; add entrance motion
+- Started: 2026-08-22T19:55:07.441Z
+- Finished: 2026-08-22T19:55:21.538Z
+- Duration: 0m
+- Device: Karans-PC
+- Files: client/src/routes/GeneratePage.jsx, client/src/App.jsx, client/src/studio/Composer.jsx, client/src/studio/StudioNav.jsx, client/src/studio/Logo.jsx, client/src/studio/ResponsiveToggle.jsx, client/src/studio/ErrorBanner.jsx, client/src/studio/SectionFields.jsx, client/src/routes/LoginPage.jsx, tests/studio-information-architecture.test.mjs, tests/studio-page-mounts-its-controls.test.mjs
+

@@ -167,9 +167,11 @@ test('every studio component is still reachable from this page', async () => {
   // not rendered server-side.
   const source = await fs.readFile(SOURCE, 'utf8');
 
+  // ModeSelector + CodePromptInputs were replaced by Composer — see the same
+  // note in studio-page-mounts-its-controls.test.mjs.
   const mustMount = [
     'SectionFields',
-    'ModeSelector',
+    'Composer',
     'JobTimeline',
     'StageInspector',
     'GenerationProgress',
@@ -179,7 +181,6 @@ test('every studio component is still reachable from this page', async () => {
     'ResponsiveToggle',
     'SideEditor',
     'ErrorBanner',
-    'CodePromptInputs',
   ];
 
   for (const name of mustMount) {
