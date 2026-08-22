@@ -349,3 +349,17 @@
 - Device: Mohits_Victus
 - Files: perception/stages/detect_regions.py, perception/tests/test_detect_regions.py, docs/corrections/REGISTER.md, docs/BENCHMARK-RESULTS.md
 
+## T-135 — A completed job says "queued" and reports no component file, so the Glass Box shows a finished run as not started
+- Started: 2026-08-22T20:45:20.958Z
+- Finished: 2026-08-22T20:45:22.288Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: server/src/jobs/jobStore.js, server/src/routes/generate.js, tests/job-record-reaches-a-terminal-state.test.mjs
+
+## T-136 — The preview page opens with a hundred sections it cannot build, and the demo store has weeks of test residue in it
+- Started: 2026-08-22T20:45:22.712Z
+- Finished: 2026-08-22T20:45:24.082Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: client/src/routes/PreviewPage.jsx, tests/preview-page-information-architecture.test.mjs, tools/reset-demo-store.mjs, .gitignore
+

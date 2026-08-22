@@ -468,16 +468,31 @@ export async function postGenerate(ctx = {}) {
     await trace.runStage(job.jobId, {
       stage: 7,
       run: async () => {
-        await writeComponentFile({
+        // The path is RECORDED, not just written. routes/artifacts.js serves the
+        // emitted source from `job.componentFile`, and nothing was setting it — so
+        // GET /api/jobs/:id/component answered "generation not complete" about a
+        // job whose file was sitting on disk. Written and unreachable, which is
+        // this project's recurring shape.
+        const written = await writeComponentFile({
           sectionName: ir.sectionName,
           sectionId: ir.sectionId,
           variation: '1',
           source: s5.output
         });
-        return { success: true };
+        if (typeof written === 'string' && written.trim()) {
+          await jobStore.setComponentFile(job.jobId, written);
+        }
+        return { success: true, componentFile: written ?? null };
       }
     });
     
+    // §11.1's terminal status. `setStatus` existed on the job store and NOTHING
+    // CALLED IT: every job was created "queued" and stayed queued for ever, so the
+    // Glass Box showed a finished seven-stage run as still waiting to start. The
+    // same shape as five other defects this week — the API was built, and the call
+    // was never made.
+    await jobStore.setStatus(job.jobId, 'succeeded');
+
     // Refetch job to return it updated
     const finalJob = await jobStore.getJob(job.jobId);
     
@@ -495,6 +510,16 @@ export async function postGenerate(ctx = {}) {
     };
     
   } catch (err) {
+    if (job && job.jobId) {
+      // A job that died is `failed`, not `queued`. Best effort: if the store is
+      // what broke, there is nothing useful to record and the 500 below is the
+      // honest answer.
+      try {
+        await jobStore.setStatus(job.jobId, 'failed');
+      } catch {
+        /* the store is unavailable; the response still reports the failure */
+      }
+    }
     if (job && job.jobId) {
       // Best effort trace the failure if we failed outside a stage? 
       // The prompt doesn't ask for a specific stage failure recording for top level errors,

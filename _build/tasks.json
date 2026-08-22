@@ -2853,6 +2853,48 @@
       ],
       "verify": null,
       "doneWhen": "MANUAL TASK, registered retroactively to fix a broken commit chain before handoff to a teammate on Antigravity. T-135 and T-136 committed client/src/studio/Composer.jsx, LoginPage.jsx, StudioNav.jsx, Logo.jsx (importing lucide-react and motion/react) and App.jsx (importing client/src/routes/DesignPreview.jsx) WITHOUT the foundation those files depend on: the studio-* CSS variables (.studio-theme in index.css), the studio Tailwind namespace (tailwind.config.js theme.extend), the lucide-react/motion/@fontsource dependencies in package.json+package-lock.json, the font imports in main.jsx, and DesignPreview.jsx itself. A fresh clone + npm install would build a broken app: unresolved imports and undefined studio-* utility classes. This task commits exactly that missing foundation, verified by starting the client dev server against a git-clean checkout of this commit and confirming /generate, /login and /design-preview all render with no console errors and no unstyled studio-* classes. Also commits the research docs (DESIGN-TOKENS, SURFACE-INSPO, VISUAL-INSPO, MOTION-INSPO, UI-SYSTEM) that T-135/T-136 already reference by path, and the .agents/rules/framewright.md update pointing Antigravity sessions at docs/UI-SYSTEM.md for any UI work."
+    },
+    {
+      "id": "T-138",
+      "phase": 6,
+      "track": "api-glassbox",
+      "size": "45m",
+      "title": "A completed job says \"queued\" and reports no component file, so the Glass Box shows a finished run as not started",
+      "contract": [
+        "§11.1",
+        "§11.2"
+      ],
+      "deps": [
+        "T-134"
+      ],
+      "files": [
+        "server/src/jobs/jobStore.js",
+        "server/src/routes/generate.js",
+        "tests/job-record-reaches-a-terminal-state.test.mjs"
+      ],
+      "verify": "node --test tests/job-record-reaches-a-terminal-state.test.mjs",
+      "doneWhen": "Found by reading a real job record after a real browser upload. `status` is created 'queued' by createJob and nothing ever moves it, so a job with seven ok stages still reports queued and the timeline shows a finished run as waiting to start - jobStore.setStatus existed with ZERO CALLERS. `componentFile` is null while the .jsx sits on disk, so GET /api/jobs/:id/component answers 'generation not complete' about a completed job; writeComponentFile already returns the absolute path and nobody recorded it. Done when a completed job is 'succeeded' and a failed one is 'failed', both persisted rather than decorated onto the response, and when componentFile holds a path that can be opened."
+    },
+    {
+      "id": "T-139",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "45m",
+      "title": "The preview page opens with a hundred sections it cannot build, and the demo store has weeks of test residue in it",
+      "contract": [
+        "§9"
+      ],
+      "deps": [
+        "T-138"
+      ],
+      "files": [
+        "client/src/routes/PreviewPage.jsx",
+        "tests/preview-page-information-architecture.test.mjs",
+        "tools/reset-demo-store.mjs",
+        ".gitignore"
+      ],
+      "verify": "node --test tests/preview-page-information-architecture.test.mjs",
+      "doneWhen": "Measured on the live store: 163 sections on Home, 54 with a component file on this machine and 109 without. T-128 made the unbuilt case an explanatory card rather than a red error, which was right when there were three of them; at a hundred the explanation IS the page. Done when an unbuilt section renders nothing and is COUNTED instead - one line beside the section 9 diagnostics - and when a tool resets the local demo store to a clean seed, backing the old one aside rather than deleting it, with the backups gitignored."
     }
   ]
 }

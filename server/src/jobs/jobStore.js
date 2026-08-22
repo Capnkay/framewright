@@ -296,6 +296,30 @@ export function createJobStore({
     },
 
     /**
+     * setComponentFile(jobId, filePath) -> JobDoc | null.
+     *
+     * The path stage 7 actually wrote. `routes/artifacts.js` serves the emitted
+     * source from this field, and it was never being set — the file was written,
+     * the job said `componentFile: null`, and GET /api/jobs/:id/component
+     * answered "generation not complete" about a job that had completed. §11.2.
+     */
+    setComponentFile(jobId, filePath) {
+      return enqueue(async () => {
+        if (typeof filePath !== 'string' || !filePath.trim()) {
+          throw new Error(
+            `setComponentFile: filePath must be a non-empty string, got ${JSON.stringify(filePath)}`,
+          );
+        }
+        const data = await readData();
+        const job = findJob(data, jobId);
+        if (!job) return null;
+        job.componentFile = filePath;
+        await writeData(data);
+        return structuredClone(job);
+      });
+    },
+
+    /**
      * appendStage(jobId, record) -> JobDoc | null
      *
      * APPEND-ONLY (§11 rule 1). Re-running stage 3 pushes a second stage-3
