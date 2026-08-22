@@ -2569,8 +2569,11 @@
         "T-123"
       ],
       "files": [
+        "server/src/generate/codeToIr.js",
         "server/src/routes/generate.js",
-        "tests/generate-code-mode.test.mjs"
+        "tests/generate-code-mode.test.mjs",
+        "tests/generate-wireframe-mode.test.mjs",
+        "tests/generate-combined-mode.test.mjs"
       ],
       "verify": "node --test tests/generate-code-mode.test.mjs",
       "doneWhen": "codeToIr.js was built, tested and never called - the same rule 9 gap as T-101, T-108, T-116 and T-119. §13 names four modes; prompt, wireframe and combined work. Done when mode=code parses pasted React to an AST (NEVER eval, new Function or vm - AGENTS.md says Node's vm is not a security boundary) and produces §6 IR, when combined mode gives technical patterns to the code half per §6's order, and when a test proves a hostile input is refused rather than executed. The deterministic AST path must work with no key; a hosted model may improve it and may not be required by it."

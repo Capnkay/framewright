@@ -379,16 +379,34 @@ test('prompt mode still skips the image stages and is untouched', async () => {
   }
 });
 
-test('code still says it is unbuilt rather than half-working', async () => {
-  // `combined` was in this list until T-119 opened it. It is not deleted from the
-  // test, it is moved: codeToIr.js remains a built module with zero callers, and the
-  // point of this assertion is that an unbuilt mode says so rather than half-working.
-  const env = await isolatedEnv('wf-unbuilt-modes');
-  const { status } = await postGenerate({
-    env,
-    body: { mode: 'code', pageName: 'P', sectionName: 'S', code: 'x' },
-    files: {},
-  });
+test('every mode §13 names is built — none of them answers 501', async () => {
+  // THIS TEST USED TO ASSERT THE OPPOSITE, and the change is deliberate rather
+  // than a weakening. It read "code still says it is unbuilt rather than
+  // half-working", and its own comment explained that `combined` had been moved
+  // out of it at T-119 rather than deleted, because the point was that an UNBUILT
+  // mode says so. T-124 built `code`, so that premise is gone: there is no
+  // unbuilt mode left to assert about.
+  //
+  // What survives is the property the old assertion was protecting — that this
+  // endpoint never half-works — expressed the only way left to express it.
+  // Detailed coverage of code mode lives in tests/generate-code-mode.test.mjs;
+  // this is the census.
+  const env = await isolatedEnv('wf-all-modes');
 
-  assert.equal(status, 501, 'mode=code should still be 501');
+  for (const mode of ['prompt', 'wireframe', 'code', 'combined']) {
+    const { status } = await postGenerate({
+      env,
+      body: {
+        mode,
+        pageName: 'P',
+        sectionName: 'S',
+        prompt: 'a bold hero with three stats',
+        code: `const ids = { a: '2000000001' };
+export default () => <p id={ids.a}>hi</p>;`,
+      },
+      files: { wireframe: wireframeFile() },
+    });
+
+    assert.notEqual(status, 501, `mode=${mode} answers 501`);
+  }
 });

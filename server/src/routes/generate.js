@@ -12,6 +12,7 @@ import { validateElement } from '../validate/elementValidator.js';
 import { PROJECT_NAME } from '../models/elementDoc.js';
 import createValidateAndRecover from '../generate/validateAndRecover.js';
 import { resolveConflicts } from '../generate/resolveConflicts.js';
+import { codeToIr, CodeNotUnderstood } from '../generate/codeToIr.js';
 import { isSafeCssText } from '../sanitise/cssAllowList.js';
 
 /**
@@ -103,10 +104,10 @@ export async function postGenerate(ctx = {}) {
   body = cleaned.body;
   ctx.body = body;
 
-  // T-108 opened `wireframe`, T-119 opened `combined`. `code` remains unbuilt and says
-  // so rather than half-working: codeToIr.js is a separate module with no callers and
-  // is not this task's subject.
-  const IMPLEMENTED_MODES = ['prompt', 'wireframe', 'combined'];
+  // T-108 opened `wireframe`, T-119 `combined`, T-124 `code`. All four of §13's modes
+  // are built. The gate stays rather than being deleted: it is the thing that made
+  // "not built" say 501 instead of half-working, and a fifth mode would want it again.
+  const IMPLEMENTED_MODES = ['prompt', 'wireframe', 'combined', 'code'];
   if (!IMPLEMENTED_MODES.includes(body.mode)) {
     // `STATUS.NOT_IMPLEMENTED` does not exist -- envelope.js exports 501 as a
     // standalone `NOT_IMPLEMENTED`, deliberately kept OUT of STATUS because it is not
@@ -126,10 +127,14 @@ export async function postGenerate(ctx = {}) {
   // combined to carry both, so refusing a one-sided combined would invent a rule.
   const usesWireframe = body.mode === 'wireframe' || (body.mode === 'combined' && Boolean(files.wireframe || files.image));
   const usesPrompt = body.mode === 'prompt' || (body.mode === 'combined' && Boolean(body.prompt));
+  const usesCode = body.mode === 'code' || (body.mode === 'combined' && Boolean(body.code));
   const isWireframe = usesWireframe;
 
-  if (body.mode === 'combined' && !usesWireframe && !usesPrompt) {
-    return badRequest('mode=combined requires a wireframe image or a prompt (§13).');
+  if (body.mode === 'combined' && !usesWireframe && !usesPrompt && !usesCode) {
+    return badRequest('mode=combined requires a wireframe image, a prompt or code (§13).');
+  }
+  if (body.mode === 'code' && !String(body.code || '').trim()) {
+    return badRequest('mode=code requires a React component in `code` (§13).');
   }
 
   let upload = null;
@@ -154,6 +159,9 @@ export async function postGenerate(ctx = {}) {
   // restart at 1 in every isolated store, so two callers with their own job
   // stores and one shared root write over each other's stage outputs (T-120).
   const trace = createStageTrace({ jobStore, artifactRoot: artifactRootFrom(env) });
+
+  // Set by stage 4 when mode=code could not read the pasted component. §13's 422.
+  let codeFailure = null;
 
   let job;
   try {
@@ -263,19 +271,41 @@ export async function postGenerate(ctx = {}) {
           ? await promptToIrHosted(body.prompt, { pageName, sectionName })
           : null;
 
+        // §14 and AGENTS.md: the pasted component is PARSED, never executed. codeToIr
+        // reads an AST and nothing in this path can reach `eval`, `new Function` or
+        // `vm`. Its warnings carry into the job because a code run that quietly used
+        // the reference template for six of seven elements must be readable as such.
+        let codeIr = null;
+        if (usesCode) {
+          try {
+            codeIr = await codeToIr(body.code, { pageName, sectionName });
+          } catch (err) {
+            // Captured rather than matched on later. runStage keeps only a thrown
+            // error's MESSAGE, so recovering "was this a parse failure or a bug"
+            // downstream would mean substring-matching our own prose — which is
+            // fine until somebody rewords the message and a 422 silently becomes
+            // a 500.
+            if (err instanceof CodeNotUnderstood) codeFailure = err.message;
+            throw err;
+          }
+          for (const warning of codeIr.warnings || []) writeWarnings.push(warning);
+          delete codeIr.warnings;
+        }
+
         // §6's conflict order lives in resolveConflicts and nowhere else: prompt wins
         // for copy, colour, CTA behaviour and card count; wireframe wins for spatial
-        // layout. That module was built at T-061 and had zero callers until now, which
-        // is why the order was never actually applied to anything.
+        // layout; code wins for technical patterns. That module was built at T-061 and
+        // had zero callers until T-119.
+        const supplied = [promptIr, wireframeIr, codeIr].filter(Boolean);
         let ir;
-        if (wireframeIr && promptIr) {
-          const merged = resolveConflicts({ promptIr, wireframeIr, codeIr: null });
+        if (supplied.length > 1) {
+          const merged = resolveConflicts({ promptIr, wireframeIr, codeIr });
           if (!merged) throw new Error('conflict resolution produced no IR');
           for (const warning of merged.warnings || []) writeWarnings.push(warning);
           ir = merged;
           delete ir.warnings;
         } else {
-          ir = wireframeIr || promptIr;
+          ir = supplied[0] || null;
         }
         if (!ir) throw new Error(`mode=${body.mode} produced no IR`);
         ir.sectionId = sectionId;
@@ -301,6 +331,15 @@ export async function postGenerate(ctx = {}) {
     });
 
     if (s4.status === 'failed' || !s4.output) {
+      // A CODE INPUT WE CANNOT READ IS THE CALLER'S 422, NOT OUR 500. §13 gives
+      // 422 to a parse failure, and the distinction is worth the four lines: a
+      // 500 says "we broke" and sends the reader to our logs, while this says
+      // "that component has no §7 element markers in it" and sends them to the
+      // one thing they can actually change. The reason is carried on the stage
+      // record's warnings, which is where runStage puts a thrown message.
+      if (codeFailure) {
+        return { status: STATUS.UNPROCESSABLE, body: error('PARSE_FAILURE', codeFailure) };
+      }
       throw new Error('Stage 4 failed to produce an IR');
     }
     const ir = s4.output;

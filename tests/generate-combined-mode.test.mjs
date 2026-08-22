@@ -209,15 +209,42 @@ test('combined with only a prompt behaves as a prompt run', async () => {
   assert.equal(stage3.status, 'skipped', 'perception ran for a combined request with no image');
 });
 
-test('combined with neither a prompt nor an image is a 400', async () => {
+test('combined with none of §13’s three inputs is a 400', async () => {
+  // `code: 'x'` USED TO BE THE WAY TO WRITE "no usable input" here, because code
+  // mode was unbuilt and the field was inert. T-124 built it, so that string is
+  // now an input the route tries to parse — and this test would have been
+  // asserting a 400 that arrives for a completely different reason (unparseable
+  // code) than the one it names. Dropped to nothing at all, which is what the
+  // test was always about.
   const env = await isolatedEnv('cb-empty');
   const { status } = await postGenerate({
     env,
-    body: { mode: 'combined', pageName: 'Home', sectionName: 'Combined', code: 'x' },
+    body: { mode: 'combined', pageName: 'Home', sectionName: 'Combined' },
     files: {},
   });
 
   assert.equal(status, 400);
+});
+
+test('combined carrying only code is a code run', async () => {
+  // §13 requires at least one input and does not say which. The one-sided cases
+  // for prompt and wireframe are covered above; this is the third.
+  const env = await isolatedEnv('cb-code-only');
+  const { status, body } = await postGenerate({
+    env,
+    body: {
+      mode: 'combined',
+      pageName: 'Home',
+      sectionName: 'Combined',
+      code: `const ids = { headlineMain: '2000000001' };
+export default () => <h1 id={ids.headlineMain}>FROM CODE</h1>;`,
+    },
+    files: {},
+  });
+
+  assert.equal(status, 200, JSON.stringify(body));
+  const stage3 = body.job.stages.find((s) => s.stage === 3);
+  assert.equal(stage3.status, 'skipped', 'perception ran for a combined request with no image');
 });
 
 test('the merge does not leak resolveConflicts’ own warnings array into the IR', async () => {

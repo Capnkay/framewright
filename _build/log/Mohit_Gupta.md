@@ -264,3 +264,10 @@
 - Device: Mohits_Victus
 - Files: perception/benchmarks/vlm_wireframe.py, perception/tests/test_vlm_benchmark.py, docs/BENCHMARK-RESULTS.md
 
+## T-124 — mode=code is the last of §13's four modes still answering 501, and codeToIr.js has zero callers
+- Started: 2026-08-22T15:56:30.410Z
+- Finished: 2026-08-22T16:12:09.492Z
+- Duration: 16m
+- Device: Mohits_Victus
+- Files: server/src/generate/codeToIr.js, server/src/routes/generate.js, tests/generate-code-mode.test.mjs, tests/generate-wireframe-mode.test.mjs, tests/generate-combined-mode.test.mjs
+
