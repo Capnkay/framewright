@@ -25,35 +25,10 @@ import DesignPreview from './routes/DesignPreview.jsx';
 import LoginPage from './routes/LoginPage.jsx';
 import StudioNav from './studio/StudioNav.jsx';
 
-function Nav() {
-  const { pathname } = useLocation();
-  const link = (to, label) => (
-    <Link
-      to={to}
-      className={
-        'rounded-md px-3 py-1.5 text-sm font-medium transition-colors ' +
-        (pathname.startsWith(to) && to !== '/' || (to === '/' && pathname === '/') 
-          ? 'bg-accent text-white' 
-          : 'text-muted-foreground hover:bg-card hover:text-foreground')
-      }
-    >
-      {label}
-    </Link>
-  );
-
-  return (
-    <nav className="flex items-center gap-2 border-b border-border px-4 py-3 bg-background">
-      <Link to="/" className="mr-2 font-semibold tracking-tight text-foreground hover:text-accent transition-colors">Framewright</Link>
-      {link('/generate', 'Studio')}
-      {link('/preview', 'Preview')}
-    </nav>
-  );
-}
-
 function StudioLayout({ children }) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Nav />
+      <StudioNav />
       <div className="flex-1">
         {children}
       </div>
@@ -78,11 +53,11 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<StudioLayout><LandingPage /></StudioLayout>} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<StudioLayout><LoginPage /></StudioLayout>} />
         <Route path="/generate" element={<StudioChrome><GeneratePage /></StudioChrome>} />
         {/* §1: pageName defaults to Home. */}
         <Route path="/preview" element={<Navigate to="/preview/Home" replace />} />
-        <Route path="/preview/:pageName" element={<PreviewPage />} />
+        <Route path="/preview/:pageName" element={<StudioLayout><PreviewPage /></StudioLayout>} />
         {/* Dev-only, unreachable from Nav — see routes/DesignPreview.jsx. */}
         <Route path="/design-preview" element={<DesignPreview />} />
         <Route
