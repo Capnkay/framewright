@@ -40,17 +40,16 @@ test('the store mounts exactly one slice, under the key cms (§5.2)', () => {
   assert.equal(typeof reducerMap.cms, 'function');
 });
 
-test('the cms namespace exists and carries exactly §5.2 seven keys, even when empty', () => {
+test('the cms namespace exists and carries exactly §5.2 six keys, even when empty', () => {
   // Redux initialises by calling the reducer with undefined state.
   const initial = reducerMap.cms(undefined, { type: '@@INIT' });
 
   assert.deepEqual(Object.keys(initial).sort(), [...CMS_SLICE_KEYS].sort());
-  assert.equal(CMS_SLICE_KEYS.length, 7);
+  assert.equal(CMS_SLICE_KEYS.length, 6);
 
   // The initial values §5.2 implies: empty maps, idle, no error.
   assert.deepEqual(initial.allSections, {});
   assert.deepEqual(initial.allSectionsCss, {});
-  assert.deepEqual(initial.allSectionsConfidence, {});
   assert.deepEqual(initial.sectionNames, {});
   assert.equal(initial.status, 'idle');
   assert.equal(initial.error, null);

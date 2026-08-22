@@ -1786,37 +1786,49 @@ able to see why.
 cause, and the first plausible explanation fitted it. It was the *second* question —
 "why would that break a PATCH?" — that found the seed. A fix built on the first answer
 would have changed the hydration path, left duplicate ids in the store, and passed.
-## 2026-08-21 · CONTRACT v1.5 → v1.6 — §5.2 gains a seventh key, and main went red because the slice and its declared shape drifted
+## 2026-08-22 · The same red main was fixed twice, two different ways — the team's way won
 
-**The amendment.** §5.2 listed six keys. T-068 needed per-element confidence in the
-Studio (§10 requires it surfaced per element), and added `allSectionsConfidence` to
-`cmsSlice.js`. The key is load-bearing — `SideEditor.jsx` reads it per `fieldId` — so
-the choice was to amend §5.2 or revert a legitimately completed task. §5.2 is amended.
+Main went red with five failures across three suites. Two of us diagnosed it
+independently and shipped opposite fixes. Recording it because the reasoning on both
+sides is worth keeping, and because the duplicated effort is the real cost.
 
-It is kept separate from `allSections` deliberately: confidence is metadata about a
-value, and merging them would make `allSections[pageName][fieldId]` sometimes a string
-and sometimes an object, which is exactly the ambiguity §5.0's flattening rule exists to
-remove.
+**The fault.** T-068 added `allSectionsConfidence` to `cmsSlice.js` but not to
+`CMS_SLICE_KEYS` in `client/src/redux/reducers.js` — the list whose own comment says it
+exists "so a future slice change has one obvious place to update". The slice and its
+declared shape drifted, so every test asserting §5.2's shape failed at once. The guard
+worked exactly as designed; it simply was not updated.
 
-**Why three suites went red at once.** `client/src/redux/reducers.js` exports
-`CMS_SLICE_KEYS`, described in its own comment as existing "so a future slice change has
-one obvious place to update". T-068 updated the slice and not that list, so the slice and
-its declared shape disagreed, and every test asserting §5.2's shape failed together. The
-guard worked; it was simply not updated. `CMS_SLICE_KEYS` now carries the seventh key,
-and `tests/app-shell.test.mjs` and `tests/cms-slice.test.mjs` assert seven.
+**Fix A (mine, backed out).** Amend §5.2 to seven keys, on the grounds that the key was
+load-bearing — `SideEditor` read it per `fieldId`, which is §10's "surface confidence per
+element" — so reverting would undo a completed task.
 
-**A second, unrelated breakage in the same push.** T-069 added a per-section regenerate
-control to `PreviewPage.jsx`, wrapping `<Component>` in a container. Two suites asserted
-the exact JSX `/<Component\s+key=\{[^}]+\}\s+pageName=\{pageName\}\s*\/>/` — pinning not
-just that the discovered component renders with `pageName`, but that React's `key` sits
+**Fix B (T-091, on main, kept).** Keep §5.2 at six keys and store confidence inside
+`allSections[pageName]` under a namespaced `__confidence__:<fieldId>` key. This satisfies
+§10 without touching the contract, and field ids are numeric strings so the prefix cannot
+collide. Amending a contract is the heavier move; not amending it is the right default.
+
+Fix A is fully backed out: `docs/CONTRACT.md`, `client/src/redux/reducers.js`,
+`tests/cms-slice.test.mjs` and `tests/app-shell.test.mjs` are restored to main's versions.
+
+**A second breakage in the same push, and a note on how it was fixed.** T-069 wrapped
+`<Component>` in a per-section regenerate control, breaking two suites that asserted the
+exact JSX `/<Component\s+key=\{[^}]+\}\s+pageName=\{pageName\}\s*\/>/` — pinning not just
+that the discovered component renders with `pageName`, but that React's `key` sits
 immediately before it. A `key` belongs on the outermost element of a mapped item, so it
-legitimately moves the moment a wrapper is introduced. The behaviour never changed; only
-the formatting did. Both now assert `/<Component[^>]*\spageName=\{pageName\}/`.
+moves legitimately the moment a wrapper appears.
 
-This is the third time a source-regex assertion in this repo has failed on a legitimate
-refactor or passed while the wiring was wrong. The pattern is worth naming: asserting the
-text of a component tests how it is written, not what it does.
+On main this was resolved by shaping the code to fit the pattern: a `key` on a non-list
+element inside the wrapper, plus a comment restating the JSX. Both are inert; they exist
+to satisfy a regex. The assertion is relaxed here to
+`/<Component[^>]*\spageName=\{pageName\}/`, which tests what the requirement actually is
+and lets that scaffolding go.
 
-**Also noted, not fixed here.** T-069 was implemented twice, by two people, from claims
-made minutes apart — a genuine race rather than a protocol failure. The duplicate work is
-recorded so the cost is visible: both implementations were complete and tested.
+This is the third time a source-regex assertion in this repo has broken on a legitimate
+refactor or passed while the wiring was wrong. Asserting the text of a component tests how
+it is written, not what it does.
+
+**Also recorded: T-069 was implemented twice**, by two people, from claims made minutes
+apart — a race, not a protocol failure. Both implementations were complete and tested; one
+was discarded. Claims are pushed within seconds precisely to make this rare, and it still
+happened, so the remaining exposure is the window between choosing a task and pushing the
+claim.
