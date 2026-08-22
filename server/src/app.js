@@ -12,6 +12,9 @@
 //
 // T-002. CONTRACT.md §13, §13.4.
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import express from 'express';
 import multer from 'multer';
 import routes from './routes/index.js';
@@ -111,10 +114,40 @@ function toContext(req, env) {
   };
 }
 
+// server/src/app.js -> dirname is server/src, so TWO levels up is the repository
+// root. Counted rather than guessed: T-117 was a `..` too many in
+// writeComponentFile.js, which wrote every generated component into a sibling of
+// the repo where the preview's glob could never see it, and the comment above
+// that line said the right number while the code said another.
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 export function createApp({ env = process.env } = {}) {
   const app = express();
 
   app.use(express.json({ limit: '1mb' }));
+
+  // §7 R7's placeholder, and every other stored image, served from disk.
+  //
+  // T-129: NOTHING SERVED THIS. `getImage` resolves an empty image to
+  // `VITE_STORAGE_URL + 'default/images/hero-placeholder.jpg'`, defaulting to
+  // `http://localhost:5000/storage/`. That URL returned 404 and there was no
+  // `express.static` anywhere in the server, so the hero image — the largest
+  // element in the reference section — has rendered as a broken-image icon with
+  // alt text in every preview this project has ever produced. Nothing failed:
+  // R7's fallback chain is about a MISSING VALUE, and the value was present and
+  // correct. It was the destination that did not exist.
+  //
+  // `fallthrough: false` so a missing asset is a 404 from here rather than
+  // continuing into the route table and coming back as an unrelated error.
+  app.use(
+    '/storage',
+    express.static(path.join(REPO_ROOT, 'server', 'storage'), {
+      fallthrough: false,
+      // Images are content-addressed by section and variation, so a long cache
+      // would serve a stale hero after a regenerate. Short and honest.
+      maxAge: '5m',
+    }),
+  );
 
   for (const route of routes) {
     const method = route.method.toLowerCase();
@@ -161,6 +194,21 @@ export function createApp({ env = process.env } = {}) {
         .status(STATUS.PAYLOAD_TOO_LARGE)
         .json(error(ERROR_CODE.PAYLOAD_TOO_LARGE, 'Request body is too large.'));
     }
+    // A middleware that has already decided the status keeps it. T-129 found
+    // this the hard way: `express.static({ fallthrough: false })` signals a
+    // missing file by calling next() with an error carrying `status: 404`, and
+    // collapsing that to 500 tells the caller "we broke" about a file they
+    // simply asked for by the wrong name — and sends the next reader into our
+    // logs instead of to the URL.
+    //
+    // Only 4xx is honoured. A 5xx thrown from a middleware still becomes the
+    // generic 500 below, because §14 forbids a thrown message from leaving this
+    // process and a server-side failure is exactly where one hides.
+    if (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 500) {
+      const code = err.status === STATUS.NOT_FOUND ? ERROR_CODE.NOT_FOUND : ERROR_CODE.INVALID_INPUT;
+      return res.status(err.status).json(error(code, 'The requested resource was not found.'));
+    }
+
     const body = error(ERROR_CODE.INTERNAL, 'An unexpected error occurred.');
     if (!isErrorEnvelope(body)) throw new Error('unreachable: error() must produce an envelope');
     return res.status(STATUS.SERVER_ERROR).json(body);

@@ -292,3 +292,10 @@
 - Device: Mohits_Victus
 - Files: client/src/redux/fetchElementsByIds.js, tests/fetch-elements-uses-same-origin.test.mjs
 
+## T-129 — Nothing serves /storage, so every image in every generated section is a broken icon
+- Started: 2026-08-22T17:07:53.426Z
+- Finished: 2026-08-22T17:11:33.688Z
+- Duration: 4m
+- Device: Mohits_Victus
+- Files: server/src/app.js, server/storage/default/images/hero-placeholder.jpg, tests/storage-serves-the-placeholder.test.mjs
+

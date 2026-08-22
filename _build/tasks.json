@@ -2640,6 +2640,46 @@
       ],
       "verify": "node --test tests/fetch-elements-uses-same-origin.test.mjs",
       "doneWhen": "MEASURED IN CHROME, not reasoned about. /preview/Home reports 'Hydration status: failed', 'Keys in allSections: 0', and the console carries 48 identical TypeError: Failed to fetch from fetchElementsByIds - one per mounted section. DEFAULT_API_URL is the absolute 'http://localhost:5000/api'; the app is served from :5173; the Node API sends no Access-Control-Allow-Origin, so the browser blocks every read. Confirmed by curl: direct to :5000 with an Origin header returns 200 with no CORS header, and the same path through Vite's proxy on :5173 returns 200. vite.config.js EXISTS to prevent this and says so in its own comment - the absolute URL bypasses the proxy, so it has never been used by the one fetch that matters. This is section 9's exact failure and AGENTS.md rule 2's exact warning: the page renders pixel-perfect from DEFAULTS while the store is completely dead, and the node-side liveness script passes because it never goes through a browser origin. SideEditor already uses a relative '/api', so writes worked and reads did not. Done when the default is same-origin so the proxy is used, when VITE_API_URL still overrides for builds, and when a test asserts the default carries no scheme or host - the property, not the string."
+    },
+    {
+      "id": "T-128",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "45m",
+      "title": "The preview page opens with a developer diagnostics table, task ids in its copy, and a §13.4 violation in its own fetch",
+      "contract": [
+        "§9",
+        "§13.4"
+      ],
+      "deps": [
+        "T-127"
+      ],
+      "files": [
+        "client/src/routes/PreviewPage.jsx",
+        "tests/preview-page-information-architecture.test.mjs"
+      ],
+      "verify": "node --test tests/preview-page-information-architecture.test.mjs",
+      "doneWhen": "Measured in Chrome. The page a judge sees opens with 'Section mounting arrives with T-011 and T-029. This shell exists now so the store's state is observable from the first hour (section 9).' and a definition list of Hydration status / Keys in allSections / Missing IDs above the content. The empty-state copy names T-015 and T-011. A section document whose file is absent renders a large red 'Missing component file' box. AND the page's own section fetch does `const extracted = data.data || data`, which accommodates exactly the wrapped shape section 13.4 forbids and section 9 names as the way to get a dead store behind a perfect page - the same anti-pattern T-126 added a test against on the studio page. Done when the diagnostics survive but stop being the first thing on the page (section 9 requires the store be OBSERVABLE, so they are not deleted), when no task id or section mark appears in user-facing copy, when a missing component file reads as an explanation rather than an error, and when the fetch treats the response as the bare array the contract defines."
+    },
+    {
+      "id": "T-129",
+      "phase": 6,
+      "track": "api-glassbox",
+      "size": "30m",
+      "title": "Nothing serves /storage, so every image in every generated section is a broken icon",
+      "contract": [
+        "§7"
+      ],
+      "deps": [
+        "T-127"
+      ],
+      "files": [
+        "server/src/app.js",
+        "server/storage/default/images/hero-placeholder.jpg",
+        "tests/storage-serves-the-placeholder.test.mjs"
+      ],
+      "verify": "node --test tests/storage-serves-the-placeholder.test.mjs",
+      "doneWhen": "getImage resolves an empty image to VITE_STORAGE_URL + 'default/images/hero-placeholder.jpg', defaulting to http://localhost:5000/storage/. Measured: that URL returns 404 and there is no express.static anywhere in server/src. So section 7 R7's placeholder has never existed, and the hero image - the largest element in the reference section - renders as a broken-image icon with alt text in every preview anyone has ever taken. Done when the server serves the storage directory, when a real placeholder asset exists at that path, and when a test asserts the exact URL getImage produces is fetchable rather than asserting that some file exists somewhere."
     }
   ]
 }
