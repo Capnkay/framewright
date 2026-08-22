@@ -51,10 +51,28 @@ test('Preview shell hosts generated sections by fetching SectionDocs and renderi
     'must render the dynamically discovered Component with the pageName prop'
   );
 
-  // Verify fallback UI is rendered if the component is missing
+  // Verify a fallback is rendered when the discovered component is missing.
+  //
+  // ASSERTED AS THE BRANCH, NOT AS THE COPY. This pinned the literal string
+  // "Missing component file:" until T-128 rewrote that message — it was a red
+  // error box for what is a routine condition (a section generated on another
+  // machine, or one whose file was cleaned while its document stayed in the
+  // store), and a red alarm for routine conditions trains everyone to ignore
+  // red. The behaviour did not change; the words did.
+  //
+  // This is the fourth time a source-string assertion in this repository has
+  // broken on a legitimate change, which docs/corrections/REGISTER.md already
+  // names: asserting the text of a component tests how it is written, not what
+  // it does. tests/preview-page-information-architecture.test.mjs owns what the
+  // fallback actually says.
   assert.match(
     source,
-    /Missing component file:/,
-    'must render a fallback if the component is missing'
+    /if\s*\(!Component\)/,
+    'must branch on the component being missing'
+  );
+  assert.match(
+    source,
+    /if\s*\(!Component\)[\s\S]*?<div/,
+    'the missing-component branch must render something'
   );
 });

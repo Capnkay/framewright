@@ -299,3 +299,10 @@
 - Device: Mohits_Victus
 - Files: server/src/app.js, server/storage/default/images/hero-placeholder.jpg, tests/storage-serves-the-placeholder.test.mjs
 
+## T-128 — The preview page opens with a developer diagnostics table, task ids in its copy, and a §13.4 violation in its own fetch
+- Started: 2026-08-22T17:12:31.024Z
+- Finished: 2026-08-22T17:15:37.181Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: client/src/routes/PreviewPage.jsx, tests/preview-page-information-architecture.test.mjs
+
