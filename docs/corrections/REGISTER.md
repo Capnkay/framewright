@@ -1873,3 +1873,37 @@ habit costs more than the specificity buys.
 "a non-placeholder-shaped value" — the file must look unmistakably like a template so that
 a real value pasted into it stands out. Renamed to `YOUR_LLM_MODEL_ID_HERE`, matching every
 other placeholder in the file. The hook was right and the file was wrong.
+
+---
+
+## T-123 — `tests/prompt-to-ir-hosted.test.mjs` added to the task's declared files
+
+**Date:** 2026-08-23 · AGENTS.md: "If you need to edit a file the task does not declare,
+stop — either the task is wrong ... or you are doing someone else's task." Logged because
+this is the first case, and the fix is the file list, not the code.
+
+T-123 (B-005: the hosted prompt-to-IR path pins the caller-supplied fields so a model
+cannot override `pageName`, `sectionName`, `platform` or `variations`) declared
+`server/src/generate/promptToIrHosted.js`, a new `tests/prompt-to-ir-hosted-output.test.mjs`,
+and `docs/BENCHMARK-RESULTS.md`. It did not declare the existing
+`tests/prompt-to-ir-hosted.test.mjs`.
+
+Pinning `variations` is not incidental to the fix — B-005 lists `variations` alongside
+`pageName` as a caller-supplied field the model must not be trusted with, and the fix
+overwrites it unconditionally with `String(caller.variations)` before validation, same as
+the other three. That is also exactly what the existing test
+`'schema-invalid — numeric variations must fall back to the keyless path'` fed the module:
+a model response identical to a good IR except `variations: 1` (a number, not a string).
+Under the fix that value is no longer read from the model at all — it is repaired to the
+caller's own `"1"` before `validateIr` ever runs — so the probe now produces a valid,
+`usedPath: 'hosted'` result instead of a fallback, and the test failed.
+
+**This is the fix working as specified, not a regression it introduced.** The task's own
+`doneWhen` names `variations` as one of the pinned fields; a test built before the fix
+existed could not have anticipated that pinning would close this exact probe. The test's
+mutation was swapped for one pinning cannot touch (`elements` typed as a string instead of
+an array), so the case still exercises "a genuinely schema-invalid model reply falls back",
+which is what it was written to check — it no longer does so via a field the fix now owns.
+
+`tests/prompt-to-ir-hosted.test.mjs` was added to T-123's `files` and its `verify` command,
+in `_build/tasks.json`, rather than left as a silent out-of-scope edit.

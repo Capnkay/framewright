@@ -2552,10 +2552,11 @@
       "files": [
         "server/src/generate/promptToIrHosted.js",
         "tests/prompt-to-ir-hosted-output.test.mjs",
+        "tests/prompt-to-ir-hosted.test.mjs",
         "docs/BENCHMARK-RESULTS.md"
       ],
-      "verify": "node --test tests/prompt-to-ir-hosted-output.test.mjs",
-      "doneWhen": "B-005 measured it against Bedrock: the call returns 200 in 22.5s and the IR fails §6 validation every time, so promptToIrHosted correctly falls back and the 22 seconds buy nothing. Three named defects in the model's output: source.mode came back 'code' for a prompt request, pageName came back 'landing' when 'Home' was passed in, and designTokens carried keys with spaces ('shadow Small'). response_format json_schema strict:true is accepted by the endpoint but does not enforce the schema. Done when the request pins the caller-supplied fields so the model cannot invent them, and a test asserts that a REALISTIC bad model reply - these three defects, recorded from the live call - is either repaired or rejected with the reason reaching the IR's warnings. Do not raise the §16.2 timeout to paper over latency; if 30s is genuinely too low, change it in the contract and log it in docs/corrections/REGISTER.md."
+      "verify": "node --test tests/prompt-to-ir-hosted-output.test.mjs tests/prompt-to-ir-hosted.test.mjs",
+      "doneWhen": "B-005 measured it against Bedrock: the call returns 200 in 22.5s and the IR fails §6 validation every time, so promptToIrHosted correctly falls back and the 22 seconds buy nothing. Three named defects in the model's output: source.mode came back 'code' for a prompt request, pageName came back 'landing' when 'Home' was passed in, and designTokens carried keys with spaces ('shadow Small'). response_format json_schema strict:true is accepted by the endpoint but does not enforce the schema. Done when the request pins the caller-supplied fields so the model cannot invent them, and a test asserts that a REALISTIC bad model reply - these three defects, recorded from the live call - is either repaired or rejected with the reason reaching the IR's warnings. Do not raise the §16.2 timeout to paper over latency; if 30s is genuinely too low, change it in the contract and log it in docs/corrections/REGISTER.md. tests/prompt-to-ir-hosted.test.mjs added post-claim (docs/corrections/REGISTER.md): pinning `variations` repairs the one existing schema-invalid probe that used a numeric variations value, so that probe's mutation had to change."
     },
     {
       "id": "T-124",

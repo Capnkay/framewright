@@ -494,7 +494,7 @@ has **not** been read yet, and no claim rests on it.
 
 ### What this changes
 
-Nothing yet, by design. The measured position is:
+At measurement time: nothing yet, by design. The measured position was:
 
 1. The transport works and needs no code.
 2. The vision model is a large quality win on text and roles, blocked on coordinates.
@@ -502,6 +502,26 @@ Nothing yet, by design. The measured position is:
    produces valid IR in about a millisecond.
 4. Every one of these is an enhancement above a path that must keep working without them.
 
+**T-123 closes point 3's "needs prompt work" for the specific three defects measured
+above.** `promptToIrHosted` now pins `pageName`, `sectionName`, `platform` and
+`variations` to the caller's own values after the call returns, and pins `source.mode` to
+`"prompt"` — this module only ever runs for a prompt call, so the model was never in a
+position to know better. None of these are things a model can be trusted to report about
+its own invocation; they are overwritten unconditionally rather than validated and
+rejected on mismatch, and every overwrite that actually changed something is named in the
+IR's `warnings`, the same way `promptToIrKeyless`'s own fallback notes work. A `designTokens`
+key that cannot be a bare identifier (`"shadow Small"`, `"shadow XL"`) is stripped and
+named the same way, rather than left to `resolveTokens`'s own rule-4 drop to explain
+itself three layers downstream.
+
+This does not change points 1, 2 or 4. It does not make the hosted path faster — 22.5s is
+still 22.5s — and a reply broken in a way pinning cannot reach (an invented field ID, a
+genuinely malformed `elements` array) still falls back to the keyless path exactly as
+before, with the reason in `warnings`. What changes is that the three specific defects
+measured above no longer cost 22 seconds to throw away: the same reply that failed §6
+validation outright now survives as a valid, `usedPath: 'hosted'` IR. Verified in
+`tests/prompt-to-ir-hosted-output.test.mjs` against the reconstructed B-005 reply, without
+a live Bedrock key.
 
 ---
 

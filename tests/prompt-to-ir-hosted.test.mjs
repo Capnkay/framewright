@@ -84,7 +84,13 @@ test('doneWhen — every failure mode falls through to the keyless path, never t
     'malformed output — not an object': async () => ({ ok: true, value: 'here is your IR!' }),
     'malformed output — null': async () => ({ ok: true, value: null }),
     'malformed output — array': async () => ({ ok: true, value: [] }),
-    'schema-invalid — numeric variations': async () => ({ ok: true, value: { ...goodModelIr(), variations: 1 } }),
+    // T-123 (docs/corrections/REGISTER.md): variations is now one of the
+    // fields promptToIrHosted PINS to the caller's own value before
+    // validation, same as pageName/sectionName/platform, so a numeric
+    // variations from the model no longer reaches validateIr at all — it is
+    // repaired, not rejected. This mutation targets a field pinning cannot
+    // touch, so it still exercises a genuine, un-repairable schema failure.
+    'schema-invalid — elements not an array': async () => ({ ok: true, value: { ...goodModelIr(), elements: 'not-an-array' } }),
     'schema-invalid — missing contentPolicy': async () => {
       const ir = goodModelIr();
       delete ir.idPolicy.contentPolicy;

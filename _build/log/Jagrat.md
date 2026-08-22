@@ -112,3 +112,10 @@
 - Device: LAPTOP-E9HORJ7M
 - Files: server/src/generate/applyIdPolicy.js, tests/id-policy-content-policy.test.mjs
 
+## T-123 — The hosted prompt-to-IR path costs 22 seconds and produces nothing usable
+- Started: 2026-08-22T18:38:24.925Z
+- Finished: 2026-08-22T18:47:29.943Z
+- Duration: 9m
+- Device: LAPTOP-E9HORJ7M
+- Files: server/src/generate/promptToIrHosted.js, tests/prompt-to-ir-hosted-output.test.mjs, tests/prompt-to-ir-hosted.test.mjs, docs/BENCHMARK-RESULTS.md
+

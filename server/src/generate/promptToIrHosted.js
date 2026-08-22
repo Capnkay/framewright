@@ -35,10 +35,121 @@
 // — an IR carrying one is rejected outright rather than quietly stripped,
 // because silently repairing untrusted output teaches nobody that the model
 // is misbehaving.
+//
+// T-123 / B-005 — a live Bedrock call returned 200 in 22.5s and an IR that
+// failed §6 validation, for three reasons: `source.mode` came back "code" for
+// a prompt request, `pageName` came back "landing" when "Home" was the
+// caller's own value, and `designTokens` carried keys with spaces in them
+// ("shadow Small"). `response_format: { strict: true }` does not stop any of
+// this — a schema enforces SHAPE, not which value among the legal ones is
+// true. The caller already knows pageName, sectionName, platform, variations
+// and the fact that this call is a prompt call; those are not the model's to
+// decide, and asking it to emit them anyway just gives it room to be wrong
+// about ground truth it isn't in a position to know. So they are PINNED —
+// overwritten unconditionally after the call returns — rather than validated
+// and rejected on mismatch. This is a repair, not the §6 field-ID rejection
+// above: a field ID is data the model must never invent at all, while these
+// are fields whose true value is already known and the model's guess is
+// simply discarded. Each override that actually changed something is named
+// in the IR's warnings, on the same principle as promptToIrKeyless's own
+// fallback notes — a value that moved without a recorded reason is
+// indistinguishable from a bug.
+//
+// designTokens keys are cheaper to get wrong than to get right: §6.1 rule 4
+// already has the emitter ignore any key it does not recognise, so a key
+// like "shadow Small" was never going to reach the page. But "silently
+// dropped three layers away inside the emitter" is exactly the kind of
+// nothing-failed-but-nothing-worked outcome this file exists to avoid, so a
+// malformed key is stripped and named here, at the point it was found,
+// instead of relying on that later, unrelated safety net to explain itself.
 
 import { promptToIrKeyless } from './promptToIrKeyless.js';
 import { validateIr, irSchema } from '../validate/irValidator.js';
 import { callModel as orchestratorCallModel } from '../models/orchestrator.js';
+
+// A designTokens leaf key must be a bare identifier — every key in
+// DEFAULT_TOKENS (server/src/generate/designTokens.js) is, e.g.
+// "headingFamily", "card", "h1". A key containing a space or any other
+// character outside this set cannot be a real token under §6.1's own naming,
+// whatever its value looks like.
+const TOKEN_KEY = /^[A-Za-z][A-Za-z0-9]*$/;
+
+/**
+ * pinCallerFields(candidate, caller) -> { pinned, warnings }
+ *
+ * Overwrites the fields the CALLER supplied — pageName, sectionName,
+ * platform, variations — and pins source.mode to "prompt", since this module
+ * only ever runs for a prompt call. `candidate` is not mutated; `pinned` is a
+ * shallow copy with these fields replaced. `warnings` names only the fields
+ * that actually changed, so a model that already got it right adds nothing.
+ */
+function pinCallerFields(candidate, caller) {
+  const pinned = { ...candidate };
+  const warnings = [];
+
+  const pin = (key, value) => {
+    if (pinned[key] !== value) {
+      warnings.push(
+        `Model set ${key}=${JSON.stringify(pinned[key])}; pinned to the caller-supplied ${JSON.stringify(value)} (§6 — this field is not the model's to choose).`,
+      );
+    }
+    pinned[key] = value;
+  };
+
+  pin('pageName', caller.pageName);
+  pin('sectionName', caller.sectionName);
+  pin('platform', caller.platform);
+  pin('variations', String(caller.variations));
+
+  const modelMode = pinned.source && typeof pinned.source === 'object' ? pinned.source.mode : undefined;
+  if (modelMode !== 'prompt') {
+    warnings.push(
+      `Model set source.mode=${JSON.stringify(modelMode)}; pinned to "prompt" (§6 — this call is always a prompt call).`,
+    );
+  }
+  pinned.source = { ...(pinned.source && typeof pinned.source === 'object' ? pinned.source : {}), mode: 'prompt' };
+
+  return { pinned, warnings };
+}
+
+/**
+ * repairDesignTokenKeys(ir) -> warnings
+ *
+ * Mutates `ir.designTokens` in place, dropping any key that is not a bare
+ * identifier at any depth, and returns one warning per key dropped. A no-op,
+ * warning-free pass-through when designTokens is absent or every key is
+ * well-formed — the common case, since §6.1 says designTokens is optional.
+ */
+function repairDesignTokenKeys(ir) {
+  const warnings = [];
+  if (!ir.designTokens || typeof ir.designTokens !== 'object' || Array.isArray(ir.designTokens)) {
+    return warnings;
+  }
+
+  // Clone before mutating — designTokens may be the same object reference
+  // the transport handed back, and this module has no business mutating
+  // whatever the caller's mock or the real HTTP client still holds.
+  ir.designTokens = structuredClone(ir.designTokens);
+
+  const walk = (node, path) => {
+    if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+    for (const key of Object.keys(node)) {
+      if (!TOKEN_KEY.test(key)) {
+        warnings.push(
+          `Model's designTokens key ${JSON.stringify(`${path}.${key}`)} is not a valid token name (§6.1); dropped, value was ${JSON.stringify(node[key])}.`,
+        );
+        delete node[key];
+        continue;
+      }
+      if (node[key] && typeof node[key] === 'object' && !Array.isArray(node[key])) {
+        walk(node[key], `${path}.${key}`);
+      }
+    }
+  };
+
+  walk(ir.designTokens, 'designTokens');
+  return warnings;
+}
 
 // §16.2 — default 30 s, hard ceiling 60 s, inherited from NFR-02's budget.
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -103,6 +214,17 @@ function clampTimeout(ms) {
 export async function promptToIrHostedWithMeta(prompt, options = {}) {
   const { callModel = defaultCallModel, timeoutMs, ...irOptions } = options;
 
+  // Same defaults as promptToIrKeyless — the two paths must agree on what
+  // "no option supplied" means, since either can be the one the caller ends
+  // up with.
+  const {
+    pageName = 'Home',
+    sectionName = 'Custom',
+    platform = 'Website',
+    variations = '1',
+  } = irOptions;
+  const callerFields = { pageName, sectionName, platform, variations };
+
   const keyless = () => promptToIrKeyless(prompt, irOptions);
 
   let response;
@@ -139,17 +261,32 @@ export async function promptToIrHostedWithMeta(prompt, options = {}) {
     return fallback(keyless(), `model supplied a field ID at ${strayId}; §6 forbids IDs in the IR`, meta);
   }
 
+  // T-123 / B-005 — pin the fields the caller already knows the true value
+  // of, and strip a designTokens key the model could not have meant, before
+  // the schema even sees the candidate. See the file header for why this is
+  // a repair rather than a rejection.
+  const { pinned, warnings: pinWarnings } = pinCallerFields(candidate, callerFields);
+  const tokenWarnings = repairDesignTokenKeys(pinned);
+  const repairWarnings = [...pinWarnings, ...tokenWarnings];
+
   // §16.2 — output is validated against the schema before it is returned.
-  // An invalid response is a failure, not a value.
-  const result = validateIr(candidate);
+  // An invalid response is a failure, not a value. Validated AFTER pinning:
+  // a candidate the pin/repair step could not save is still a real failure,
+  // and it should fall back with the underlying schema error, not one about
+  // a field this module just fixed.
+  const result = validateIr(pinned);
   if (!result.valid) {
     const first = result.errors[0];
     const detail = first ? `${first.path}: ${first.message}` : 'unknown schema error';
     return fallback(keyless(), `model output failed IR validation (${detail})`, meta);
   }
 
+  if (repairWarnings.length) {
+    pinned.warnings = [...(pinned.warnings || []), ...repairWarnings];
+  }
+
   return {
-    ir: candidate,
+    ir: pinned,
     usedPath: 'hosted',
     reason: null,
     meta,
