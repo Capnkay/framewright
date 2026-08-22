@@ -2506,9 +2506,10 @@
       ],
       "files": [
         "perception/benchmarks/vlm_wireframe.py",
+        "perception/tests/test_vlm_benchmark.py",
         "docs/BENCHMARK-RESULTS.md"
       ],
-      "verify": "perception/.venv/Scripts/python -m perception.benchmarks.vlm_wireframe ../gpu-test/wireframe.png",
+      "verify": "node tools/pytest.mjs perception/tests/test_vlm_benchmark.py",
       "doneWhen": "B-005 measured qwen3-vl-235b on artifacts/job-0000000078/s1-upload.png: 9 regions against our 35, every handwritten word read correctly (Image, LABEL, SUBMIT, HEADLINE, SUB HEADLINE) where PaddleOCR returned 'eeneb' and 'bceanse.ad.ioipqincsm', and a role on every region. But it reported width 1000 height 800 for a 1600x1168 image and the boxes read as corners rather than [x,y,w,h], so the geometry is in an invented space and NOTHING may be built on it yet. Done when a benchmark scores the VLM's boxes against the same seven annotated targets B-003 used, at IoU >= 0.5, with the true dimensions pinned in the prompt and the output normalised to the image's own pixels - and the number is written into B-005 whether it is good or bad. This task decides whether T-122 is worth doing; it does not wire anything."
     },
     {
@@ -2516,7 +2517,7 @@
       "phase": 6,
       "track": "perception",
       "size": "2h",
-      "title": "Stage 3 can use a VLM when a key is present, and the OpenCV path when it is not",
+      "title": "The VLM cannot place a box and reads every one perfectly, so it replaces PaddleOCR rather than detect_regions",
       "contract": [
         "§10",
         "§12",
@@ -2526,12 +2527,12 @@
         "T-121"
       ],
       "files": [
-        "perception/stages/describe_regions.py",
-        "perception/app.py",
-        "perception/tests/test_describe_regions.py"
+        "perception/stages/extract_text.py",
+        "perception/tests/test_extract_text.py",
+        "docs/EDGE-CASES.md"
       ],
-      "verify": "perception/.venv/Scripts/python -m pytest perception/tests/test_describe_regions.py -q",
-      "doneWhen": "Blocked until T-121 says the coordinates are usable. Then: stage 3 asks the VLM when a key is configured and falls back to detect_regions + extract_text otherwise. AGENTS.md rule 5 is the binding constraint - with no key, no network and no GPU the pipeline must produce exactly what it produces today, and the fallback reason must reach the stage record's warnings the way extract_text's ocr_available already does. Every model call carries §16.2's { purpose, model, ms, attempts, ok }. Done when the perception suite passes with the key unset AND a test proves the VLM path is taken when it is set, with a stubbed transport."
+      "verify": "perception/.venv/Scripts/python -m pytest perception/tests/test_extract_text.py -q",
+      "doneWhen": "REWRITTEN after T-121 measured it. The original plan - the VLM replaces stage 3 - is dead: B-006 scores it 0 of 7 at IoU 0.5 with mean IoU 0.15 across three runs, and a probe that handed it OpenCV's own 7-of-7 boxes as a numbered list put 'button/SUBMIT' on the headline's box and 'label/LABEL' on the description's. It can neither emit coordinates nor consume them. What it CAN do is read: 7 of 7 on crops, 15.6s, 1320 tokens, including the two regions that carry no text and correctly came back empty rather than hallucinated. So: detect_regions keeps every box, and the VLM becomes an alternative READER inside extract_text, one crop per region, replacing PaddleOCR when a key is configured. AGENTS.md rule 5 is binding - with LLM_API_KEY unset, no network and no GPU, extract_text must behave exactly as it does today, and the SubprocessReader path stays. The reader in use must reach the stage record's warnings the way ocr_available already does, so a run that silently used the cheap reader is not mistakable for one that used the good one. Every call carries section 16.2's { purpose, model, ms, attempts, ok }. Done when the perception suite passes with the key unset AND a test proves the VLM reader is chosen when it is set, against a stubbed transport - and when B-006's caveat is closed by re-scoring against detect_regions' real boxes rather than the B-003 annotations, because the wired number will differ."
     },
     {
       "id": "T-123",

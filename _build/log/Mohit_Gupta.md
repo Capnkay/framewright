@@ -257,3 +257,10 @@
 - Device: Mohits_Victus
 - Files: server/src/jobs/stageTrace.js, server/src/routes/generate.js, server/src/routes/regenerate.js, server/src/routes/artifacts.js, tests/artifact-root-is-isolable.test.mjs
 
+## T-121 — The VLM reads the wireframe better than our detector but its coordinates are in an invented space
+- Started: 2026-08-22T15:34:17.753Z
+- Finished: 2026-08-22T15:43:39.738Z
+- Duration: 9m
+- Device: Mohits_Victus
+- Files: perception/benchmarks/vlm_wireframe.py, perception/tests/test_vlm_benchmark.py, docs/BENCHMARK-RESULTS.md
+

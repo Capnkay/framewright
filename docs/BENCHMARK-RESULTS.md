@@ -449,12 +449,7 @@ Every handwritten word came back correct, the four ruled lines were labelled `in
 the large empty box was labelled `image`. That is the combined output of `detect_regions`,
 `extract_text` and `fuse` in a single call.
 
-**The geometry is NOT yet usable and this is the open question.** The model reported
-`width: 1000, height: 800` for an image that is 1600 × 1168, and the boxes read as
-corners rather than `[x, y, w, h]`. So the coordinates are in an invented space. A second
-probe pinning the true dimensions in the prompt was not completed. **Nothing should be
-built on these boxes until that is measured against the B-003 annotations at IoU ≥ 0.5,
-the same bar the existing detector was held to.**
+**The geometry was the open question. T-121 answered it, and the answer is below.**
 
 ### What the text model did with prompt-to-IR
 
@@ -506,3 +501,111 @@ Nothing yet, by design. The measured position is:
 3. The text model needs prompt work before it beats the deterministic path, which today
    produces valid IR in about a millisecond.
 4. Every one of these is an enhancement above a path that must keep working without them.
+
+
+---
+
+## B-006 · Can the VLM place a box, or only read one? — T-121
+
+**Date:** 2026-08-22 · **Status:** DEFINITIVE — T-121's measured result · **VERIFIED** (three live runs)
+
+B-005 found `qwen3-vl-235b` reading every handwritten word on our wireframe correctly
+while declaring the image 1000 × 1168 wide and emitting boxes that looked like corners.
+That left one question, and the whole VLM plan rested on it: **are the coordinates
+usable?**
+
+Same image as B-001 through B-004 — `gpu-test/wireframe.png`, 1600 × 1168, byte-identical
+to `artifacts/job-0000000078/s1-upload.png`. Same seven annotated targets, **imported from
+`contours_wireframe.py` rather than re-annotated**, because ground truth retyped for a new
+detector drifts toward whatever that detector returned.
+
+```
+perception/.venv/Scripts/python -m perception.benchmarks.vlm_wireframe <image>
+perception/.venv/Scripts/python -m perception.benchmarks.vlm_wireframe <image> --crops
+```
+
+### As a localiser: 0 of 7
+
+With the true dimensions pinned in the prompt and `[x, y, w, h]` demanded explicitly, the
+model now returns the correct `width` and `height` — and the boxes are still nowhere near
+the targets.
+
+| | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| regions returned | 10 | 9 | 10 |
+| targets located (IoU ≥ 0.5) | **0 of 7** | **0 of 7** | **0 of 7** |
+| mean IoU | 0.150 | 0.152 | 0.151 |
+| text read | 5 of 5 | 5 of 5 | 5 of 5 |
+
+Per target, best run: `heroImage` 0.487 — just under the bar — and then 0.133, 0.108,
+0.104, 0.088, 0.085, 0.047. Not a threshold problem. The boxes are wrong.
+
+**Four readings were scored, not one.** The model emits four numbers per box and does not
+say whether they are a corner-and-size or two corners, and it declares its own dimensions
+which it may or may not mean. That is four plausible interpretations —
+`xywh_declared_rescaled`, `xyxy_declared_rescaled`, `xywh_raw`, `xyxy_raw` — and picking
+the flattering one after the fact is the same fitted-threshold failure B-003's docstring
+warns about, one level up. All four are scored and printed. All four score 0 of 7.
+
+### It cannot consume coordinates either
+
+A third probe handed the model **OpenCV's own boxes** — the 7-of-7 geometry from B-003 —
+as a numbered list, and asked only for a role and the text inside each. No localisation
+requested at all.
+
+| target | OpenCV IoU | role the VLM gave that box | text it gave |
+|---|---|---|---|
+| `heroImage` | 0.880 | `image` | `Image` ✓ |
+| `headlineMain` | 0.727 | `button` | **`SUBMIT`** ✗ |
+| `headlineSub` | 0.862 | `label` | `` ✗ |
+| `description` | 0.743 | `label` | **`LABEL`** ✗ |
+| `brandBadge` | 0.687 | `none` | `` ✗ |
+| `statBadges` | 0.829 | `none` | `` ✗ |
+| `ctaButton` | 0.809 | `none` | `` ✗ |
+
+It labelled 7 of 34 boxes and attached the right words to the wrong ones — `SUBMIT` on the
+headline, `LABEL` on the description. **One deficit, two symptoms: it cannot ground text
+to coordinates in either direction.**
+
+### As a reader: 7 of 7
+
+So the last variant takes coordinates out of the exchange entirely. One crop in, one
+string out, no numbers anywhere.
+
+| target | expected | read | |
+|---|---|---|---|
+| `heroImage` | `Image` | `Image` | ✓ |
+| `brandBadge` | `LABEL` | `LABEL` | ✓ |
+| `headlineMain` | `HEADLINE` | `HEADLINE` | ✓ |
+| `headlineSub` | `SUB HEADLINE` | `SUB HEADLINE` | ✓ |
+| `description` | *(none)* | `` | ✓ |
+| `statBadges` | *(none)* | `` | ✓ |
+| `ctaButton` | `SUBMIT` | `SUBMIT` | ✓ |
+
+**7 of 7 · 15.6 s · 1,320 tokens · 7 calls.**
+
+The two empty regions matter more than the five that read correctly. `description` is four
+ruled lines and `statBadges` is three empty squares; both came back as empty strings rather
+than invented text. Hallucinating copy into an empty box is the failure a reader is most
+likely to have and the one that would be hardest to catch downstream, and it did not
+happen. They are scored in rather than excluded for exactly that reason.
+
+### What this decides
+
+| approach | geometry | text |
+|---|---|---|
+| OpenCV + PaddleOCR — **today** | **7 of 7** | `eeneb`, `bceanse.ad.ioipqincsm` |
+| VLM alone | 0 of 7 | 5 words, ungrounded |
+| VLM labelling OpenCV's numbered boxes | n/a | wrong box ↔ wrong label |
+| **OpenCV locates + VLM reads crops** | **7 of 7** | **7 of 7** |
+
+**T-122 as originally written is dead.** "The VLM replaces stage 3" cannot work; it has no
+usable spatial grounding on this input. T-122 is rewritten as what the numbers actually
+support: `detect_regions` keeps every box it finds, and the VLM replaces **PaddleOCR** as
+the thing that reads them, one crop at a time.
+
+Two caveats on that number before anyone leans on it. The crops here come from the B-003
+**annotations**, not from `detect_regions`' real output, so this measures the reader in
+isolation; the wired version will score slightly differently because the detector's boxes
+are not the annotations. And it is seven network calls per wireframe — AGENTS.md rule 5
+means PaddleOCR stays the path that runs with no key, no network and no GPU.
