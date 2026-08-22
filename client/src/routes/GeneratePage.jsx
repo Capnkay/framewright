@@ -14,16 +14,45 @@ import SideEditor from '../studio/SideEditor.jsx';
 import ErrorBanner from '../studio/ErrorBanner.jsx';
 import CodePromptInputs from '../studio/CodePromptInputs.jsx';
 
-export default function GeneratePage() {
-  const [jobId, setJobId] = useState(null);
+export default function GeneratePage({ initialJob = null }) {
+  const [job, setJob] = useState(initialJob);
+  const [submitError, setSubmitError] = useState(null);
+  
   const [pageName, setPageName] = useState('Home');
   const [sectionName, setSectionName] = useState('Custom');
   const [accent, setAccent] = useState('');
   const [fieldId, setFieldId] = useState('');
 
-  const handleSubmit = (formData) => {
-    if (formData && formData.get && formData.get('jobId')) {
-      setJobId(formData.get('jobId'));
+  const handleSubmit = async (formData) => {
+    setSubmitError(null);
+    setJob(null);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        let message = `Failed with status ${res.status}`;
+        try {
+          const text = await res.text();
+          const json = JSON.parse(text);
+          if (json.error && typeof json.error.message === 'string') message = json.error.message;
+        } catch (e) {
+          // Intentional fallback to generic status message if parse fails or text is missing
+        }
+        setSubmitError({ statusCode: res.status, message });
+        return;
+      }
+
+      const data = await res.json();
+      if (data.job) {
+        setJob(data.job);
+      } else {
+        setSubmitError({ statusCode: null, message: 'Invalid response: missing job record' });
+      }
+    } catch (err) {
+      setSubmitError({ statusCode: null, message: err.message });
     }
   };
 
@@ -57,14 +86,18 @@ export default function GeneratePage() {
         </div>
 
         <div className="w-1/3 flex flex-col gap-6 overflow-y-auto pr-2 pb-8">
-          {jobId && (
+          {(job || submitError) && (
             <section className="flex flex-col gap-4">
-              <ErrorBanner statusCode={null} message={null} />
-              <GenerationProgress jobId={jobId} />
-              <QuestionPrompt jobId={jobId} status="awaiting-input" onResumed={() => {}} />
-              <JobTimeline job={{ jobId }} />
-              <StageInspector jobId={jobId} stageRecord={null} />
-              <GeneratedSourceView jobId={jobId} pageName={pageName} />
+              {submitError && <ErrorBanner statusCode={submitError.statusCode} message={submitError.message} />}
+              {job && (
+                <>
+                  <GenerationProgress jobId={job.jobId} initialJob={job} />
+                  <QuestionPrompt jobId={job.jobId} status="awaiting-input" onResumed={() => {}} />
+                  <JobTimeline job={job} />
+                  <StageInspector jobId={job.jobId} stageRecord={null} />
+                  <GeneratedSourceView jobId={job.jobId} pageName={pageName} />
+                </>
+              )}
             </section>
           )}
           <section className="bg-white rounded shadow-sm border flex-1">
