@@ -282,7 +282,10 @@ test('getSectionTextContrastClass returns a real Tailwind class for the referenc
   assert.ok(cls.startsWith('text-'));
 
   assert.equal(getSectionTextContrastClass({ sectionTextMode: 'dark' }), 'text-white');
-  assert.equal(getSectionTextContrastClass({ sectionTextMode: 'light' }), 'text-foreground');
+  // T-125 reverted this to a fixed gray: `text-foreground` resolves through a CSS
+  // variable that flips with the viewer's theme, and §2's decision is about the
+  // section's own background. tests/text-contrast.test.mjs holds the real check.
+  assert.equal(getSectionTextContrastClass({ sectionTextMode: 'light' }), 'text-gray-800');
 });
 
 // ---------------------------------------------------------------------

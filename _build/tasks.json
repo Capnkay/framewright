@@ -2577,6 +2577,48 @@
       ],
       "verify": "node --test tests/generate-code-mode.test.mjs",
       "doneWhen": "codeToIr.js was built, tested and never called - the same rule 9 gap as T-101, T-108, T-116 and T-119. §13 names four modes; prompt, wireframe and combined work. Done when mode=code parses pasted React to an AST (NEVER eval, new Function or vm - AGENTS.md says Node's vm is not a security boundary) and produces §6 IR, when combined mode gives technical patterns to the code half per §6's order, and when a test proves a hostile input is refused rather than executed. The deterministic AST path must work with no key; a hosted model may improve it and may not be required by it."
+    },
+    {
+      "id": "T-125",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "45m",
+      "title": "getSectionTextContrastClass became theme-reactive, so a light section renders near-white text on white in dark mode",
+      "contract": [
+        "§2",
+        "§7"
+      ],
+      "deps": [
+        "T-124"
+      ],
+      "files": [
+        "client/src/utils/sectionContrast.js",
+        "tests/text-contrast.test.mjs",
+        "tests/golden.test.mjs"
+      ],
+      "verify": "node --test tests/text-contrast.test.mjs",
+      "doneWhen": "The design-token pass replaced text-gray-800 with text-foreground in all three light-background branches. --color-foreground is #111827 under :root and #f4f4f5 under .dark, so the class now depends on the VIEWER'S THEME while the decision it makes is about the SECTION'S OWN BACKGROUND, which comes from section 2's sectionColor and sectionTextMode. Measured: light section in dark mode gives #f4f4f5 on #ffffff, a contrast ratio of 1.05 against WCAG AA's 4.5 and section 7's gray-500 floor; the same case in light mode is 17.74. The test that would have caught it was rewritten in the same commit - grayWeight(cls) >= 500 became isDarkText(cls), which checks a TOKEN NAME and never resolves a colour - and one assertion is now dead because assert.notEqual(boolean, null) can never fail. Done when the helper returns theme-independent colours again, when the arithmetic floor is restored, and when a test resolves the actual hex in BOTH themes and asserts a real contrast ratio, so a future token swap cannot pass by renaming."
+    },
+    {
+      "id": "T-126",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "3h",
+      "title": "The Studio is a developer console: requirement IDs as headings, eight panels at once, and a placeholder where the preview should be",
+      "contract": [
+        "§7",
+        "FR-G01",
+        "FR-G09"
+      ],
+      "deps": [
+        "T-125"
+      ],
+      "files": [
+        "client/src/routes/GeneratePage.jsx",
+        "tests/studio-information-architecture.test.mjs"
+      ],
+      "verify": "node --test tests/studio-information-architecture.test.mjs",
+      "doneWhen": "Every component is mounted and wired; nothing is missing. What is wrong is what a first-time user meets. Headings read 'Configuration (FR-G07)', 'Generation Mode (FR-G04, FR-G01)' and 'Legacy Inputs (FR-G02, FR-G03)' - internal requirement ids on screen. The subtitle is a note-to-self: 'Full studio layout mounting all 14 built components', and there are 17. Three independently scrolling columns show eight panels at once with no primary action. The CMS editor asks the user to type a 10-digit field id by hand. The preview pane, which is the product, renders the string 'Preview will render here'. Done when there is one obvious first action, when the preview is the largest thing on screen, when the stage timeline appears in response to a run rather than sitting there empty, when secondary tools are behind tabs or a drawer, and when no requirement id, ticket number or component count appears in user-facing copy. Rule 3 is binding throughout: the graded section 7 oddities in generated sections are not touched."
     }
   ]
 }

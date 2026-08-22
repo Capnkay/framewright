@@ -271,3 +271,10 @@
 - Device: Mohits_Victus
 - Files: server/src/generate/codeToIr.js, server/src/routes/generate.js, tests/generate-code-mode.test.mjs, tests/generate-wireframe-mode.test.mjs, tests/generate-combined-mode.test.mjs
 
+## T-125 — getSectionTextContrastClass became theme-reactive, so a light section renders near-white text on white in dark mode
+- Started: 2026-08-22T16:40:02.495Z
+- Finished: 2026-08-22T16:44:12.391Z
+- Duration: 4m
+- Device: Mohits_Victus
+- Files: client/src/utils/sectionContrast.js, tests/text-contrast.test.mjs, tests/golden.test.mjs
+

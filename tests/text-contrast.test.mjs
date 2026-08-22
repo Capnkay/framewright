@@ -15,10 +15,10 @@
 //
 //   - the §7 ACCESSIBILITY FLOOR itself, as an arithmetic assertion: every
 //     Tailwind gray this helper can return has its numeric weight parsed out
-//     and asserted `>= 500`, and `text-muted-foreground` is asserted absent across a
+//     and asserted `>= 500`, and `text-gray-400` is asserted absent across a
 //     wide sweep of inputs — all three §2 modes crossed with a spread of
 //     `sectionColor` values. golden.test.mjs never looks at the weight, so a
-//     regression to `text-muted-foreground` would pass there: it still starts with
+//     regression to `text-gray-400` would pass there: it still starts with
 //     `text-`, and it is still "a real Tailwind class".
 //   - the §2 `auto` luminance inference, which golden.test.mjs never exercises
 //     at all — it only drives the two explicit modes plus whatever the
@@ -79,7 +79,7 @@ const MODES = ['auto', 'light', 'dark'];
 
 // The two answers §7 permits, named so the tests below read as intent rather
 // than as string literals.
-const DARK_TEXT_ON_LIGHT = 'text-foreground'; // >= gray-500, per §7's floor
+const DARK_TEXT_ON_LIGHT = 'text-gray-800'; // >= gray-500, per §7's floor
 const LIGHT_TEXT_ON_DARK = 'text-white';
 
 // A §2 section document, shaped from the contract's own example (§2, the
@@ -148,9 +148,10 @@ function classFor(section) {
   return cls;
 }
 
-/** True if the class provides sufficient contrast for body copy on a white surface. */
-function isDarkText(cls) {
-  return cls === 'text-foreground' || /^text-gray-([5-9]\d{2})$/.test(cls);
+/** The numeric weight in `text-gray-800`, or null when the class is not a gray. */
+function grayWeight(cls) {
+  const match = /^text-gray-(\d{2,3})$/.exec(cls);
+  return match ? Number(match[1]) : null;
 }
 
 // ---------------------------------------------------------------------
@@ -201,9 +202,9 @@ test('§2 — sectionTextMode "light" returns a dark text class', () => {
   // Stated as the property, not just the literal: it is a gray, and it clears
   // §7's floor. If someone swaps gray-800 for gray-700 this still passes; if
   // they swap it for gray-400 or for white, it does not.
-  const weight = isDarkText(cls);
-  assert.notEqual(weight, null, `"light" must return a dark text class, got ${cls}`);
-  assert.ok(weight, `"light" returned ${cls}, below §7's dark text requirement`);
+  const weight = grayWeight(cls);
+  assert.notEqual(weight, null, `"light" must return a text-gray-<weight> class, got ${cls}`);
+  assert.ok(weight >= 500, `"light" returned ${cls}, below §7's gray-500 floor`);
 });
 
 // ---------------------------------------------------------------------
@@ -218,7 +219,7 @@ test('§2 — sectionTextMode "light" returns a dark text class', () => {
 test('§2 — sectionTextMode "dark" returns text-white (dark background, so the floor does not apply)', () => {
   const cls = classFor(makeSection({ sectionTextMode: 'dark' }));
   assert.equal(cls, LIGHT_TEXT_ON_DARK);
-  assert.equal(isDarkText(cls), false, 'the dark-background branch must not return a gray at all');
+  assert.equal(grayWeight(cls), null, 'the dark-background branch must not return a gray at all');
 });
 
 // ---------------------------------------------------------------------
@@ -229,14 +230,14 @@ test('§2 — sectionTextMode "dark" returns text-white (dark background, so the
 //    That is: `light`, and `auto` whenever it infers a light background or
 //    has no usable colour to infer from.
 // ---------------------------------------------------------------------
-test('§7 — every gray this helper can return has a weight', () => {
+test('§7 — every gray this helper can return has a weight >= 500', () => {
   let graysSeen = 0;
 
   for (const sectionTextMode of MODES) {
     for (const sectionColor of COLOR_SWEEP) {
       const cls = classFor(makeSection({ sectionTextMode, sectionColor }));
-      const weight = isDarkText(cls);
-      if (weight === false) continue; // the dark-background branch; see section 3
+      const weight = grayWeight(cls);
+      if (weight === null) continue; // the dark-background branch; see section 3
       graysSeen += 1;
       assert.ok(
         weight,
@@ -251,7 +252,7 @@ test('§7 — every gray this helper can return has a weight', () => {
   assert.ok(graysSeen > 0, 'the sweep must actually exercise the gray branch');
 });
 
-test('§7 — text-muted-foreground is never returned, for any input', () => {
+test('§7 — text-gray-400 is never returned, for any input', () => {
   const inputs = [];
 
   for (const sectionTextMode of MODES) {
@@ -266,14 +267,14 @@ test('§7 — text-muted-foreground is never returned, for any input', () => {
     const cls = classFor(input);
     assert.notEqual(
       cls,
-      'text-muted-foreground',
+      'text-gray-400',
       `§7 forbids gray-400 for body copy; input ${JSON.stringify(input)} produced it`,
     );
     // And nothing lighter than gray-400 either, which the literal check alone
     // would let through.
-    const weight = isDarkText(cls);
-    if (weight === true) {
-      assert.ok(weight, `${cls} is lighter than §7's dark text requirement`);
+    const weight = grayWeight(cls);
+    if (weight !== null) {
+      assert.ok(weight >= 500, `${cls} is lighter than §7's gray-500 floor`);
     }
   }
 
@@ -309,7 +310,7 @@ test('§2 — "auto" with a clearly light sectionColor infers a light background
   for (const sectionColor of ['#ffffff', '#eeeeee', '#f5f5f5', '#ffff00', '#e0f7fa']) {
     const cls = classFor(makeSection({ sectionTextMode: 'auto', sectionColor }));
     assert.equal(cls, DARK_TEXT_ON_LIGHT, `${sectionColor} is a light background and must get dark text`);
-    assert.ok(isDarkText(cls), `${sectionColor} must still clear §7's floor`);
+    assert.ok(grayWeight(cls) >= 500, `${sectionColor} must still clear §7's floor`);
   }
 });
 
@@ -446,7 +447,7 @@ test('§2 — an explicit "dark" mode overrides a light sectionColor', () => {
 test('§2 — an explicit "light" mode overrides a dark sectionColor', () => {
   const cls = classFor(makeSection({ sectionTextMode: 'light', sectionColor: '#000000' }));
   assert.equal(cls, DARK_TEXT_ON_LIGHT);
-  assert.ok(isDarkText(cls), 'and still clears §7\'s floor');
+  assert.ok(grayWeight(cls) >= 500, 'and still clears §7\'s floor');
 });
 
 test('§2 — mode precedence holds across the whole colour sweep', () => {
@@ -501,7 +502,7 @@ test('§7 — an unrecognised sectionTextMode degrades to the safe white-surface
   for (const sectionTextMode of ['medium', 'Dark', 'LIGHT', '', 7, null, {}]) {
     const cls = classFor(makeSection({ sectionTextMode, sectionColor: '' }));
     assert.equal(cls, DARK_TEXT_ON_LIGHT, `mode ${String(sectionTextMode)} must land on the safe default`);
-    assert.ok(isDarkText(cls));
+    assert.ok(grayWeight(cls) >= 500);
   }
 });
 
@@ -527,4 +528,114 @@ test('§2 — across every input in this file, exactly two distinct classes are 
       'A third "medium-grey compromise" state is explicitly rejected by the helper\'s contract.',
   );
   assert.deepEqual(results, [DARK_TEXT_ON_LIGHT, LIGHT_TEXT_ON_DARK].sort());
+});
+
+// ---------------------------------------------------------------------
+// 8. THE REGRESSION THAT GOT PAST EVERY TEST ABOVE. T-125.
+//
+// A design-token pass replaced `text-gray-800` with `text-foreground` in all
+// three light-background branches. Every assertion in this file kept passing,
+// because they all check the SHAPE OF A CLASS NAME and `text-foreground` is a
+// perfectly good class name. What it is not is a colour: it resolves through
+// `--color-foreground`, which index.css defines twice — #111827 under `:root`
+// and #f4f4f5 under `.dark`.
+//
+// So the helper began answering a question about the SECTION'S background with
+// a value that depends on the VIEWER'S theme, and a section that declares itself
+// light rendered near-white text on white the moment dark mode was on. 1.05:1.
+//
+// These tests resolve the class to an actual hex in BOTH themes and compute the
+// real WCAG ratio. A future token swap cannot pass them by being well named.
+// ---------------------------------------------------------------------
+
+// index.css, verbatim. If a class this helper returns is not here, that is the
+// failure — a class whose value we cannot resolve is one we cannot check.
+const THEME_TOKENS = {
+  light: { '--color-foreground': '#111827', '--color-muted-foreground': '#6b7280' },
+  dark: { '--color-foreground': '#f4f4f5', '--color-muted-foreground': '#a1a1aa' },
+};
+
+// Tailwind's own palette, for the fixed classes this helper is allowed to use.
+const FIXED_COLOURS = {
+  'text-white': '#ffffff',
+  'text-gray-800': '#1f2937',
+  'text-gray-700': '#374151',
+  'text-gray-900': '#111827',
+};
+
+const TOKEN_CLASSES = {
+  'text-foreground': '--color-foreground',
+  'text-muted-foreground': '--color-muted-foreground',
+};
+
+function resolveColour(cls, theme) {
+  if (FIXED_COLOURS[cls]) return FIXED_COLOURS[cls];
+  const token = TOKEN_CLASSES[cls];
+  if (token) return THEME_TOKENS[theme][token];
+  return null;
+}
+
+function channel(c) {
+  const v = c / 255;
+  return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+}
+
+function wcagLuminance(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+}
+
+function contrastRatio(a, b) {
+  const [hi, lo] = [wcagLuminance(a), wcagLuminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+// WCAG AA for body copy. §7's "gray-500 or darker on white" is this rule
+// expressed as a palette shortcut; gray-500 on white is 4.83:1.
+const AA_BODY = 4.5;
+
+test('§7 — the returned class clears WCAG AA against its own section, in BOTH themes', () => {
+  // Light sections, stated three different ways, plus the dark one for symmetry.
+  const cases = [
+    { section: { sectionTextMode: 'light', sectionColor: '#ffffff' }, background: '#ffffff' },
+    { section: { sectionTextMode: 'auto', sectionColor: '#f9fafb' }, background: '#f9fafb' },
+    { section: { sectionTextMode: 'auto', sectionColor: '' }, background: '#ffffff' },
+    { section: { sectionTextMode: 'dark', sectionColor: '#111111' }, background: '#111111' },
+  ];
+
+  for (const { section, background } of cases) {
+    const cls = classFor(makeSection(section));
+
+    for (const theme of ['light', 'dark']) {
+      const colour = resolveColour(cls, theme);
+      assert.notEqual(
+        colour,
+        null,
+        `${cls} is not a colour this test can resolve. Add it to FIXED_COLOURS or TOKEN_CLASSES — do not delete the assertion.`,
+      );
+
+      const ratio = contrastRatio(colour, background);
+      assert.ok(
+        ratio >= AA_BODY,
+        `${cls} resolves to ${colour} in the ${theme} theme, giving ${ratio.toFixed(2)}:1 on ${background} — below AA's ${AA_BODY}:1 (§7)`,
+      );
+    }
+  }
+});
+
+test('§2 — the class does not change when only the viewer’s theme changes', () => {
+  // The property underneath the numbers, stated directly: this helper's answer
+  // is a function of the SECTION, so nothing about the surrounding chrome may
+  // enter it. A token-valued class fails this by construction, which is why it
+  // is asserted rather than left implied by the ratios above.
+  for (const sectionTextMode of MODES) {
+    for (const sectionColor of COLOR_SWEEP) {
+      const cls = classFor(makeSection({ sectionTextMode, sectionColor }));
+      assert.equal(
+        cls in TOKEN_CLASSES,
+        false,
+        `${cls} is a theme-reactive token; §2's decision is about the section's own background, not the viewer's theme`,
+      );
+    }
+  }
 });
