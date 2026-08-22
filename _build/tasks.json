@@ -2764,6 +2764,27 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_detect_regions.py",
       "doneWhen": "Overall confidence is the MEAN of the seven element confidences and is 0.8295 on the VLM path, 0.8497 on the PaddleOCR one. Section 10's own accept band starts at 0.85 (VERIFY_BELOW), so both sit just under it. Three elements carry it: heroImage 0.683, where edge support is top 0.68 bottom 0.79 right 0.79 and LEFT 0.5486, and the geometric mean is deliberately dragged by the weakest; description 0.689, a group of four ruled lines with weakestMember 0.7993; and headlineSub 0.716 on the VLM path, which has no reading score of its own and falls back to geometry. All three are the same physical fact: a faint stroke on a hand-drawn sheet. Done when each change is measured SEPARATELY against B-003 and B-004 so it is knowable which one moved what, when no change lowers the 7-of-7 localisation or the 4-of-4 text score, and when every number is written up including the ones that did not improve. Any change to how confidence is AGGREGATED is a reversal of a documented decision - detect_regions' own docstring argues for the geometric mean because an arithmetic mean scores a three-sided bracket 0.75 - and belongs in docs/corrections/REGISTER.md with the reasoning, not in a commit message."
+    },
+    {
+      "id": "T-134",
+      "phase": 6,
+      "track": "perception",
+      "size": "1h",
+      "title": "Soften the four-edge conjunction so one incomplete side does not dominate a located box",
+      "contract": [
+        "§10"
+      ],
+      "deps": [
+        "T-133"
+      ],
+      "files": [
+        "perception/stages/detect_regions.py",
+        "perception/tests/test_detect_regions.py",
+        "docs/corrections/REGISTER.md",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_detect_regions.py",
+      "doneWhen": "A DELIBERATE REVERSAL OF A DOCUMENTED DECISION, requested after the evidence against it was presented. detect_regions._geometric_mean was chosen over an arithmetic mean with a stated reason: an arithmetic mean scores a three-sided bracket 0.75, which lands in section 10's verify band when the right answer is to escalate. That reasoning still holds for a bracket. What it also does is score heroImage 0.683 on the reference wireframe, where one side is a third undrawn while the box is located at IoU 0.88 - the geometry is right and the confidence says medium. B-009 further measured that overall confidence does not track accuracy: a synthetic clean image scored 0.9634 while B-004 geometry fell from 7 of 7 to 4 of 7. Done when the aggregation distinguishes A SIDE THAT IS PRESENT BUT INCOMPLETE from A SIDE THAT IS ABSENT, so the bracket case still escalates and a drawn-but-gappy box does not; when B-003 localisation and B-004 geometry and text are re-measured and neither regresses; when the before and after confidence is written into B-009; and when the reversal and its reasoning are logged in docs/corrections/REGISTER.md, not in a commit message."
     }
   ]
 }
