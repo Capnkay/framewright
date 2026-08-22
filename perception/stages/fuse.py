@@ -159,8 +159,32 @@ def _contains(outer: tuple[int, int, int, int], inner: tuple[int, int, int, int]
 
 
 def _readable(candidate: RegionText) -> bool:
-    """Did this region produce a reading strong enough to act on? See KEYWORD_FLOOR."""
-    return candidate.text is not None and (candidate.confidence or 0.0) >= KEYWORD_FLOOR
+    """Did this region produce a reading strong enough to act on? See KEYWORD_FLOOR.
+
+    `effective_confidence`, NOT `confidence`, AND T-132 IS WHY. This read
+    `(candidate.confidence or 0.0)`, which turns an UNSCORED reading into a
+    reading SCORED ZERO — and those are different facts, the same distinction
+    §10 makes about confidence generally and `ocr_available` makes about OCR.
+
+    It cost the whole keyword path. T-122's hosted reader returns a
+    transcription and no score, and sets `confidence=None` on purpose, because
+    §10 makes null the honest value where nothing was measured and a fabricated
+    1.0 would sit on the Glass Box beside real numbers. Every one of its readings
+    then evaluated to 0.0, fell below the floor, and was never readable — so
+    `_keyword_assignments` matched nothing at all and every slot fell through to
+    position. Measured end to end: the run read HEADLINE, SUB HEADLINE, LABEL and
+    SUBMIT correctly off the page, and `headlineMain` still came back "TV",
+    `description` "ago", and `brandBadge` and `ctaButton` from the reference
+    template. Overall confidence 0.68, against 0.85 for the path it was meant to
+    improve.
+
+    `effective_confidence` already existed and already had the rule: the OCR
+    score where there is text, the geometric score where there is not, both real
+    measurements and neither a constant. The floor now applies to that, so a
+    reading with no score of its own is judged on the confidence of the region it
+    came from rather than being discarded for a number it never claimed to have.
+    """
+    return candidate.text is not None and candidate.effective_confidence >= KEYWORD_FLOOR
 
 
 def _matches(candidate: RegionText, keywords: Sequence[str]) -> bool:

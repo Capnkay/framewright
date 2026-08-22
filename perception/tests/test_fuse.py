@@ -22,6 +22,7 @@ import pytest
 from perception.app import template_cards, template_elements, template_layout, template_theme
 from perception.stages.detect_regions import Region
 from perception.stages.extract_text import Extraction, RegionText
+import perception.stages.fuse as fuse_module
 from perception.stages.fuse import fuse
 
 W, H = 1000, 600
@@ -504,3 +505,85 @@ def test_slot_assignment_is_deterministic_across_input_orderings():
     assert [e["bbox"] for e in first["elements"]] == [e["bbox"] for e in second["elements"]]
     assert [e["default"] for e in first["elements"]] == [e["default"] for e in second["elements"]]
 
+
+
+# ---------------------------------------------------------------------------
+# T-132 — an UNSCORED reading is not a reading scored zero.
+# ---------------------------------------------------------------------------
+
+
+def _unscored(candidate):
+    """The shape T-122's hosted reader produces: text, and no confidence.
+
+    §10 makes null the honest value for a transcription that carries no score,
+    and the reader sets it deliberately rather than inventing a 1.0 that would
+    sit on the Glass Box beside measured numbers.
+    """
+    return RegionText(region=candidate.region, text=candidate.text, confidence=None)
+
+
+def test_a_reading_with_no_score_still_claims_its_slot():
+    """THE DEFECT, and it silently disabled the entire keyword path.
+
+    `_readable` was `(candidate.confidence or 0.0) >= KEYWORD_FLOOR`. `None or 0.0`
+    is zero, so every unscored reading fell below the floor and none was ever
+    readable — `_keyword_assignments` matched nothing at all and every slot fell
+    through to position.
+
+    Measured end to end through /perceive with the hosted reader on: the run read
+    HEADLINE, SUB HEADLINE, LABEL and SUBMIT correctly off the page, and
+    `headlineMain` still came back "TV", `description` "ago", and `brandBadge` and
+    `ctaButton` from the reference template. Overall confidence 0.68, against 0.85
+    for the path it was supposed to improve.
+    """
+    scored = [
+        rt(400, 560, 230, 45, text="HEADLINE"),
+        rt(240, 620, 550, 66, text="SUB HEADLINE"),
+        rt(740, 290, 160, 28, text="LABEL"),
+        rt(790, 520, 160, 45, text="SUBMIT"),
+    ]
+    unscored = [_unscored(c) for c in scored]
+
+    # Every one of them really does carry no score of its own.
+    assert all(c.confidence is None for c in unscored)
+
+    result = run(unscored)
+    by_name = {e["elementName"]: e for e in result["elements"]}
+
+    assert by_name["headlineMain"]["default"] == "HEADLINE"
+    assert by_name["headlineSub"]["default"] == "SUB HEADLINE"
+    assert by_name["brandBadge"]["default"] == "LABEL"
+    assert by_name["ctaButton"]["default"] == "SUBMIT"
+
+
+def test_an_unscored_reading_is_judged_on_the_region_it_came_from():
+    """`effective_confidence`'s rule, applied at the floor.
+
+    The geometric score is a real measurement — it is what §10's bands are applied
+    to for a region with no text — so a reading with no score of its own is judged
+    on the confidence of the box it was read out of, not discarded for a number it
+    never claimed to have.
+    """
+    # A region the detector was sure about. Its reading should be acted on.
+    confident = _unscored(rt(400, 560, 230, 45, text="HEADLINE", geo=0.95))
+    assert fuse_module._readable(confident) is True
+
+    # A region the detector itself doubted. §10's escalate boundary is the floor,
+    # and it still applies — the point of T-132 is that null is not zero, not that
+    # the floor is gone.
+    doubtful = _unscored(rt(400, 560, 230, 45, text="HEADLINE", geo=0.20))
+    assert fuse_module._readable(doubtful) is False
+
+
+def test_a_scored_reading_is_still_judged_on_its_own_score():
+    """The PaddleOCR path must be unchanged by this.
+
+    Where a reading HAS a score, that score is the better evidence and stays the
+    one the floor is applied to — a weak reading inside a confidently detected box
+    is still a weak reading.
+    """
+    weak_text_strong_box = rt(400, 560, 230, 45, text="HEADLINE", conf=0.10, geo=0.99)
+    assert fuse_module._readable(weak_text_strong_box) is False
+
+    strong_text_weak_box = rt(400, 560, 230, 45, text="HEADLINE", conf=0.95, geo=0.10)
+    assert fuse_module._readable(strong_text_weak_box) is True

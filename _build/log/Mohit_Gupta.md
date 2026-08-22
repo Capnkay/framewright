@@ -328,3 +328,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, docs/EDGE-CASES.md
 
+## T-132 — A reading with no confidence score is treated as a reading scored zero, which silently disables keyword slot assignment
+- Started: 2026-08-22T19:19:29.102Z
+- Finished: 2026-08-22T19:24:15.705Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: perception/stages/fuse.py, perception/tests/test_fuse.py
+
