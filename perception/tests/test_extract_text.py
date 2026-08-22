@@ -689,3 +689,68 @@ def test_worker_reads_real_text_end_to_end():
     assert "LIMITS" in result.regions[0].text.upper()
     assert 0.0 < result.regions[0].confidence <= 1.0
 
+
+
+# ---------------------------------------------------------------------------
+# T-131 — the scratch-space guard. EC-015.
+# ---------------------------------------------------------------------------
+
+
+def test_a_full_scratch_drive_is_reported_in_words_not_as_a_crash():
+    """EC-015's whole lesson, one layer earlier.
+
+    That entry is about a worker that died and was reported as "OCR ran but found
+    no text", which pointed every reader at the wireframe instead of at the
+    worker. T-131 could not reproduce the crash -- 55 runs across three
+    conditions, all clean -- and the one thing that had changed since the crash
+    window was that the drive holding this scratch directory went from full to
+    having room.
+
+    That is a correlation, not a cause, and the guard does not claim otherwise.
+    What it claims is that IF the disk is the problem, the next occurrence says
+    so. This test is what makes that claim true.
+    """
+    import shutil as _shutil
+
+    from perception.stages import extract_text as module
+
+    reader = module.SubprocessReader(python="python-that-is-never-spawned")
+
+    real_disk_usage = module.shutil.disk_usage
+    Usage = type(real_disk_usage("."))
+
+    def almost_full(path):
+        actual = real_disk_usage(path)
+        return Usage(actual.total, actual.total - 1024, 1024)  # 1 KB free
+
+    module.shutil.disk_usage = almost_full
+    try:
+        payload, failure = reader._run_once(np.zeros((10, 10, 3), dtype=np.uint8))
+    finally:
+        module.shutil.disk_usage = real_disk_usage
+
+    assert payload is None
+    assert failure is not None
+    # In words a person can act on, naming the drive and the amount.
+    assert "free" in failure
+    assert "EC-015" in failure
+    # And it must NOT be the empty-page sentence, which is the exact confusion
+    # EC-015 was written about.
+    assert "no text" not in failure
+
+
+def test_the_guard_does_not_fire_when_there_is_room():
+    """The guard must be invisible in the normal case.
+
+    A check that refuses on a healthy machine would trade an episodic failure for
+    a constant one, which is worse. The spawn below fails for its own reason --
+    the interpreter does not exist -- and that reason is what must come back.
+    """
+    from perception.stages import extract_text as module
+
+    reader = module.SubprocessReader(python="python-that-does-not-exist", retries=0)
+    payload, failure = reader._run_once(np.zeros((10, 10, 3), dtype=np.uint8))
+
+    assert payload is None
+    assert failure is not None
+    assert "free" not in failure, f"the space guard fired on a machine with room: {failure}"

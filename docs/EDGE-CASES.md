@@ -440,7 +440,7 @@ change belonging to whoever owns T-054.
 ---
 
 ## EC-015 · The OCR worker dies at random, and reports it as "the page had no text"
-**Date:** 2026-08-22 · **Status:** reported honestly and retried; root cause NOT found
+**Date:** 2026-08-22 · **Updated:** 2026-08-23 (T-131) · **Status:** reported honestly and retried; the standing suspicion is now ELIMINATED and the cause is still not found
 
 Three back-to-back runs of the full perception pipeline on `gpu-test/wireframe.png`,
 same interpreter, same image, nothing changed between them:
@@ -506,3 +506,76 @@ been observed in production.
 **Still open.** Root cause. If it recurs, the next thing to try is a dedicated
 paddle-only virtualenv — `SubprocessReader(python=...)` already takes the interpreter as
 a constructor argument precisely so that is a config change and not a rewrite.
+
+
+---
+
+### T-131 · The torch hypothesis, tested and eliminated
+
+The suspicion above — a quarrel between torch and paddle over CUDA globals, next
+door to EC-014 — was labelled a guess. It was testable, and it has now been tested.
+
+**It is not supported.** 55 runs of the worker, spawned exactly as `SubprocessReader`
+spawns it, across three conditions:
+
+| condition | runs | crashes |
+|---|---|---|
+| sequential, from a bare interpreter | 20 | **0** |
+| sequential, parent holding torch with a **live CUDA context** | 20 | **0** |
+| three workers concurrently, five rounds | 15 | **0** |
+
+The middle row is the one that matters, and it is why the first harness was not
+enough. `/health` imports torch and reports the device, so in production the process
+that spawns the worker is already holding torch and, on a GPU machine, a CUDA
+context. A harness that spawns from a bare interpreter never reproduces that. The
+second run allocates on the GPU and synchronises first — the state the service is
+actually in — and the worker still did not die, 20 times.
+
+Every run read the same 8 lines. `torch 2.6.0+cu124`, RTX 3050 6GB.
+
+**So the plan this was going to justify was not carried out, and that is the
+finding.** The next step on the board was a paddle-only virtual environment, to
+remove real torch from the worker's interpreter. Against a 0% baseline that would
+have produced a second 0% and no information — two identical numbers and nothing
+learned. Building it anyway and reporting "no crashes after the fix" would have been
+a claim the measurement does not support.
+
+Worth noting for whoever revisits this: the worker **already** neutralises torch. It
+installs a stub module under that name before `paddleocr` imports albumentations, for
+the reason the worker's own docstring gives. So the interpreter was never loading real
+torch in the first place, which makes the negative result less surprising in
+hindsight than it looked going in.
+
+### What replaced it: a correlation, stated as one
+
+One thing did change between the crash window and these clean runs. The crashes were
+recorded on 2026-08-22. On that same day the drive holding this machine's temp
+directory was found **completely full** — a probe write returned `ENOSPC` directly —
+and clearing ~5 GB of package cache also turned an unrelated suite from shifting
+failures to 712 of 712.
+
+`_run_once` writes the page into `tempfile.mkdtemp()`, on that drive, and PaddleOCR
+reads its model cache from it. **A native library that hits `ENOSPC` mid-write is
+entirely capable of faulting rather than returning an error.**
+
+That is a correlation and nothing more. It was not reproduced, because refilling the
+disk to test it is not a reasonable thing to do to a working machine, and one
+coincidence of dates is not a cause.
+
+### What was changed
+
+`_run_once` checks free space before spawning and refuses in words:
+
+> `only 3 MB free on the drive holding C:\...ramewright-ocr-xyz; the OCR worker
+> needs room for the page and its model cache (docs/EDGE-CASES.md EC-015)`
+
+**This does not fix a cause it cannot name.** It makes the most plausible one legible.
+EC-015's real cost was never the crash — it was that the crash arrived disguised as
+"OCR ran but found no text in the image", which sends the reader to the wireframe,
+where nothing is wrong. If the disk is the trigger, the next occurrence now says so
+instead of arriving as a number in decimal that nobody recognises.
+
+Two tests hold it: one that the guard fires with a named, actionable reason and
+**not** the empty-page sentence, and one that it stays invisible on a machine with
+room — a check that refuses on a healthy machine would trade an episodic failure for
+a constant one, which is worse than the bug.

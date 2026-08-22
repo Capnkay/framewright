@@ -321,3 +321,10 @@
 - Files: docs/BENCHMARK-RESULTS.md
 - Note: Measured over two runs and written up as B-008: 5 of 5 correct on regions that carry text, where SLOT_KEYWORDS already resolves them for free, and 1 unstable correct against 6 wrong on the textless regions where a role would be the only signal. Not wired.
 
+## T-131 — EC-015: the OCR worker segfaults episodically, and torch and paddle share its interpreter
+- Started: 2026-08-22T18:44:15.456Z
+- Finished: 2026-08-22T18:59:54.683Z
+- Duration: 16m
+- Device: Mohits_Victus
+- Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, docs/EDGE-CASES.md
+

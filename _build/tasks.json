@@ -2718,9 +2718,7 @@
       "files": [
         "perception/stages/extract_text.py",
         "perception/tests/test_extract_text.py",
-        "docs/EDGE-CASES.md",
-        "docs/BENCHMARK-RESULTS.md",
-        ".gitignore"
+        "docs/EDGE-CASES.md"
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_extract_text.py",
       "doneWhen": "EC-015 records the symptom and says the root cause was NOT found: the worker exits 3221225477 (0xC0000005, ACCESS_VIOLATION) after its startup banner and before its JSON, episodically - 2/2 crashes in one window, 0/8 in another, 2/3 in a third. The suspicion on record is EC-014's quarrel between torch and paddle over CUDA globals, labelled as a guess. It is now testable rather than a guess: both torch and paddle ARE installed in perception/.venv, the worker runs on sys.executable and therefore in that same interpreter, and SubprocessReader already takes `python=` with a comment saying a dedicated OCR venv should be a constructor argument rather than a rewrite. Done when a BASELINE crash rate is measured over enough runs to mean something, a paddle-only environment is built and the worker pointed at it, the rate is measured again the same way, and both numbers are written up whether or not they support the hypothesis. A rate that does not move is as publishable as one that does - it eliminates the standing suspicion, which is worth more than another guess. The venv must be gitignored, and rule 5 still holds: with no OCR at all the pipeline degrades as it does today."

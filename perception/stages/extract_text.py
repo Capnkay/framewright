@@ -107,6 +107,12 @@ ROW_TOLERANCE = 0.6
 # answer -- and would quietly turn a genuinely blank page into a slow one.
 WORKER_RETRIES = 2
 
+# Room the OCR worker needs on the scratch drive before it is worth spawning. The
+# page itself is a few hundred KB; the rest is PaddleOCR's model cache and paddle's
+# own allocations. Deliberately generous: the point is to refuse EARLY and in words,
+# not to squeeze the last megabyte out of a drive that is already in trouble.
+MIN_SCRATCH_BYTES = 256 * 1024 * 1024
+
 
 @dataclass(frozen=True)
 class TextLine:
@@ -360,6 +366,32 @@ class SubprocessReader:
         tmp = tempfile.mkdtemp(prefix="framewright-ocr-")
         path = os.path.join(tmp, "page.png")
         try:
+            # FREE SPACE IS CHECKED BEFORE THE WORKER IS SPAWNED, AND T-131 IS WHY.
+            # EC-015 records this worker dying with 0xC0000005 in episodic bursts and
+            # says the cause was not found; the standing suspicion was a torch/paddle
+            # quarrel over CUDA globals. T-131 tried to reproduce it and could not:
+            # 55 runs across three conditions -- sequential, sequential with a live
+            # CUDA context held by the parent, and three workers at once -- all clean.
+            #
+            # What HAD changed between the crash window and those runs is that the
+            # drive holding this temp directory went from completely full to having
+            # room. That is a correlation and it is labelled as one: nothing here
+            # proves a full disk causes an access violation. But the page below is
+            # written to that drive, PaddleOCR reads its model cache from it, and a
+            # native library that hits ENOSPC mid-write is entirely capable of
+            # faulting rather than returning an error.
+            #
+            # So this does not try to fix a cause it cannot name. It makes the most
+            # plausible one LEGIBLE: if the disk is the problem, the next occurrence
+            # says so in words instead of arriving as a number nobody recognises.
+            free = shutil.disk_usage(tmp).free
+            if free < MIN_SCRATCH_BYTES:
+                return None, (
+                    f"only {free / 1024 / 1024:.0f} MB free on the drive holding "
+                    f"{tmp}; the OCR worker needs room for the page and its model "
+                    "cache (docs/EDGE-CASES.md EC-015)"
+                )
+
             if not cv2.imwrite(path, image):
                 return None, "the page could not be written to a temporary file"
             try:
