@@ -2489,6 +2489,90 @@
       ],
       "verify": "node --test tests/artifact-root-is-isolable.test.mjs",
       "doneWhen": "stageTrace.js exports ARTIFACT_ROOT as the hardcoded string 'artifacts', resolved against the process cwd. A test that isolates its job store restarts the job counter at 1, so two test FILES running in parallel both write artifacts/job-0000000001/ under the repo root and overwrite each other's stage outputs. Measured: tests/generate-combined-mode.test.mjs passed alone and failed two assertions in a full npm test run, and tests/regenerate-base.test.mjs flaked the same way once. Worked around in generate-combined-mode.test.mjs by moving that file's cwd, which is a workaround and is labelled as one in the file. Done when the artifact root can be set per store or per run — an env var read once, or a value threaded through createStageTrace, whichever fits §11.2's 'artifacts are owned by Node and live on the Node machine' — and when a test proves two concurrent runs with the same jobId do not overwrite one another. Remove the cwd workaround when this lands."
+    },
+    {
+      "id": "T-121",
+      "phase": 6,
+      "track": "perception",
+      "size": "90m",
+      "title": "The VLM reads the wireframe better than our detector but its coordinates are in an invented space",
+      "contract": [
+        "§10",
+        "§12",
+        "§16.2"
+      ],
+      "deps": [
+        "T-120"
+      ],
+      "files": [
+        "perception/benchmarks/vlm_wireframe.py",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": "perception/.venv/Scripts/python -m perception.benchmarks.vlm_wireframe ../gpu-test/wireframe.png",
+      "doneWhen": "B-005 measured qwen3-vl-235b on artifacts/job-0000000078/s1-upload.png: 9 regions against our 35, every handwritten word read correctly (Image, LABEL, SUBMIT, HEADLINE, SUB HEADLINE) where PaddleOCR returned 'eeneb' and 'bceanse.ad.ioipqincsm', and a role on every region. But it reported width 1000 height 800 for a 1600x1168 image and the boxes read as corners rather than [x,y,w,h], so the geometry is in an invented space and NOTHING may be built on it yet. Done when a benchmark scores the VLM's boxes against the same seven annotated targets B-003 used, at IoU >= 0.5, with the true dimensions pinned in the prompt and the output normalised to the image's own pixels - and the number is written into B-005 whether it is good or bad. This task decides whether T-122 is worth doing; it does not wire anything."
+    },
+    {
+      "id": "T-122",
+      "phase": 6,
+      "track": "perception",
+      "size": "2h",
+      "title": "Stage 3 can use a VLM when a key is present, and the OpenCV path when it is not",
+      "contract": [
+        "§10",
+        "§12",
+        "§16.2"
+      ],
+      "deps": [
+        "T-121"
+      ],
+      "files": [
+        "perception/stages/describe_regions.py",
+        "perception/app.py",
+        "perception/tests/test_describe_regions.py"
+      ],
+      "verify": "perception/.venv/Scripts/python -m pytest perception/tests/test_describe_regions.py -q",
+      "doneWhen": "Blocked until T-121 says the coordinates are usable. Then: stage 3 asks the VLM when a key is configured and falls back to detect_regions + extract_text otherwise. AGENTS.md rule 5 is the binding constraint - with no key, no network and no GPU the pipeline must produce exactly what it produces today, and the fallback reason must reach the stage record's warnings the way extract_text's ocr_available already does. Every model call carries §16.2's { purpose, model, ms, attempts, ok }. Done when the perception suite passes with the key unset AND a test proves the VLM path is taken when it is set, with a stubbed transport."
+    },
+    {
+      "id": "T-123",
+      "phase": 6,
+      "track": "generation",
+      "size": "90m",
+      "title": "The hosted prompt-to-IR path costs 22 seconds and produces nothing usable",
+      "contract": [
+        "§6",
+        "§16.2"
+      ],
+      "deps": [
+        "T-120"
+      ],
+      "files": [
+        "server/src/generate/promptToIrHosted.js",
+        "tests/prompt-to-ir-hosted-output.test.mjs",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": "node --test tests/prompt-to-ir-hosted-output.test.mjs",
+      "doneWhen": "B-005 measured it against Bedrock: the call returns 200 in 22.5s and the IR fails §6 validation every time, so promptToIrHosted correctly falls back and the 22 seconds buy nothing. Three named defects in the model's output: source.mode came back 'code' for a prompt request, pageName came back 'landing' when 'Home' was passed in, and designTokens carried keys with spaces ('shadow Small'). response_format json_schema strict:true is accepted by the endpoint but does not enforce the schema. Done when the request pins the caller-supplied fields so the model cannot invent them, and a test asserts that a REALISTIC bad model reply - these three defects, recorded from the live call - is either repaired or rejected with the reason reaching the IR's warnings. Do not raise the §16.2 timeout to paper over latency; if 30s is genuinely too low, change it in the contract and log it in docs/corrections/REGISTER.md."
+    },
+    {
+      "id": "T-124",
+      "phase": 6,
+      "track": "generation",
+      "size": "2h",
+      "title": "mode=code is the last of §13's four modes still answering 501, and codeToIr.js has zero callers",
+      "contract": [
+        "§6",
+        "§13"
+      ],
+      "deps": [
+        "T-123"
+      ],
+      "files": [
+        "server/src/routes/generate.js",
+        "tests/generate-code-mode.test.mjs"
+      ],
+      "verify": "node --test tests/generate-code-mode.test.mjs",
+      "doneWhen": "codeToIr.js was built, tested and never called - the same rule 9 gap as T-101, T-108, T-116 and T-119. §13 names four modes; prompt, wireframe and combined work. Done when mode=code parses pasted React to an AST (NEVER eval, new Function or vm - AGENTS.md says Node's vm is not a security boundary) and produces §6 IR, when combined mode gives technical patterns to the code half per §6's order, and when a test proves a hostile input is refused rather than executed. The deterministic AST path must work with no key; a hosted model may improve it and may not be required by it."
     }
   ]
 }

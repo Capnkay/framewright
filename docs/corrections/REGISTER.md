@@ -1832,3 +1832,44 @@ apart — a race, not a protocol failure. Both implementations were complete and
 was discarded. Claims are pushed within seconds precisely to make this rare, and it still
 happened, so the remaining exposure is the window between choosing a task and pushing the
 claim.
+
+---
+
+## `.githooks/pre-push` — `bedrock-runtime.<region>.amazonaws.com` added to `ALLOWED_HOST_RE`
+
+**Date:** 2026-08-22 · Logged because AGENTS.md rule 7 requires it: a hook may be fixed,
+never weakened, and either way the change is written down.
+
+**What blocked.** B-005 and `.env.example` document the endpoint an OpenAI-compatible
+hosted model is reached at, so a push carrying them tripped the forbidden-hostname gate:
+
+```
+pre-push: forbidden hostname(s) in git history: bedrock-runtime.
+```
+
+**The gate was working.** It exists so that a client's hostname, a tenant name or a
+private database URI cannot enter history behind an innocuous-looking commit, and it
+cannot tell those apart from a public service endpoint by inspection. So it stops
+everything it does not recognise and makes a human say what the new host is.
+
+**What was done, and what was deliberately not done.** The host was added to
+`ALLOWED_HOST_RE` with the paragraph the hook's own comment block demands — *"say what it
+is and why a reader should not be alarmed by it. If you cannot write that sentence, do not
+add it."* That sentence is: this hostname is identical for every AWS account in existence,
+names no client, tenant, bucket or private infrastructure, and is fetched by nothing in
+this repository — the one module permitted to open a socket to a model provider reads
+`LLM_BASE_URL` from the environment, and `.env.example` ships a placeholder.
+
+The pattern was **not** broadened. `[a-z0-9-]+\.amazonaws\.com` would have admitted every
+S3 bucket and every RDS instance any of us ever touches, which is precisely the class this
+gate is for. Only `bedrock-runtime.<region>.amazonaws.com` is admitted.
+
+The region is a wildcard rather than `us-east-1`. Pinning it would mean the next person
+working from another region edits a security file to get a push through, and teaching that
+habit costs more than the specificity buys.
+
+**A second, unrelated block in the same push, fixed rather than exempted.**
+`.env.example` gained `LLM_MODEL=your-model-id`, and the hook refused it as
+"a non-placeholder-shaped value" — the file must look unmistakably like a template so that
+a real value pasted into it stands out. Renamed to `YOUR_LLM_MODEL_ID_HERE`, matching every
+other placeholder in the file. The hook was right and the file was wrong.

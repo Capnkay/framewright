@@ -401,3 +401,108 @@ words it lists; a wireframe that writes "Buy tickets" on its button falls straig
 to the positional fallback, which is the old behaviour and is what the fallback is for.
 The honest claim is that fusion no longer discards evidence it already has — not that
 slot assignment is solved.
+
+---
+
+## B-005 · AWS Bedrock as the hosted model — qwen3-coder-next and qwen3-vl-235b
+
+**Date:** 2026-08-22 · **Status:** SPIKE — measured, not yet wired · **VERIFIED** (live calls against the real endpoint)
+
+A Bedrock API key was made available, serving `qwen.qwen3-coder-next` (text) and
+`qwen.qwen3-vl-235b-a22b` (vision). This records what those two models actually did on
+our own inputs, because §16's whole design assumes a hosted model exists and until now
+nothing had ever answered one of its calls.
+
+**The key used for these measurements has been rotated and is not recorded here.**
+
+### The endpoint needs no adapter
+
+Bedrock exposes an OpenAI-compatible route beside its native one:
+
+```
+https://bedrock-runtime.<region>.amazonaws.com/openai/v1/chat/completions
+```
+
+`server/src/models/orchestrator.js` already posts to `${LLM_BASE_URL}/chat/completions`
+with a Bearer token and reads `choices[0].message.content`. Both matched on the first
+call. **Three environment variables, zero lines of code.** The native
+`/model/<id>/invoke` route also works and returns the same OpenAI-shaped body, so either
+would do; the `/openai/v1` one is the one the existing transport already speaks.
+
+`response_format: { type: 'json_schema', strict: true }` is **accepted** — the request
+does not error and the reply is parseable JSON.
+
+### What the vision model did with our wireframe
+
+Input: `artifacts/job-0000000078/s1-upload.png`, the same hand-drawn wireframe the demo
+runs on. Compared against that job's own `s3-regions.json`, produced by the OpenCV +
+PaddleOCR pipeline from the same bytes.
+
+| | stage 3 today (OpenCV + PaddleOCR) | qwen3-vl-235b, one call |
+|---|---|---|
+| regions returned | **35** | **9** |
+| roles | none — `fuse.py` infers them later from keywords | assigned in the response |
+| text read | `eeneb`, `bceanse.ad.ioipqincsm`, `SUB HEADLINE evoleldno` | `Image`, `LABEL`, `SUBMIT`, `HEADLINE`, `SUB HEADLINE` |
+| cost | free, local GPU | 2,305 tokens, ~4 s |
+
+Every handwritten word came back correct, the four ruled lines were labelled `input`, and
+the large empty box was labelled `image`. That is the combined output of `detect_regions`,
+`extract_text` and `fuse` in a single call.
+
+**The geometry is NOT yet usable and this is the open question.** The model reported
+`width: 1000, height: 800` for an image that is 1600 × 1168, and the boxes read as
+corners rather than `[x, y, w, h]`. So the coordinates are in an invented space. A second
+probe pinning the true dimensions in the prompt was not completed. **Nothing should be
+built on these boxes until that is measured against the B-003 annotations at IoU ≥ 0.5,
+the same bar the existing detector was held to.**
+
+### What the text model did with prompt-to-IR
+
+`promptToIrHostedWithMeta('a bold hero section with three stats and a dark accent')`, run
+with only the three environment variables set and no code change:
+
+```
+usedPath : keyless
+reason   : model call timed out after 30000ms
+meta     : {"purpose":"prompt-to-ir","model":"qwen.qwen3-coder-next","ms":60014,"attempts":2,"ok":false}
+```
+
+**Rule 5 held exactly as designed.** Two attempts failed, the orchestrator gave up, the
+keyless path produced a valid seven-element IR, and the reason was recorded in the IR's
+own `warnings` rather than being swallowed. Nothing crashed and nothing silently degraded.
+
+A raw call with the same §6 schema (5,191 bytes) returned **200 in 22.5 s**, so the 30 s
+§16.2 timeout is marginal for this model rather than wrong — the fallback above was
+variance, not a hard failure.
+
+**But the output does not satisfy §6, and `strict: true` did not prevent that.** From the
+raw reply:
+
+- `"source": { "mode": "code" }` — the call was a prompt, and `mode` was not the model's
+  to choose.
+- `"pageName": "landing"` — `Home` was passed in and ignored.
+- `"shadow Small"` and `"shadow XL"` — design token keys with spaces in them.
+
+`validateIr` rejects this and `promptToIrHosted` falls back, which is the correct
+behaviour and also means the hosted path currently costs 22 s to produce nothing. Making
+it useful is prompt engineering — pinning the caller-supplied fields and constraining
+`designTokens` — not configuration.
+
+### Licensing
+
+These are **hosted inference calls, not weights we run or redistribute.** The licence trap
+AGENTS.md records — YOLOv8's AGPL network clause, LayoutLMv3's CC-BY-NC-SA weights,
+Qwen2.5-Coder-3B's non-commercial terms — applies to weights shipped or served by us. A
+managed endpoint is a different relationship. The Bedrock model EULA for these two model
+ids should still be read before the submission claims anything about commercial use; it
+has **not** been read yet, and no claim rests on it.
+
+### What this changes
+
+Nothing yet, by design. The measured position is:
+
+1. The transport works and needs no code.
+2. The vision model is a large quality win on text and roles, blocked on coordinates.
+3. The text model needs prompt work before it beats the deterministic path, which today
+   produces valid IR in about a millisecond.
+4. Every one of these is an enhancement above a path that must keep working without them.

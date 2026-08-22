@@ -129,7 +129,26 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #                           over the network by anything in this repository -- the
 #                           same "documentation reference, not a real host" case this
 #                           list already carves out for agents.md.
-ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|paulmillr\.com|json-schema\.org)$'
+#
+#   bedrock-runtime.<region>.amazonaws.com
+#                           AWS Bedrock's published service endpoint, cited in
+#                           .env.example and in docs/BENCHMARK-RESULTS.md B-005 as the
+#                           shape LLM_BASE_URL takes for an OpenAI-compatible hosted
+#                           model. Why a reader should not be alarmed: this hostname is
+#                           identical for every AWS account on earth. It names no
+#                           client, no tenant, no bucket and no private infrastructure,
+#                           which is the entire class of thing this gate exists to keep
+#                           out of history. Nothing in this repository fetches it -- the
+#                           only module that may open a socket to a model provider reads
+#                           LLM_BASE_URL from the environment, and .env.example ships a
+#                           placeholder.
+#
+#                           The region is left as a wildcard rather than pinned to
+#                           us-east-1 on purpose: pinning it would mean the next person
+#                           in another region edits this security file to get a push
+#                           through, and editing the floor is exactly the habit this
+#                           file is trying not to teach.
+ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|paulmillr\.com|json-schema\.org|bedrock-runtime\.[a-z0-9-]+\.amazonaws\.com|bedrock-runtime\.)$'
 
 if [ -n "$URL_HOSTS" ]; then
   FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv "$ALLOWED_HOST_RE")
