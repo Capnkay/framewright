@@ -2619,6 +2619,27 @@
       ],
       "verify": "node --test tests/studio-information-architecture.test.mjs",
       "doneWhen": "Every component is mounted and wired; nothing is missing. What is wrong is what a first-time user meets. Headings read 'Configuration (FR-G07)', 'Generation Mode (FR-G04, FR-G01)' and 'Legacy Inputs (FR-G02, FR-G03)' - internal requirement ids on screen. The subtitle is a note-to-self: 'Full studio layout mounting all 14 built components', and there are 17. Three independently scrolling columns show eight panels at once with no primary action. The CMS editor asks the user to type a 10-digit field id by hand. The preview pane, which is the product, renders the string 'Preview will render here'. Done when there is one obvious first action, when the preview is the largest thing on screen, when the stage timeline appears in response to a run rather than sitting there empty, when secondary tools are behind tabs or a drawer, and when no requirement id, ticket number or component count appears in user-facing copy. Rule 3 is binding throughout: the graded section 7 oddities in generated sections are not touched."
+    },
+    {
+      "id": "T-127",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "30m",
+      "title": "The preview's mount-time fetch is cross-origin, so the store is dead in every browser and only in a browser",
+      "contract": [
+        "§5",
+        "§9",
+        "§13.4"
+      ],
+      "deps": [
+        "T-126"
+      ],
+      "files": [
+        "client/src/redux/fetchElementsByIds.js",
+        "tests/fetch-elements-uses-same-origin.test.mjs"
+      ],
+      "verify": "node --test tests/fetch-elements-uses-same-origin.test.mjs",
+      "doneWhen": "MEASURED IN CHROME, not reasoned about. /preview/Home reports 'Hydration status: failed', 'Keys in allSections: 0', and the console carries 48 identical TypeError: Failed to fetch from fetchElementsByIds - one per mounted section. DEFAULT_API_URL is the absolute 'http://localhost:5000/api'; the app is served from :5173; the Node API sends no Access-Control-Allow-Origin, so the browser blocks every read. Confirmed by curl: direct to :5000 with an Origin header returns 200 with no CORS header, and the same path through Vite's proxy on :5173 returns 200. vite.config.js EXISTS to prevent this and says so in its own comment - the absolute URL bypasses the proxy, so it has never been used by the one fetch that matters. This is section 9's exact failure and AGENTS.md rule 2's exact warning: the page renders pixel-perfect from DEFAULTS while the store is completely dead, and the node-side liveness script passes because it never goes through a browser origin. SideEditor already uses a relative '/api', so writes worked and reads did not. Done when the default is same-origin so the proxy is used, when VITE_API_URL still overrides for builds, and when a test asserts the default carries no scheme or host - the property, not the string."
     }
   ]
 }
