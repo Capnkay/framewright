@@ -54,18 +54,26 @@ test('T-114: The Studio submits a wireframe and drives the timeline from the res
   try {
     const baseUrl = `http://localhost:${server.address().port}`;
     
-    // 1. Create a mock ModeSelector that captures onSubmit
+    // 1. Create a mock Composer that captures onSubmit.
+    //
+    // ALIASED ON Composer.jsx, NOT ModeSelector.jsx. The Studio's input rail was
+    // rebuilt and ModeSelector was replaced by Composer, which broke this test —
+    // it aliased a module GeneratePage no longer imports, so the mock was never
+    // mounted and `onSubmit` was never captured. Worth keeping alive rather than
+    // deleting: this is the only test that drives a real submit over HTTP, and
+    // the thing it protects (the client-to-API seam) did not change when the
+    // component around it did.
     await fs.writeFile(tempMock, `
       import React from 'react';
-      export default function ModeSelector({ onSubmit }) {
+      export default function Composer({ onSubmit }) {
         if (typeof global !== 'undefined' && onSubmit) {
           global.__TEST_SUBMIT__ = onSubmit;
         }
-        return <div id="mock-mode-selector">ModeSelector Mock</div>;
+        return <div id="mock-composer">Composer Mock</div>;
       }
     `);
 
-    // 2. Build GeneratePage via esbuild, aliasing ModeSelector to our mock
+    // 2. Build GeneratePage via esbuild, aliasing Composer to our mock
     const SHARED = /^(react|react-dom|react-router-dom|react-redux|@reduxjs\/toolkit)(\/.*)?$/;
     const shareReactRuntime = {
       name: 'share-react-runtime',
@@ -75,7 +83,7 @@ test('T-114: The Studio submits a wireframe and drives the timeline from the res
           external: true,
         }));
         
-        build.onResolve({ filter: /\/ModeSelector\.jsx$/ }, (args) => {
+        build.onResolve({ filter: /\/Composer\.jsx$/ }, (args) => {
           return { path: tempMock };
         });
       },
@@ -96,8 +104,8 @@ test('T-114: The Studio submits a wireframe and drives the timeline from the res
     global.__TEST_SUBMIT__ = null;
     const initialHtml = renderToString(React.createElement(MemoryRouter, null, React.createElement(GeneratePage)));
     
-    assert.ok(initialHtml.includes('mock-mode-selector'), 'GeneratePage must mount the aliased ModeSelector');
-    assert.equal(typeof global.__TEST_SUBMIT__, 'function', 'GeneratePage must pass an onSubmit function (handleSubmit) to ModeSelector');
+    assert.ok(initialHtml.includes('mock-composer'), 'GeneratePage must mount the aliased Composer');
+    assert.equal(typeof global.__TEST_SUBMIT__, 'function', 'GeneratePage must pass an onSubmit function (handleSubmit) to Composer');
 
     // 4. Submit the real form data (wireframe mode)
     const formData = new FormData();
