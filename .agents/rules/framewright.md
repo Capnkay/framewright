@@ -17,6 +17,30 @@ verification) → commit with the task id → push.
 Current state is always `_build/STATE.md`. It is generated — never hand-edit it and never
 restate build progress anywhere else.
 
+## Working on UI? Read `docs/UI-SYSTEM.md` first
+
+The Generator Studio's tool chrome (Login, Composer, the Studio page itself — everything
+under `client/src/studio/*.jsx` and the route shells) is mid-redesign. Before touching any
+of it:
+
+- **The token boundary is the one rule that cannot slip.** Two separate systems now exist:
+  `--color-*` in `client/src/index.css` / the `colors` block in `tailwind.config.js` —
+  frozen, `docs/CONTRACT.md` §6-§8, generated CMS sections only, never touch it — versus
+  `studio-*` (the `.studio-theme` scope, `studio` key in `tailwind.config.js`'s
+  `theme.extend`) — this redesign, everything else. A `studio-*` class and a bare
+  `bg-background`/`text-accent`/etc. class must never land on the same element.
+- `docs/UI-SYSTEM.md` has the full surface inventory + priority order (Login and Composer
+  are done — T-135, T-136; Stage Inspector is next), the codified component-variant
+  catalog (buttons, inputs, pills, cards — reuse these, don't invent a second style), and
+  the motion discipline (restrained everywhere, one signature moment reserved for the
+  pipeline timeline, not built yet).
+- `docs/DESIGN-TOKENS.md`, `docs/SURFACE-INSPO.md`, `docs/VISUAL-INSPO.md`,
+  `docs/MOTION-INSPO.md` are the research behind those choices, if the why matters mid-build.
+- This is a Cap'n-directed initiative that sits outside the normal task queue until a
+  surface gets its own registered task — `docs/UI-SYSTEM.md` §6 has the exact pattern
+  (register in `_build/tasks.json`, claim, build, verify, commit) so it stays visible on
+  `baton status` instead of landing as a surprise.
+
 ## The five that matter most
 
 1. **`docs/CONTRACT.md` wins.** Code that disagrees with it is a bug. Disagree in the

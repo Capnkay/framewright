@@ -21,6 +21,13 @@ import App from './App.jsx';
 import { reducerMap } from './redux/reducers.js';
 import './index.css';
 
+// Studio chrome fonts (docs/DESIGN-TOKENS.md §2) — self-hosted, no runtime
+// Google Fonts <link>. Only the weights the Studio chrome actually uses.
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/jetbrains-mono/400.css';
+
 export const store = configureStore({ reducer: reducerMap });
 
 const container = document.getElementById('root');
