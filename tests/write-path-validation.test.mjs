@@ -32,6 +32,7 @@ import { isSafeCssText } from '../server/src/sanitise/cssAllowList.js';
 
 async function isolatedEnv(label) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), `fw-${label}-`));
+  await fs.writeFile(path.join(dir, 'jobs.json'), JSON.stringify({ counters: { job: 19001 }, jobs: [] }));
   return {
     JOB_STORE_PATH: path.join(dir, 'jobs.json'),
     STORE_PATH: path.join(dir, 'store.json'),

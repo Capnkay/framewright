@@ -8,6 +8,7 @@ import { createJobStore } from '../server/src/jobs/jobStore.js';
 
 test('hitl-endpoints (T-065)', async (t) => {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'framewright-hitl-'));
+  await fs.writeFile(path.join(tmpDir, 'jobs.json'), JSON.stringify({ counters: { job: 21001 }, jobs: [] }));
   const jobsFile = path.join(tmpDir, 'jobs.json');
   
   const store = createJobStore({ filePath: jobsFile });

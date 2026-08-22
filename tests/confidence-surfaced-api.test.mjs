@@ -8,6 +8,7 @@ import { createJobStore } from '../server/src/jobs/jobStore.js';
 
 test('Confidence bands are surfaced in the API response and timeline (T-067)', async () => {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fw-confidence-'));
+  await fs.writeFile(path.join(tmpDir, 'jobs.json'), JSON.stringify({ counters: { job: 20001 }, jobs: [] }));
   const jobsFile = path.join(tmpDir, 'jobs.json');
   const store = createJobStore({ filePath: jobsFile });
   

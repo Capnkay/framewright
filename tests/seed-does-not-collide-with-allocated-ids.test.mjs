@@ -27,6 +27,7 @@ import { postGenerate } from '../server/src/routes/generate.js';
 
 async function seededEnv(label) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), `fw-${label}-`));
+  await fs.writeFile(path.join(dir, 'jobs.json'), JSON.stringify({ counters: { job: 17001 }, jobs: [] }));
   const env = {
     JOB_STORE_PATH: path.join(dir, 'jobs.json'),
     STORE_PATH: path.join(dir, 'store.json'),

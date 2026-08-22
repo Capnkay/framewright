@@ -8,6 +8,7 @@ import os from 'node:os';
 
 test('POST /api/sections/:sectionId/regenerate per §13.3 (base semantics)', async () => {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fw-test-regenerate-'));
+  await fs.writeFile(path.join(tmpDir, 'jobs.json'), JSON.stringify({ counters: { job: 14001 }, jobs: [] }));
   const jobsFile = path.join(tmpDir, 'jobs.json');
   const storeFile = path.join(tmpDir, 'store.json');
   const env = { 

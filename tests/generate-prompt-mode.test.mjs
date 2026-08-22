@@ -8,6 +8,7 @@ import os from 'node:os';
 
 test('POST /api/generate for mode=prompt end to end', async () => {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fw-test-generate-'));
+  await fs.writeFile(path.join(tmpDir, 'jobs.json'), JSON.stringify({ counters: { job: 12001 }, jobs: [] }));
   const jobsFile = path.join(tmpDir, 'jobs.json');
   const storeFile = path.join(tmpDir, 'store.json');
   const env = { 

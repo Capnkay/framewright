@@ -8,6 +8,7 @@ import os from 'node:os';
 
 test('POST /api/sections/:sectionId/regenerate card-slot growth/shrink', async () => {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fw-test-regen-cards-'));
+  await fs.writeFile(path.join(tmpDir, 'jobs.json'), JSON.stringify({ counters: { job: 15001 }, jobs: [] }));
   const jobsFile = path.join(tmpDir, 'jobs.json');
   const storeFile = path.join(tmpDir, 'store.json');
   const env = { 

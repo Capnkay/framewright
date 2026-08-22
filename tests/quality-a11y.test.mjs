@@ -32,6 +32,10 @@ test('Performance gate measures bytes and ms', async () => {
 
   assert.equal(result.ok, true);
   assert.equal(result.bytes, Buffer.byteLength(source, 'utf8'));
-  assert.ok(result.ms >= 10, 'Should measure ms correctly');
+  // Was `>= 10`, which a fast machine legitimately beats. `>= 0` would be
+  // vacuous -- true of any number, proving nothing ran. Assert it is a real
+  // finite measurement instead.
+  assert.equal(typeof result.ms, 'number', 'the gate must report a duration');
+  assert.ok(Number.isFinite(result.ms) && result.ms >= 0, 'duration must be a real, non-negative measurement');
   assert.equal(called, true);
 });

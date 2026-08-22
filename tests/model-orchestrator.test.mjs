@@ -107,7 +107,17 @@ test('doneWhen — no provider SDK is imported anywhere outside the orchestrator
   const offenders = [];
   for (const file of sourceFiles()) {
     if (file === ORCHESTRATOR_REL) continue;
-    const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+    let source;
+    try {
+      source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+    } catch (e) {
+      // Generated components are written and removed by other suites while this
+      // one walks the tree, so a file can vanish between listing and reading.
+      // Skip ONLY those: this is a credential scan (§16.2), and swallowing every
+      // ENOENT would let a real source file drop silently out of it.
+      if (e.code === 'ENOENT' && file.includes('sections/generated/')) continue;
+      throw e;
+    }
     if (forbidden.test(source)) offenders.push(file);
   }
   assert.deepEqual(offenders, [], 'a provider SDK is imported outside the single call site');
