@@ -285,3 +285,10 @@
 - Device: Mohits_Victus
 - Files: client/src/routes/GeneratePage.jsx, tests/studio-information-architecture.test.mjs
 
+## T-127 — The preview's mount-time fetch is cross-origin, so the store is dead in every browser and only in a browser
+- Started: 2026-08-22T16:57:58.952Z
+- Finished: 2026-08-22T17:02:13.908Z
+- Duration: 4m
+- Device: Mohits_Victus
+- Files: client/src/redux/fetchElementsByIds.js, tests/fetch-elements-uses-same-origin.test.mjs
+

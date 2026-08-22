@@ -24,10 +24,32 @@
 
 import { cmsSlice, computeMissing } from './cmsSlice.js';
 
-// This repo's own .env.example value; overridden by VITE_API_URL when the
-// Vite build injects import.meta.env (Phase 1) or when a test supplies one
-// via the thunk's extraArgument.
-const DEFAULT_API_URL = 'http://localhost:5000/api';
+// SAME-ORIGIN BY DEFAULT, AND T-127 IS WHY. This was the absolute
+// `http://localhost:5000/api` — .env.example's value, copied here as a default.
+// The app is served from :5173, the Node API answers on :5000 and sends no
+// `Access-Control-Allow-Origin`, so every browser blocked every read with
+// `TypeError: Failed to fetch`. Measured in Chrome on /preview/Home: hydration
+// status `failed`, 0 keys in `allSections`, and 48 identical exceptions — one
+// per mounted section.
+//
+// THIS IS §9'S EXACT FAILURE AND RULE 2'S EXACT WARNING. Every text node renders
+// `data?.[id] || "DEFAULT"`, so the page was pixel-perfect and the store was
+// completely dead. Nothing caught it: `npm run check-store-liveness` drives the
+// thunk from Node, where there is no origin to violate, and every unit test
+// injects `apiUrl` through `extraArgument`. The bug lived only in a browser, and
+// only a browser could find it.
+//
+// vite.config.js already proxies `/api` to :5000 and its comment says exactly
+// this — "without this every fetch from the preview would be a cross-origin
+// request needing CORS on the server". The proxy was correct from the start. An
+// absolute URL simply walks around it, so it had never once been used by the one
+// fetch that hydrates the store. SideEditor's `apiUrl = '/api'` is why writes
+// worked while reads did not.
+//
+// `VITE_API_URL` still wins where it is set, which is how a deployed build
+// points at a real API host. The default is relative so that development, which
+// is what the demo runs on, goes through the proxy.
+const DEFAULT_API_URL = '/api';
 
 function apiBaseUrl(extraArgument) {
   if (extraArgument && extraArgument.apiUrl) {
