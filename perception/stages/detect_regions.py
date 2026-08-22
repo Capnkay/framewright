@@ -210,6 +210,16 @@ def _smeared(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 # rather than by nudging.
 STROKE_RATIO = 0.10
 
+# Below this, a side was not drawn at all; at or above it, a side is present and
+# may simply be incomplete. The distinction is the whole of T-134: a rectangle
+# MISSING a side and a rectangle with a GAP in a side are different claims about
+# what someone drew, and the four-way conjunction could not tell them apart.
+#
+# 0.25 is set where the two look nothing alike on the reference wireframe: the
+# hero panel's weakest side is 0.5486 (present, a 228px gap in a 627px edge) and a
+# side nobody drew measures essentially 0. Nothing on that page sits between.
+SIDE_PRESENT_ABOVE = 0.25
+
 
 def _edge_support(
     bbox: tuple[int, int, int, int], vertical: np.ndarray, horizontal: np.ndarray
@@ -292,6 +302,36 @@ def _geometric_mean(values: list[float]) -> float:
     return float(np.exp(np.mean(np.log(clamped))))
 
 
+def _shape_confidence(support: dict[str, float]) -> float:
+    """Aggregate the sides a shape has into one number. T-134.
+
+    A DELIBERATE SOFTENING OF THE CONJUNCTION ABOVE, and the reasoning is logged in
+    docs/corrections/REGISTER.md rather than only here.
+
+    `_geometric_mean` was chosen so that a three-sided bracket scores near zero and
+    escalates instead of landing in §10's verify band. That is still right and is
+    untouched. What it also did was score a box whose four sides are ALL DRAWN, one
+    of them with a gap in it, as though a side were missing. On the reference
+    wireframe the hero panel measures top 0.68, bottom 0.79, right 0.79 and left
+    0.5486 — that left edge is 344 of 627 px inked, in two segments — and came out
+    at 0.694, while the same box is LOCATED at IoU 0.88.
+
+    So: when every side is present, the weakest one is dropped and the rest are
+    combined. A rectangle with four drawn sides and a gap in one is still plainly a
+    rectangle. When ANY side is absent, nothing is dropped and the conjunction bites
+    exactly as before — which is what keeps the bracket escalating.
+
+    Trimming needs at least three present sides to mean anything. A stroke is scored
+    on two, and dropping one of those would score a line on a single side.
+    """
+    values = list(support.values())
+    if len(values) < 3 or any(v < SIDE_PRESENT_ABOVE for v in values):
+        return _geometric_mean(values)
+
+    trimmed = sorted(values)[1:]
+    return _geometric_mean(trimmed)
+
+
 # --- geometry helpers ------------------------------------------------------
 
 
@@ -360,7 +400,7 @@ def _rect_regions(mask: np.ndarray, min_area: float, max_area: float) -> list[Re
 
         bbox = (x, y, w, h)
         support = _edge_support(bbox, vertical, horizontal)
-        confidence = _geometric_mean(list(support.values()))
+        confidence = _shape_confidence(support)
 
         hull_area = cv2.contourArea(cv2.convexHull(contour))
         evidence = {

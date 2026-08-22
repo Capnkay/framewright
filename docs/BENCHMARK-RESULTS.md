@@ -987,3 +987,27 @@ accuracy.
 | B-004 geometry | 6 of 7 | **7 of 7** |
 | B-004 text | 4 of 4 | **4 of 4** |
 | B-003 localisation | 7 of 7 | **7 of 7** |
+
+### Change 4: the aggregation, softened after all — T-134
+
+Requested after the evidence above was presented. Reversing the geometric-mean decision is
+logged in `docs/corrections/REGISTER.md` with the objection kept, because a reversal with
+the argument deleted is worse than no record.
+
+When every side of a box is **present**, the weakest is dropped and the rest combined; when
+any side is **absent**, nothing is dropped and the conjunction bites as before, so a
+three-sided bracket still escalates. The result is still a geometric mean of real
+measurements — three instead of four — and the distinction between *absent* and
+*incomplete* is one the old measure could not express at all.
+
+| | before | after |
+|---|---|---|
+| `heroImage` | 0.6831 | **0.7840** |
+| `statBadges` | 0.9014 | **0.9148** |
+| **overall confidence** | 0.8744 | **0.8907** |
+| B-003 localisation | 7 of 7 | 7 of 7 |
+| B-004 geometry / text | 7 of 7 / 4 of 4 | 7 of 7 / 4 of 4 |
+
+**It did not reach 0.90.** 0.8907, and the remaining gap is `headlineSub` at 0.8003 — an
+OCR score on `SUB HEADLINE evoleldno`, text the hosted reader returns clean — and
+`heroImage` at 0.784, whose edge is still a third undrawn.

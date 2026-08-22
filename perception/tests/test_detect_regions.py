@@ -22,12 +22,18 @@ import cv2
 import numpy as np
 import pytest
 
+# §10 escalate boundary, mirrored from fuse.ESCALATE_BELOW so this file does not
+# import a sibling stage just for one constant.
+ESCALATE_EQUIVALENT = 0.60
+
 from perception.stages.detect_regions import (
     MAX_AREA_FRACTION,
     Region,
+    SIDE_PRESENT_ABOVE,
     STROKE_RATIO,
     _edge_support,
     _geometric_mean,
+    _shape_confidence,
     _smeared,
     detect_regions,
     ink_mask,
@@ -494,3 +500,63 @@ def test_the_stroke_threshold_separates_the_measured_populations():
     """
     assert max(0.044, 0.054, 0.060, 0.062) < STROKE_RATIO
     assert STROKE_RATIO < 0.120
+
+
+# ---------------------------------------------------------------------------
+# T-134 — a gap in a side is not a missing side. §10.
+# ---------------------------------------------------------------------------
+
+
+def test_a_three_sided_bracket_still_escalates():
+    """THE PROPERTY T-134 MUST NOT BREAK, asserted first for that reason.
+
+    `_geometric_mean` was chosen over an arithmetic mean precisely so a bracket —
+    a rectangle candidate with a side genuinely missing — scores near zero and
+    escalates, rather than landing at 0.75 in §10's verify band. Softening the
+    conjunction for gappy boxes must leave that exactly where it was.
+    """
+    bracket = {"top": 1.0, "bottom": 1.0, "left": 1.0, "right": 0.02}
+
+    assert _shape_confidence(bracket) < ESCALATE_EQUIVALENT
+    # And specifically: no trimming happened, so it is the plain conjunction.
+    assert _shape_confidence(bracket) == _geometric_mean(list(bracket.values()))
+
+
+def test_a_box_with_a_gap_in_one_side_is_not_scored_as_a_missing_side():
+    """The reference wireframe's hero panel, by its measured numbers.
+
+    Its left edge is 344 of 627 px inked, in two segments, with a single 228px
+    gap — present, and incomplete. The four-way conjunction scored the whole box
+    0.694 for it, while the detector located that same box at IoU 0.88.
+    """
+    hero = {"top": 0.6818, "bottom": 0.7899, "left": 0.5486, "right": 0.7863}
+
+    plain = _geometric_mean(list(hero.values()))
+    softened = _shape_confidence(hero)
+
+    assert round(plain, 3) == 0.694, "the baseline this task was measured against moved"
+    assert softened > plain
+    # The weakest side is dropped and the other three combined — not rescaled, not
+    # floored, so the number is still a geometric mean of real measurements.
+    assert softened == _geometric_mean([0.6818, 0.7899, 0.7863])
+
+
+def test_trimming_needs_at_least_three_present_sides():
+    """A stroke is scored on two sides. Dropping one scores a line on one side,
+    which measures nothing at all."""
+    stroke = {"top": 1.0, "bottom": 0.9}
+    assert _shape_confidence(stroke) == _geometric_mean([1.0, 0.9])
+
+
+def test_the_presence_floor_separates_absent_from_incomplete():
+    # Set where the two look nothing alike: the hero panel's weakest PRESENT side
+    # is 0.5486, and a side nobody drew measures essentially zero.
+    assert 0.0 < SIDE_PRESENT_ABOVE < 0.5486
+
+    absent = {"top": 1.0, "bottom": 1.0, "left": 1.0, "right": SIDE_PRESENT_ABOVE - 0.01}
+    present = {"top": 1.0, "bottom": 1.0, "left": 1.0, "right": SIDE_PRESENT_ABOVE + 0.01}
+
+    # Just below the floor: nothing is trimmed, so the weak side still dominates.
+    assert _shape_confidence(absent) == _geometric_mean(list(absent.values()))
+    # Just above it: the weak side is the one dropped.
+    assert _shape_confidence(present) == 1.0

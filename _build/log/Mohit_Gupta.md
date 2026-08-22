@@ -342,3 +342,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/normalise.py, perception/stages/detect_regions.py, perception/tests/test_detect_regions.py, docs/BENCHMARK-RESULTS.md, docs/corrections/REGISTER.md
 
+## T-134 — Soften the four-edge conjunction so one incomplete side does not dominate a located box
+- Started: 2026-08-22T20:21:20.865Z
+- Finished: 2026-08-22T20:26:52.816Z
+- Duration: 6m
+- Device: Mohits_Victus
+- Files: perception/stages/detect_regions.py, perception/tests/test_detect_regions.py, docs/corrections/REGISTER.md, docs/BENCHMARK-RESULTS.md
+

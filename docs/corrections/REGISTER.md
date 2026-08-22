@@ -1907,3 +1907,90 @@ which is what it was written to check — it no longer does so via a field the f
 
 `tests/prompt-to-ir-hosted.test.mjs` was added to T-123's `files` and its `verify` command,
 in `_build/tasks.json`, rather than left as a silent out-of-scope edit.
+
+---
+
+## `detect_regions` — the four-edge conjunction is trimmed when every side is present (T-134)
+
+**Date:** 2026-08-23 · Logged because this **reverses a documented decision**, and the
+reasoning belongs somewhere a reader will find it rather than in a commit message.
+
+### What was decided before, and why
+
+`_geometric_mean` was chosen over an arithmetic mean, and the docstring gives the reason:
+
+> *"An arithmetic mean gives a rectangle with three strong sides and no fourth side 0.75 —
+> which lands in §10's 'verify' band, when the right answer is that we are looking at a
+> bracket and should escalate. The geometric mean is zero if any component is zero and is
+> dragged hard by any component that is small, which is the behaviour a conjunction of
+> independent checks should have."*
+
+That is correct and **it still holds**. A bracket still scores near zero and still
+escalates; a test now pins it.
+
+### What it also did
+
+It could not tell **a side that is missing** from **a side that is drawn with a gap in
+it**, and treated both as a failed conjunct.
+
+On the reference wireframe the hero panel measures `top 0.68, bottom 0.79, right 0.79,
+left 0.5486`, and that left edge was inspected pixel by pixel before anything was changed:
+
+```
+344 of 627 px inked, in 2 segments, with a single 228 px gap
+```
+
+Present, and incomplete. The conjunction scored the whole box **0.694** for it — while the
+detector **located that same box at IoU 0.88**. Geometry said "this is the right
+rectangle" and confidence said "medium", about the same region, on the strength of one
+side having a hole in it.
+
+### What changed
+
+When **every** side is present, the weakest is dropped and the rest are combined. When
+**any** side is absent, nothing is dropped and the conjunction bites exactly as before.
+
+`SIDE_PRESENT_ABOVE = 0.25` separates the two, set where they look nothing alike: the
+weakest genuinely present side on that page is 0.5486, and a side nobody drew measures
+essentially zero. Nothing sits between.
+
+Trimming requires at least three present sides. A stroke is scored on two, and dropping
+one of those would score a line on a single side.
+
+### Measured, before and after
+
+| | before | after |
+|---|---|---|
+| `heroImage` | 0.6831 | **0.7840** |
+| `statBadges` | 0.9014 | **0.9148** |
+| every other element | — | unchanged |
+| **overall confidence** | 0.8744 | **0.8907** |
+| **B-003 localisation** | 7 of 7 | **7 of 7** |
+| **B-004 geometry** | 7 of 7 | **7 of 7** |
+| **B-004 text** | 4 of 4 | **4 of 4** |
+| regions detected | 35 | 35 |
+
+Nothing was traded for it.
+
+### The disagreement, recorded
+
+This change was **requested after the evidence against it was presented**, and the
+objection is kept here rather than dropped, because a reversal with the argument deleted
+is worse than no record at all.
+
+The objection was: 0.6831 is a *correct* reading of an edge that is a third undrawn, and
+B-009 had just measured that overall confidence does **not** track accuracy — a synthetic
+clean image scored 0.9634 while B-004's geometry fell from 7 of 7 to 4 of 7. Raising a
+true measurement to move a number shown not to mean what it is being asked to mean is a
+poor trade.
+
+What survives that objection, and is why the change is defensible rather than merely
+requested: **it is not a rescale or a fudge factor.** The result is still a geometric mean
+of real measurements — three of them instead of four — and the distinction it draws
+between *absent* and *incomplete* is a real distinction that the old measure genuinely
+could not express. The bracket case, which is the whole reason the geometric mean was
+chosen, is unchanged and now has a test.
+
+**It did not reach 0.90.** The result is 0.8907. The remaining gap is `headlineSub` at
+0.8003, which is an OCR score on `SUB HEADLINE evoleldno` — text the hosted reader returns
+clean — and `heroImage` at 0.784, whose edge is still a third undrawn.
