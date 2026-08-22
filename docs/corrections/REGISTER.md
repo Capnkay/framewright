@@ -1994,3 +1994,30 @@ chosen, is unchanged and now has a test.
 **It did not reach 0.90.** The result is 0.8907. The remaining gap is `headlineSub` at
 0.8003, which is an OCR score on `SUB HEADLINE evoleldno` — text the hosted reader returns
 clean — and `heroImage` at 0.784, whose edge is still a third undrawn.
+
+---
+
+## 2026-08-23 · pre-push blocked four design-research citation hosts
+
+```
+pre-push: forbidden hostname(s) in git history: magicui.design motion-primitives.com
+ui.aceternity.com www.raycast.com
+```
+
+Same class as `json-schema.org` above, and the gate did exactly what it is for: `docs/MOTION-INSPO.md`
+and `docs/VISUAL-INSPO.md` (the research behind the Studio chrome's new `studio-*` token
+system and its one signature animated moment, `docs/UI-SYSTEM.md` §5) cite these four sites
+as sources — `https://magicui.design/...`, `https://motion-primitives.com/...`,
+`https://ui.aceternity.com/...`, `https://www.raycast.com/...` — and the gate cannot tell a
+citation from a real hostname of ours by inspection, so it stopped and asked.
+
+Added to `ALLOWED_HOST_RE` with the required sentence: none of the four is fetched by any
+client or server code in this repository — the design language they informed was *adapted*,
+restyled entirely with this project's own `studio-*` tokens per `docs/UI-SYSTEM.md`'s
+"adapt, don't copy verbatim" rule, never copied or loaded live. `LAW-MANIFEST.sha256`'s
+`.githooks/pre-push` entry regenerated to match, verified with `sha256sum -c
+LAW-MANIFEST.sha256` before committing.
+
+Not exempted as a file class — a future doc citing an unrelated real host still fails, as
+it should. Bare `raycast.com` also appears in `VISUAL-INSPO.md`'s prose, but the check only
+scopes scheme-prefixed URLs, so only `www.raycast.com` needed listing.

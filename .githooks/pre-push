@@ -130,6 +130,25 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #                           same "documentation reference, not a real host" case this
 #                           list already carves out for agents.md.
 #
+#   magicui.design, motion-primitives.com, ui.aceternity.com, www.raycast.com
+#                           Cited as sources in docs/MOTION-INSPO.md and
+#                           docs/VISUAL-INSPO.md — the design/animation-library
+#                           research behind the Studio chrome's token system and
+#                           its one signature animated moment (docs/UI-SYSTEM.md
+#                           section 5). Same category as agents.md and
+#                           json-schema.org above: a documentation reference, not
+#                           a real host of ours. Nothing in this repository's
+#                           client or server code fetches any of these over the
+#                           network — the design system they informed was
+#                           ADAPTED (restyled with this project's own studio-*
+#                           tokens), never copied or loaded live, per
+#                           docs/UI-SYSTEM.md's explicit "adapt, don't copy
+#                           verbatim" rule.
+#                           (Bare "raycast.com" also appears in prose in
+#                           VISUAL-INSPO.md, but this check only scopes
+#                           scheme-prefixed URLs, so only www.raycast.com needed
+#                           listing here.)
+#
 #   bedrock-runtime.<region>.amazonaws.com
 #                           AWS Bedrock's published service endpoint, cited in
 #                           .env.example and in docs/BENCHMARK-RESULTS.md B-005 as the
@@ -148,7 +167,7 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #                           in another region edits this security file to get a push
 #                           through, and editing the floor is exactly the habit this
 #                           file is trying not to teach.
-ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|paulmillr\.com|json-schema\.org|bedrock-runtime\.[a-z0-9-]+\.amazonaws\.com|bedrock-runtime\.)$'
+ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|paulmillr\.com|json-schema\.org|bedrock-runtime\.[a-z0-9-]+\.amazonaws\.com|bedrock-runtime\.|magicui\.design|motion-primitives\.com|ui\.aceternity\.com|www\.raycast\.com)$'
 
 if [ -n "$URL_HOSTS" ]; then
   FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv "$ALLOWED_HOST_RE")
