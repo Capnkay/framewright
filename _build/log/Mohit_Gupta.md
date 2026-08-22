@@ -278,3 +278,10 @@
 - Device: Mohits_Victus
 - Files: client/src/utils/sectionContrast.js, tests/text-contrast.test.mjs, tests/golden.test.mjs
 
+## T-126 — The Studio is a developer console: requirement IDs as headings, eight panels at once, and a placeholder where the preview should be
+- Started: 2026-08-22T16:44:34.950Z
+- Finished: 2026-08-22T16:49:05.268Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: client/src/routes/GeneratePage.jsx, tests/studio-information-architecture.test.mjs
+
