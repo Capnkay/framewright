@@ -50,7 +50,7 @@ function TextModeForm({ mode, onSubmit }) {
       </h2>
       
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-300 rounded text-sm font-medium">
+        <div className="p-3 bg-destructive/10 text-destructive border border-destructive/20 rounded text-sm font-medium">
           {error}
         </div>
       )}
@@ -109,7 +109,7 @@ function TextModeForm({ mode, onSubmit }) {
         </div>
       )}
 
-      <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition-colors">
+      <button type="submit" className="px-4 py-2 bg-accent text-white font-semibold rounded hover:bg-accent-hover transition-colors">
         Generate
       </button>
     </form>
@@ -121,7 +121,7 @@ export default function ModeSelector({ onSubmit }) {
   
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-6 p-4 border rounded bg-gray-50 items-center">
+      <div className="flex gap-6 p-4 border rounded bg-card items-center">
         <span className="font-semibold">Mode:</span>
         {/* Rendered from MODES so the control list cannot drift from §13's four
             values. Adding a radio the server would 400 is a silent UI break. */}

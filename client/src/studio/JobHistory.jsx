@@ -42,13 +42,13 @@ export default function JobHistory() {
   if (jobs.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 p-4 bg-white border rounded shadow-sm">
-      <h3 className="font-semibold text-gray-800">Job History</h3>
+    <div className="flex flex-col gap-2 p-4 bg-background border rounded shadow-sm">
+      <h3 className="font-semibold text-foreground">Job History</h3>
       <ul className="text-sm flex flex-col gap-1">
         {jobs.map(job => (
           <li key={job.jobId} className="flex justify-between border-b last:border-0 pb-1">
-            <span className="text-gray-600">Job {job.jobId}</span>
-            <span className="font-medium text-gray-800">{job.status}</span>
+            <span className="text-muted-foreground">Job {job.jobId}</span>
+            <span className="font-medium text-foreground">{job.status}</span>
           </li>
         ))}
       </ul>

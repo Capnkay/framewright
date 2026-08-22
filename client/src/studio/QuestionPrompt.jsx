@@ -67,9 +67,9 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
   const allAnswered = questions.every(q => answers[q.questionId]);
 
   return (
-    <div className="flex flex-col gap-4 p-4 border rounded shadow-sm bg-white mt-4">
+    <div className="flex flex-col gap-4 p-4 border rounded shadow-sm bg-background mt-4">
       <h3 className="font-semibold text-lg text-amber-700">Action Required: Awaiting Input</h3>
-      <p className="text-sm text-gray-600">The model has low confidence on some elements. Please help identify them.</p>
+      <p className="text-sm text-muted-foreground">The model has low confidence on some elements. Please help identify them.</p>
       
       {questions.map((q, idx) => {
         let overlayStyle = {};
@@ -86,7 +86,7 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
           <div key={q.questionId} className="border-t pt-4 mt-2">
             <p className="font-medium mb-2">{q.prompt} (Confidence: {q.confidence})</p>
             
-            <div className="relative inline-block border border-gray-200 rounded overflow-hidden w-full max-w-xl">
+            <div className="relative inline-block border border-border rounded overflow-hidden w-full max-w-xl">
               <img 
                 src={`/api/jobs/${jobId}/artifacts/s2-normalised.jpg`} 
                 alt="Source context"
@@ -94,7 +94,7 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
               />
               {q.bbox && normalisation && (
                 <div 
-                  className="absolute border-2 border-red-500 bg-red-500 bg-opacity-20 pointer-events-none"
+                  className="absolute border-2 border-red-500 bg-destructive/100 bg-opacity-20 pointer-events-none"
                   style={overlayStyle}
                 />
               )}
@@ -122,7 +122,7 @@ export default function QuestionPrompt({ jobId, status, onResumed }) {
         <button
           onClick={handleSubmit}
           disabled={!allAnswered || submitting}
-          className="bg-blue-600 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
+          className="bg-accent text-white px-4 py-2 rounded font-medium disabled:opacity-50"
         >
           {submitting ? 'Submitting...' : 'Submit Answers'}
         </button>

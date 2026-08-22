@@ -18,6 +18,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 
+import LandingPage from './routes/LandingPage.jsx';
 import GeneratePage from './routes/GeneratePage.jsx';
 import PreviewPage from './routes/PreviewPage.jsx';
 
@@ -27,8 +28,10 @@ function Nav() {
     <Link
       to={to}
       className={
-        'rounded-md px-3 py-1.5 text-sm font-medium ' +
-        (pathname.startsWith(to) ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-200')
+        'rounded-md px-3 py-1.5 text-sm font-medium transition-colors ' +
+        (pathname.startsWith(to) && to !== '/' || (to === '/' && pathname === '/') 
+          ? 'bg-accent text-white' 
+          : 'text-muted-foreground hover:bg-card hover:text-foreground')
       }
     >
       {label}
@@ -36,36 +39,48 @@ function Nav() {
   );
 
   return (
-    <nav className="flex items-center gap-2 border-b border-gray-200 px-4 py-3">
-      <span className="mr-2 font-semibold tracking-tight">Framewright</span>
-      {link('/generate', 'Generate')}
+    <nav className="flex items-center gap-2 border-b border-border px-4 py-3 bg-background">
+      <Link to="/" className="mr-2 font-semibold tracking-tight text-foreground hover:text-accent transition-colors">Framewright</Link>
+      {link('/generate', 'Studio')}
       {link('/preview', 'Preview')}
     </nav>
   );
 }
 
+function StudioLayout({ children }) {
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Nav />
+      <div className="flex-1">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      <Nav />
+    <>
       <Routes>
-        <Route path="/" element={<Navigate to="/generate" replace />} />
-        <Route path="/generate" element={<GeneratePage />} />
+        <Route path="/" element={<StudioLayout><LandingPage /></StudioLayout>} />
+        <Route path="/generate" element={<StudioLayout><GeneratePage /></StudioLayout>} />
         {/* §1: pageName defaults to Home. */}
         <Route path="/preview" element={<Navigate to="/preview/Home" replace />} />
         <Route path="/preview/:pageName" element={<PreviewPage />} />
         <Route
           path="*"
           element={
-            <main className="p-6">
-              <h1 className="text-lg font-semibold">No such page</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                This app serves <code>/generate</code> and <code>/preview/:pageName</code>.
-              </p>
-            </main>
+            <StudioLayout>
+              <main className="p-6">
+                <h1 className="text-lg font-semibold text-foreground">No such page</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This app serves <code>/</code>, <code>/generate</code> and <code>/preview/:pageName</code>.
+                </p>
+              </main>
+            </StudioLayout>
           }
         />
       </Routes>
-    </div>
+    </>
   );
 }

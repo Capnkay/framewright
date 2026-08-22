@@ -35,17 +35,17 @@ export function getSectionTextContrastClass(section = {}) {
   }
   if (sectionTextMode === 'light') {
     // Light background -> dark text.
-    return 'text-gray-800';
+    return 'text-foreground';
   }
 
   const rgb = parseHexColor(sectionColor);
   if (rgb) {
-    return relativeLuminance(rgb) < 0.5 ? 'text-white' : 'text-gray-800';
+    return relativeLuminance(rgb) < 0.5 ? 'text-white' : 'text-foreground';
   }
 
   // "auto" with no usable colour: default to the reference section's actual
   // default surface, white, so body copy stays readable out of the box.
-  return 'text-gray-800';
+  return 'text-foreground';
 }
 
 function parseHexColor(value) {

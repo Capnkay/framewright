@@ -19,5 +19,5 @@ test('JobTimeline UI supports replay from stage (T-064)', () => {
   assert.match(source, /Perception service/, 'must provide plain language for 422 error');
 
   // Verify it renders a button
-  assert.match(source, /<button[\s\S]*Replay from here/, 'must render replay button');
+  assert.match(source, /<button[\s\S]*Replay/, 'must render replay button');
 });

@@ -13,7 +13,7 @@ export default function ErrorBanner({ statusCode, message }) {
   const displayMessage = ERROR_MESSAGES[statusCode] || message || 'An unknown error occurred.';
 
   return (
-    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+    <div className="bg-destructive/10 border border-red-200 text-destructive px-4 py-3 rounded relative" role="alert">
       <strong className="font-bold">Error: </strong>
       <span className="block sm:inline">{displayMessage}</span>
     </div>

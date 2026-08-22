@@ -14,6 +14,34 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-background: #ffffff;
+    --color-card: #f9fafb; /* gray-50 */
+    --color-border: #e5e7eb; /* gray-200 */
+    --color-foreground: #111827; /* gray-900 */
+    --color-muted-foreground: #6b7280; /* gray-500 */
+    --color-muted: #f3f4f6; /* gray-100 */
+    --color-accent: #2563eb; /* blue-600 */
+    --color-accent-foreground: #ffffff;
+    --color-success: #16a34a; /* green-600 */
+    --color-warn: #f59e0b; /* amber-500 */
+    --color-destructive: #dc2626; /* red-600 */
+  }
+
+  .dark {
+    --color-background: #18181b; /* zinc-900 */
+    --color-card: #27272a; /* zinc-800 */
+    --color-border: #3f3f46; /* zinc-700 */
+    --color-foreground: #f4f4f5; /* zinc-100 */
+    --color-muted-foreground: #a1a1aa; /* zinc-400 */
+    --color-muted: #3f3f46; /* zinc-700 */
+    --color-accent: #3b82f6; /* blue-500 */
+    --color-accent-foreground: #ffffff;
+    --color-success: #22c55e; /* green-500 */
+    --color-warn: #fbbf24; /* amber-400 */
+    --color-destructive: #ef4444; /* red-500 */
+  }
+
   /* §7's accessibility note: body copy must be gray-500 or darker on white,
    * never gray-400. Setting a readable default here means a generated section
    * that forgets a text colour inherits a compliant one rather than whatever

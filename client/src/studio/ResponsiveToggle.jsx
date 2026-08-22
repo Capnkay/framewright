@@ -22,7 +22,7 @@ export default function ResponsiveToggle({ src, title = 'Preview', children }) {
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-gray-700">Viewport:</span>
+        <span className="text-sm font-semibold text-muted-foreground">Viewport:</span>
         {Object.values(VIEWPORT_MODES).map((mode) => (
           <button
             key={mode.id}
@@ -32,22 +32,22 @@ export default function ResponsiveToggle({ src, title = 'Preview', children }) {
             className={
               modeId === mode.id
                 ? 'rounded border border-gray-800 bg-gray-800 px-3 py-1 text-sm text-white'
-                : 'rounded border border-gray-300 px-3 py-1 text-sm text-gray-700'
+                : 'rounded border border-border px-3 py-1 text-sm text-muted-foreground'
             }
           >
             {mode.label}
           </button>
         ))}
-        <span className="ml-2 font-mono text-xs text-gray-500">{config.width}</span>
+        <span className="ml-2 font-mono text-xs text-muted-foreground">{config.width}</span>
       </div>
 
-      <div className="flex w-full justify-center bg-gray-100 p-2">
+      <div className="flex w-full justify-center bg-card p-2">
         {src ? (
           <iframe
             title={title}
             src={src}
             style={{ width: config.width, height: '100%', minHeight: '640px', border: 0 }}
-            className="bg-white shadow-sm"
+            className="bg-background shadow-sm"
           />
         ) : (
           <div className={config.classes} style={{ width: config.width }}>

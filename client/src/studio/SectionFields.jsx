@@ -19,7 +19,7 @@ export default function SectionFields({ pageName, setPageName, sectionName, setS
           className="w-full p-2 border rounded" 
           placeholder="Home"
         />
-        <p className="text-xs text-gray-500 mt-1">Case-sensitive key for the store.</p>
+        <p className="text-xs text-muted-foreground mt-1">Case-sensitive key for the store.</p>
       </div>
       <div>
         <label className="block text-sm font-medium mb-1">Section Name</label>

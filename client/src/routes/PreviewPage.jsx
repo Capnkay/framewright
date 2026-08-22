@@ -8,7 +8,7 @@ const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager
 
 function SectionWrapper({ section, Component, pageName }) {
   const [regeneratePrompt, setRegeneratePrompt] = useState('');
-  const [regenerateVariation, setRegenerateVariation] = useState(section.variation || '1');
+  const [regenerateVariation, setRegenerateVariation] = useState(section.variations || section.variation || '1');
   const [regenerating, setRegenerating] = useState(false);
 
   const handleRegenerate = async (e) => {
@@ -20,7 +20,8 @@ function SectionWrapper({ section, Component, pageName }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt: regeneratePrompt || undefined,
-          variation: regenerateVariation 
+          variation: regenerateVariation,
+          variations: regenerateVariation
         })
       });
       if (res.ok) {
@@ -36,9 +37,9 @@ function SectionWrapper({ section, Component, pageName }) {
     <div className="relative group border rounded mb-8 p-4">
       <form 
         onSubmit={handleRegenerate}
-        className="absolute top-2 right-2 bg-white shadow rounded px-3 py-2 z-10 flex flex-col gap-2 border text-sm"
+        className="absolute top-2 right-2 bg-background shadow rounded px-3 py-2 z-10 flex flex-col gap-2 border text-sm"
       >
-        <div className="font-semibold text-gray-700">Regenerate Section</div>
+        <div className="font-semibold text-muted-foreground">Regenerate Section</div>
         <div className="flex gap-2 items-center">
           <label>Prompt:</label>
           <input 
@@ -65,7 +66,7 @@ function SectionWrapper({ section, Component, pageName }) {
           <button 
             type="submit" 
             disabled={regenerating}
-            className="bg-blue-600 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
+            className="bg-accent text-white px-2 py-1 rounded text-xs disabled:opacity-50"
           >
             {regenerating ? 'Wait...' : 'Go'}
           </button>
@@ -105,14 +106,14 @@ export default function PreviewPage() {
 
   const renderedSections = sectionDocs.map((section) => {
     const safeName = String(section.sectionName || 'Section').replace(/[^a-zA-Z0-9_]/g, '');
-    const filename = `${safeName}-${section.sectionId}-v${section.variation}.jsx`;
+    const filename = `${safeName}-${section.sectionId}-v${section.variations || section.variation || '1'}.jsx`;
     const moduleKey = `../sections/generated/${filename}`;
     const Component = generatedModules[moduleKey]?.default;
 
     if (!Component) {
       // In case the module is not found, render a fallback.
       return (
-        <div key={section.sectionId} className="p-4 border-2 border-dashed border-red-300 text-red-600 my-4 rounded">
+        <div key={section.sectionId} className="p-4 border-2 border-dashed border-destructive/20 text-red-600 my-4 rounded">
           <p className="font-mono">Missing component file: {filename}</p>
           <p className="text-sm">The section document is in the store, but the file was not found by Vite eager-glob.</p>
         </div>
@@ -129,25 +130,25 @@ export default function PreviewPage() {
         <h1 className="text-xl font-semibold tracking-tight">
           Preview — <span className="font-mono">{pageName}</span>
         </h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-muted-foreground">
           Section mounting arrives with T-011 and T-029. This shell exists now so the store's
           state is observable from the first hour (§9).
         </p>
       </header>
 
       <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <dt className="text-gray-600">Hydration status</dt>
+        <dt className="text-muted-foreground">Hydration status</dt>
         <dd className="font-mono">{status}</dd>
 
-        <dt className="text-gray-600">Keys in allSections</dt>
+        <dt className="text-muted-foreground">Keys in allSections</dt>
         <dd className="font-mono">{keyCount}</dd>
 
-        <dt className="text-gray-600">Missing IDs</dt>
+        <dt className="text-muted-foreground">Missing IDs</dt>
         <dd className="font-mono">{missingCount}</dd>
       </dl>
 
       {error ? (
-        <p className="mt-4 max-w-prose rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</p>
+        <p className="mt-4 max-w-prose rounded-md bg-destructive/10 p-3 text-sm text-red-800">{error}</p>
       ) : null}
 
       {keyCount === 0 ? (

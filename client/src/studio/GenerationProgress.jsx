@@ -54,8 +54,8 @@ export default function GenerationProgress({ jobId, initialJob }) {
   const stages = job.stages || [];
   
   return (
-    <div className="flex flex-col gap-3 p-4 bg-white border rounded shadow-sm">
-      <h3 className="font-semibold text-gray-800">Generation Progress ({job.status})</h3>
+    <div className="flex flex-col gap-3 p-4 bg-background border rounded shadow-sm">
+      <h3 className="font-semibold text-foreground">Generation Progress ({job.status})</h3>
       {error && <p className="text-red-500 text-sm">{error}</p>}
       
       <div className="flex flex-col gap-2">
@@ -68,11 +68,11 @@ export default function GenerationProgress({ jobId, initialJob }) {
           
           if (record) {
             statusText = record.status;
-            if (statusText === 'running') textColor = 'text-blue-600 font-medium animate-pulse';
+            if (statusText === 'running') textColor = 'text-accent font-medium motion-safe:animate-pulse';
             else if (statusText === 'ok') textColor = 'text-green-600 font-medium';
             else if (statusText === 'degraded') textColor = 'text-amber-600 font-medium';
             else if (statusText === 'failed') textColor = 'text-red-600 font-medium';
-            else if (statusText === 'skipped') textColor = 'text-gray-500';
+            else if (statusText === 'skipped') textColor = 'text-muted-foreground';
           } else if (job.status === 'failed' && stageNum > stages.length) {
              statusText = 'aborted';
              textColor = 'text-gray-300';
@@ -80,7 +80,7 @@ export default function GenerationProgress({ jobId, initialJob }) {
 
           return (
             <div key={stageNum} className="flex justify-between items-center text-sm border-b pb-1 last:border-0">
-              <span className="text-gray-700">{stageNum}. {STAGE_NAMES[stageNum]}</span>
+              <span className="text-muted-foreground">{stageNum}. {STAGE_NAMES[stageNum]}</span>
               <span className={textColor}>{statusText}</span>
             </div>
           );

@@ -28,12 +28,12 @@ export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
   }, [jobId]);
 
   return (
-    <div className="flex flex-col gap-4 p-4 border rounded shadow-sm bg-white">
+    <div className="flex flex-col gap-4 p-4 border rounded shadow-sm bg-background">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-gray-800">Generated JSX</h3>
+        <h3 className="font-semibold text-foreground">Generated JSX</h3>
         <Link 
           to={`/preview/${pageName}`}
-          className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
+          className="text-sm bg-accent text-white px-3 py-1.5 rounded hover:bg-accent-hover"
         >
           View in Preview
         </Link>
@@ -42,11 +42,11 @@ export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
       {error && <p className="text-red-500 text-sm">{error}</p>}
       
       {sourceCode ? (
-        <pre className="bg-gray-50 p-4 rounded overflow-auto max-h-96 text-sm text-gray-800 border">
+        <pre className="bg-card p-4 rounded overflow-auto max-h-96 text-sm text-foreground border">
           <code>{sourceCode}</code>
         </pre>
       ) : (
-        !error && <p className="text-sm text-gray-500">Loading source...</p>
+        !error && <p className="text-sm text-muted-foreground">Loading source...</p>
       )}
     </div>
   );

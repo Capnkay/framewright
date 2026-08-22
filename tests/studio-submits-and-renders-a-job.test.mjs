@@ -141,7 +141,7 @@ test('T-114: The Studio submits a wireframe and drives the timeline from the res
     const finalHtml = renderToString(React.createElement(MemoryRouter, null, React.createElement(GeneratePage, { initialJob: createdJob })));
     
     assert.ok(finalHtml.includes('Job Timeline'), 'Must render JobTimeline when a job is present');
-    assert.ok(finalHtml.includes('input-acquisition'), 'Timeline must display stage names from the job');
+    assert.ok(finalHtml.includes('input acquisition'), 'Timeline must display stage names from the job');
     assert.ok(finalHtml.includes('Generation Progress'), 'GenerationProgress must render the initial job status');
 
     await shutdown(server);

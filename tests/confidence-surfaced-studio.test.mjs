@@ -13,9 +13,9 @@ test('confidence surfaced (T-068)', () => {
   // A 10 bands
   assert.match(badgeSource, /0\.85/, 'must check 0.85 band');
   assert.match(badgeSource, /0\.60/, 'must check 0.60 band');
-  assert.match(badgeSource, /bg-red-/, 'must have red style');
-  assert.match(badgeSource, /bg-green-/, 'must have green style');
-  assert.match(badgeSource, /bg-amber-/, 'must have amber style');
+  assert.match(badgeSource, /bg-destructive/, 'must have red style');
+  assert.match(badgeSource, /bg-success/, 'must have green style');
+  assert.match(badgeSource, /bg-warn/, 'must have amber style');
   
   const sideEditor = read('client/src/studio/SideEditor.jsx');
   assert.match(sideEditor, /<ConfidenceBadge/, 'must use badge in SideEditor');

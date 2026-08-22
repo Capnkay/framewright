@@ -31,7 +31,7 @@ export default function CodePromptInputs({ onSubmit }) {
       <h2 className="text-lg font-semibold mb-2">Generate from Code or Prompt</h2>
       
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-300 rounded text-sm font-medium">
+        <div className="p-3 bg-destructive/10 text-destructive border border-destructive/20 rounded text-sm font-medium">
           {error}
         </div>
       )}
@@ -82,7 +82,7 @@ export default function CodePromptInputs({ onSubmit }) {
         />
       </div>
 
-      <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition-colors">
+      <button type="submit" className="px-4 py-2 bg-accent text-white font-semibold rounded hover:bg-accent-hover transition-colors">
         Generate
       </button>
     </form>

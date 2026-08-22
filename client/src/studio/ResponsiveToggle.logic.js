@@ -34,7 +34,7 @@ export const VIEWPORT_MODES = {
     label: 'Mobile',
     // Below 768px, so `md:` does not apply and the section stacks.
     width: '375px',
-    classes: 'w-full max-w-[375px] mx-auto border-x border-gray-200',
+    classes: 'w-full max-w-[375px] mx-auto border-x border-border',
   },
 };
 

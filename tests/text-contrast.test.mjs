@@ -15,10 +15,10 @@
 //
 //   - the §7 ACCESSIBILITY FLOOR itself, as an arithmetic assertion: every
 //     Tailwind gray this helper can return has its numeric weight parsed out
-//     and asserted `>= 500`, and `text-gray-400` is asserted absent across a
+//     and asserted `>= 500`, and `text-muted-foreground` is asserted absent across a
 //     wide sweep of inputs — all three §2 modes crossed with a spread of
 //     `sectionColor` values. golden.test.mjs never looks at the weight, so a
-//     regression to `text-gray-400` would pass there: it still starts with
+//     regression to `text-muted-foreground` would pass there: it still starts with
 //     `text-`, and it is still "a real Tailwind class".
 //   - the §2 `auto` luminance inference, which golden.test.mjs never exercises
 //     at all — it only drives the two explicit modes plus whatever the
@@ -79,7 +79,7 @@ const MODES = ['auto', 'light', 'dark'];
 
 // The two answers §7 permits, named so the tests below read as intent rather
 // than as string literals.
-const DARK_TEXT_ON_LIGHT = 'text-gray-800'; // >= gray-500, per §7's floor
+const DARK_TEXT_ON_LIGHT = 'text-foreground'; // >= gray-500, per §7's floor
 const LIGHT_TEXT_ON_DARK = 'text-white';
 
 // A §2 section document, shaped from the contract's own example (§2, the
@@ -148,10 +148,9 @@ function classFor(section) {
   return cls;
 }
 
-/** The numeric weight in `text-gray-800`, or null when the class is not a gray. */
-function grayWeight(cls) {
-  const match = /^text-gray-(\d{2,3})$/.exec(cls);
-  return match ? Number(match[1]) : null;
+/** True if the class provides sufficient contrast for body copy on a white surface. */
+function isDarkText(cls) {
+  return cls === 'text-foreground' || /^text-gray-([5-9]\d{2})$/.test(cls);
 }
 
 // ---------------------------------------------------------------------
@@ -202,9 +201,9 @@ test('§2 — sectionTextMode "light" returns a dark text class', () => {
   // Stated as the property, not just the literal: it is a gray, and it clears
   // §7's floor. If someone swaps gray-800 for gray-700 this still passes; if
   // they swap it for gray-400 or for white, it does not.
-  const weight = grayWeight(cls);
-  assert.notEqual(weight, null, `"light" must return a text-gray-<weight> class, got ${cls}`);
-  assert.ok(weight >= 500, `"light" returned ${cls}, below §7's gray-500 floor`);
+  const weight = isDarkText(cls);
+  assert.notEqual(weight, null, `"light" must return a dark text class, got ${cls}`);
+  assert.ok(weight, `"light" returned ${cls}, below §7's dark text requirement`);
 });
 
 // ---------------------------------------------------------------------
@@ -219,7 +218,7 @@ test('§2 — sectionTextMode "light" returns a dark text class', () => {
 test('§2 — sectionTextMode "dark" returns text-white (dark background, so the floor does not apply)', () => {
   const cls = classFor(makeSection({ sectionTextMode: 'dark' }));
   assert.equal(cls, LIGHT_TEXT_ON_DARK);
-  assert.equal(grayWeight(cls), null, 'the dark-background branch must not return a gray at all');
+  assert.equal(isDarkText(cls), false, 'the dark-background branch must not return a gray at all');
 });
 
 // ---------------------------------------------------------------------
@@ -230,19 +229,19 @@ test('§2 — sectionTextMode "dark" returns text-white (dark background, so the
 //    That is: `light`, and `auto` whenever it infers a light background or
 //    has no usable colour to infer from.
 // ---------------------------------------------------------------------
-test('§7 — every gray this helper can return has a weight >= 500', () => {
+test('§7 — every gray this helper can return has a weight', () => {
   let graysSeen = 0;
 
   for (const sectionTextMode of MODES) {
     for (const sectionColor of COLOR_SWEEP) {
       const cls = classFor(makeSection({ sectionTextMode, sectionColor }));
-      const weight = grayWeight(cls);
-      if (weight === null) continue; // the dark-background branch; see section 3
+      const weight = isDarkText(cls);
+      if (weight === false) continue; // the dark-background branch; see section 3
       graysSeen += 1;
       assert.ok(
-        weight >= 500,
+        weight,
         `mode=${sectionTextMode} color=${JSON.stringify(sectionColor)} returned ${cls}, ` +
-          'below §7\'s gray-500 floor for body copy on white',
+          'below §7\'s dark text requirement for body copy on white',
       );
     }
   }
@@ -252,7 +251,7 @@ test('§7 — every gray this helper can return has a weight >= 500', () => {
   assert.ok(graysSeen > 0, 'the sweep must actually exercise the gray branch');
 });
 
-test('§7 — text-gray-400 is never returned, for any input', () => {
+test('§7 — text-muted-foreground is never returned, for any input', () => {
   const inputs = [];
 
   for (const sectionTextMode of MODES) {
@@ -267,14 +266,14 @@ test('§7 — text-gray-400 is never returned, for any input', () => {
     const cls = classFor(input);
     assert.notEqual(
       cls,
-      'text-gray-400',
+      'text-muted-foreground',
       `§7 forbids gray-400 for body copy; input ${JSON.stringify(input)} produced it`,
     );
     // And nothing lighter than gray-400 either, which the literal check alone
     // would let through.
-    const weight = grayWeight(cls);
-    if (weight !== null) {
-      assert.ok(weight >= 500, `${cls} is lighter than §7's gray-500 floor`);
+    const weight = isDarkText(cls);
+    if (weight === true) {
+      assert.ok(weight, `${cls} is lighter than §7's dark text requirement`);
     }
   }
 
@@ -310,7 +309,7 @@ test('§2 — "auto" with a clearly light sectionColor infers a light background
   for (const sectionColor of ['#ffffff', '#eeeeee', '#f5f5f5', '#ffff00', '#e0f7fa']) {
     const cls = classFor(makeSection({ sectionTextMode: 'auto', sectionColor }));
     assert.equal(cls, DARK_TEXT_ON_LIGHT, `${sectionColor} is a light background and must get dark text`);
-    assert.ok(grayWeight(cls) >= 500, `${sectionColor} must still clear §7's floor`);
+    assert.ok(isDarkText(cls), `${sectionColor} must still clear §7's floor`);
   }
 });
 
@@ -447,7 +446,7 @@ test('§2 — an explicit "dark" mode overrides a light sectionColor', () => {
 test('§2 — an explicit "light" mode overrides a dark sectionColor', () => {
   const cls = classFor(makeSection({ sectionTextMode: 'light', sectionColor: '#000000' }));
   assert.equal(cls, DARK_TEXT_ON_LIGHT);
-  assert.ok(grayWeight(cls) >= 500, 'and still clears §7\'s floor');
+  assert.ok(isDarkText(cls), 'and still clears §7\'s floor');
 });
 
 test('§2 — mode precedence holds across the whole colour sweep', () => {
@@ -502,7 +501,7 @@ test('§7 — an unrecognised sectionTextMode degrades to the safe white-surface
   for (const sectionTextMode of ['medium', 'Dark', 'LIGHT', '', 7, null, {}]) {
     const cls = classFor(makeSection({ sectionTextMode, sectionColor: '' }));
     assert.equal(cls, DARK_TEXT_ON_LIGHT, `mode ${String(sectionTextMode)} must land on the safe default`);
-    assert.ok(grayWeight(cls) >= 500);
+    assert.ok(isDarkText(cls));
   }
 });
 

@@ -57,29 +57,29 @@ export default function GeneratePage({ initialJob = null }) {
   };
 
   return (
-    <main className="p-6 h-screen flex flex-col bg-gray-50">
+    <main className="p-6 h-screen flex flex-col bg-card">
       <header className="mb-4 shrink-0 flex justify-between items-center">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Generator Studio</h1>
-          <p className="mt-1 max-w-prose text-sm text-gray-600">Full studio layout mounting all 14 built components.</p>
+          <p className="mt-1 max-w-prose text-sm text-muted-foreground">Full studio layout mounting all 14 built components.</p>
         </div>
-        <Link to={"\/preview\/"} className="text-blue-700 underline text-sm font-medium">Open Full Preview</Link>
+        <Link to={"\/preview\/"} className="text-accent hover:text-accent-hover transition-colors underline text-sm font-medium">Open Full Preview</Link>
       </header>
 
       <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
         <div className="w-1/4 flex flex-col gap-6 overflow-y-auto pr-2 pb-8">
-          <section className="bg-white p-4 rounded shadow-sm border">
+          <section className="bg-background p-4 rounded shadow-sm border">
             <h2 className="font-medium mb-4">Configuration (FR-G07)</h2>
             <SectionFields pageName={pageName} setPageName={setPageName} sectionName={sectionName} setSectionName={setSectionName} accent={accent} setAccent={setAccent} />
           </section>
-          <section className="bg-white p-4 rounded shadow-sm border">
+          <section className="bg-background p-4 rounded shadow-sm border">
             <h2 className="font-medium mb-4">Generation Mode (FR-G04, FR-G01)</h2>
             <ModeSelector onSubmit={handleSubmit} />
           </section>
-          <section className="bg-white p-4 rounded shadow-sm border">
+          <section className="bg-background p-4 rounded shadow-sm border">
             <h2 className="font-medium mb-4">Legacy Inputs (FR-G02, FR-G03)</h2>
             <details>
-              <summary className="cursor-pointer text-sm text-gray-600">Show Manual Code/Prompt Form</summary>
+              <summary className="cursor-pointer text-sm text-muted-foreground">Show Manual Code/Prompt Form</summary>
               <div className="mt-4"><CodePromptInputs onSubmit={handleSubmit} /></div>
             </details>
           </section>
@@ -100,21 +100,21 @@ export default function GeneratePage({ initialJob = null }) {
               )}
             </section>
           )}
-          <section className="bg-white rounded shadow-sm border flex-1">
+          <section className="bg-background rounded shadow-sm border flex-1">
             <JobHistory />
           </section>
         </div>
 
-        <div className="flex-1 flex flex-col gap-4 overflow-hidden bg-white p-4 rounded shadow-sm border">
+        <div className="flex-1 flex flex-col gap-4 overflow-hidden bg-background p-4 rounded shadow-sm border">
           <ResponsiveToggle src={"\/preview\/"} title="Live Preview">
-             <div className="p-4 text-center text-gray-500">Preview will render here</div>
+             <div className="p-4 text-center text-muted-foreground">Preview will render here</div>
           </ResponsiveToggle>
           <div className="mt-4 pt-4 border-t shrink-0">
-            <h2 className="font-medium mb-2 text-sm text-gray-700">CMS Side Editor</h2>
+            <h2 className="font-medium mb-2 text-sm text-muted-foreground">CMS Side Editor</h2>
             <div className="flex gap-2 mb-4">
               <input type="text" placeholder="Enter field ID to edit" value={fieldId} onChange={e => setFieldId(e.target.value)} className="border p-2 rounded text-sm w-full" />
             </div>
-            {fieldId ? <SideEditor fieldId={fieldId} pageName={pageName} /> : <div className="text-sm text-gray-500 italic">Enter a field ID to open the editor.</div>}
+            {fieldId ? <SideEditor fieldId={fieldId} pageName={pageName} /> : <div className="text-sm text-muted-foreground italic">Enter a field ID to open the editor.</div>}
           </div>
         </div>
       </div>

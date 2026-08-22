@@ -20,7 +20,7 @@ test('PreviewPage wires Vite eager-glob discovery of generated sections (T-029)'
   // Verify that it selects the module matching the section document's sectionId and variation
   assert.match(
     source,
-    /-\$\{[^}]*\.sectionId\}-v\$\{[^}]*\.variation\}\.jsx/,
+    /-\$\{[^}]*\.sectionId\}-v\$\{[^}]*\}\.jsx/,
     'must construct the filename using sectionId and variation'
   );
 

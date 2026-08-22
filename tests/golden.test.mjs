@@ -282,7 +282,7 @@ test('getSectionTextContrastClass returns a real Tailwind class for the referenc
   assert.ok(cls.startsWith('text-'));
 
   assert.equal(getSectionTextContrastClass({ sectionTextMode: 'dark' }), 'text-white');
-  assert.equal(getSectionTextContrastClass({ sectionTextMode: 'light' }), 'text-gray-800');
+  assert.equal(getSectionTextContrastClass({ sectionTextMode: 'light' }), 'text-foreground');
 });
 
 // ---------------------------------------------------------------------
