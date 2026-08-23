@@ -143,7 +143,7 @@ export default function Studio() {
     if (jobState === "running") return;
     clearInterval(timerRef.current);
     setJobState("running");
-    setSelectedStage(null);
+    setSelectedStage(0);
     setTab("Stages");
     setRunningIndex(0);
     setRealTrace(null);
@@ -151,7 +151,11 @@ export default function Studio() {
 
     // Mock progress visual effect while waiting
     const progressTimer = setInterval(() => {
-      setRunningIndex(prev => (prev < 6 ? prev + 1 : prev));
+      setRunningIndex(prev => {
+        const next = prev < 6 ? prev + 1 : prev;
+        setSelectedStage(next);
+        return next;
+      });
     }, 1500);
 
     try {
@@ -228,19 +232,30 @@ export default function Studio() {
       clearInterval(progressTimer);
       setJobState("done");
       setRunningIndex(-1);
+      setSelectedStage(6); // Select last stage on success
     } catch(err) {
       clearInterval(progressTimer);
       setJobState("failed");
+      setSelectedStage(4); // Select failed stage
       console.error(err);
     }
   };
 
   const handleDevState = value => {
     clearInterval(timerRef.current);
-    setSelectedStage(null);
+    setRealTrace(null);
     setTab("Stages");
-    if (value === "running") { setRunningIndex(3); setJobState("running"); }
-    else setJobState(value);
+    if (value === "running") { 
+      setRunningIndex(3); 
+      setJobState("running"); 
+      setSelectedStage(3);
+    } else { 
+      setJobState(value);
+      if (value === "needs-input") setSelectedStage(2);
+      else if (value === "failed") setSelectedStage(4);
+      else if (value === "done") setSelectedStage(6);
+      else setSelectedStage(null);
+    }
     if (value === "done") setCodeText(generateCode(elements, accent));
   };
 
