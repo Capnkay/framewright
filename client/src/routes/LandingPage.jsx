@@ -413,7 +413,7 @@ export default function LandingPage() {
         </div>
         
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between pt-8 border-t border-studio-border/50 text-xs text-studio-text-tertiary">
-          <p>© 2025 FrameWright. All rights reserved.</p>
+          <p>© 2026 FrameWright. All rights reserved.</p>
           <div className="mt-4 md:mt-0 flex items-center gap-4">
             <span>Stay updated</span>
             <div className="flex studio-glass-raised backdrop-blur-lg border border-studio-border rounded-full overflow-hidden">
