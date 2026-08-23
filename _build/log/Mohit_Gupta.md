@@ -442,3 +442,10 @@
 - Device: Mohits_Victus
 - Files: server/src/generate/perceiveAndAssembleIr.js
 
+## T-149 — The Studio's mode selector is advisory: buildFormData overrides it from whichever fields are filled
+- Started: 2026-08-23T12:06:43.407Z
+- Finished: 2026-08-23T12:06:46.280Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: client/src/studio/CodePromptInputs.logic.js, client/src/studio/Composer.jsx, tests/generate-code-mode.test.mjs
+

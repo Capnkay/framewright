@@ -78,6 +78,10 @@ export default function Composer({ onSubmit }) {
     }
 
     const result = buildFormData({
+      // The mode the user actually selected. Without this the mode is derived
+      // from which fields are filled, so choosing "Combined" and typing only a
+      // prompt sends mode=prompt and nothing says so.
+      mode,
       code: visible.code ? code : '',
       prompt: visible.prompt ? prompt : '',
       pageName,

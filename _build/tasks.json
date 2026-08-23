@@ -3070,6 +3070,27 @@
       ],
       "verify": "node --test tests/generate-wireframe-mode.test.mjs",
       "doneWhen": "PS7 section 5.1 says 'wireframe image' with no qualifier. DEFAULT_TIMEOUT_MS was 20000 and its own comment justified it as 'a few seconds on a wireframe' - an assumption about the input, not about the contract, and the comment also states plainly that section 12 does not name a timeout. Measured on a screenshot of a real interface: stage 3b's OCR alone takes 15.2s of a 15.4s in-process run, and through HTTP with the worker's cold start it crossed 20s, so the whole generation degraded and the user got the reference template back from a perfectly good upload. Done when the timeout matches NFR-02's own documented budget of 30s rather than being tighter than the number the contract already states, and when the same screenshot completes without degrading."
+    },
+    {
+      "id": "T-149",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "20m",
+      "title": "The Studio's mode selector is advisory: buildFormData overrides it from whichever fields are filled",
+      "contract": [
+        "§13",
+        "FR-G04"
+      ],
+      "deps": [
+        "T-148"
+      ],
+      "files": [
+        "client/src/studio/CodePromptInputs.logic.js",
+        "client/src/studio/Composer.jsx",
+        "tests/generate-code-mode.test.mjs"
+      ],
+      "verify": "node --test tests/generate-code-mode.test.mjs",
+      "doneWhen": "buildFormData derived the mode purely from which fields were filled - code and prompt gave combined, code alone gave code, otherwise prompt - so a user who selected Combined and typed only a prompt sent mode=prompt. The selector said one thing and the request said another with nothing telling anyone. FR-G04's rule is that a control which does not apply is HIDDEN rather than present-and-ignored, because a visible input that is silently dropped is worse than no input at all; silently rewriting the mode is that rule broken one level up. Done when the selected mode is sent, when the derivation survives as a fallback for CodePromptInputs which passes none, and when §13's own validation is what refuses a mismatch - it already does so with a message naming all three inputs."
     }
   ]
 }

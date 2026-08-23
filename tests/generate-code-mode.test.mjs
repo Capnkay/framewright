@@ -374,3 +374,57 @@ test('an element with no reference default is left empty rather than invented', 
     );
   }
 });
+
+
+// ---------------------------------------------------------------------
+// The Studio's mode selector is authoritative, not advisory.
+// ---------------------------------------------------------------------
+
+test('buildFormData sends the mode the user selected', async () => {
+  // THE DEFECT: the mode was derived purely from which fields were filled, so
+  // choosing "Combined" and typing only a prompt sent mode=prompt. The selector
+  // said one thing and the request said another, with nothing telling anyone.
+  //
+  // FR-G04's rule is that a control which does not apply is hidden rather than
+  // present-and-ignored — "a visible input that is silently dropped is worse
+  // than no input at all". Rewriting the mode itself is that rule broken one
+  // level up.
+  const { buildFormData } = await import('../client/src/studio/CodePromptInputs.logic.js');
+
+  const chosen = buildFormData({
+    mode: 'combined',
+    prompt: 'a bold hero with three stats',
+    code: '',
+    pageName: 'Home',
+    sectionName: 'S',
+  });
+
+  assert.equal(chosen.error, null ?? chosen.error, 'a one-sided combined was refused client-side');
+  assert.equal(chosen.formData.get('mode'), 'combined', 'the selected mode was overridden');
+});
+
+test('with no mode supplied it still derives one, for the older form', async () => {
+  // The derivation is kept as a fallback rather than deleted: CodePromptInputs
+  // calls this without a mode and must keep working.
+  const { buildFormData } = await import('../client/src/studio/CodePromptInputs.logic.js');
+
+  assert.equal(buildFormData({ prompt: 'x', code: '', pageName: 'H', sectionName: 'S' }).formData.get('mode'), 'prompt');
+  assert.equal(buildFormData({ prompt: '', code: 'y', pageName: 'H', sectionName: 'S' }).formData.get('mode'), 'code');
+  assert.equal(buildFormData({ prompt: 'x', code: 'y', pageName: 'H', sectionName: 'S' }).formData.get('mode'), 'combined');
+});
+
+test('§13 — the API is what refuses a mode/input mismatch, and it says why', async () => {
+  // Letting the contract answer is better than guessing on the caller's behalf
+  // and being quietly wrong. This is the message the user now actually sees.
+  const env = await isolatedEnv('mode-mismatch');
+  const { status, body } = await postGenerate({
+    env,
+    body: { mode: 'combined', pageName: 'Home', sectionName: 'S' },
+    files: {},
+  });
+
+  assert.equal(status, 400);
+  // §13's general input check fires first and is the better message anyway: it
+  // names all three inputs rather than just the mode's own subset.
+  assert.match(body.error.message, /At least one of wireframe, code, or prompt/i);
+});
