@@ -42,12 +42,12 @@
     --color-destructive: #ef4444; /* red-500 */
   }
 
-  /* §7's accessibility note: body copy must be gray-500 or darker on white,
-   * never gray-400. Setting a readable default here means a generated section
+  /* §7's accessibility note: body copy must be readable.
+   * Setting a semantic default here means a generated section
    * that forgets a text colour inherits a compliant one rather than whatever
    * the browser default happens to be. */
   body {
-    @apply bg-white text-gray-900 antialiased;
+    @apply bg-background text-foreground antialiased;
   }
 
   /* Studio chrome theme — the Generator Studio's own tool UI (GeneratePage,
