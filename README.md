@@ -106,6 +106,59 @@ The first two are the same defect: `server/src/pipeline/stage1InputAcquisition.j
 `server/src/generate/codeToIr.js` import packages that no manifest lists, so they resolve
 only on a machine where something else installed them. Both belong in `dependencies`.
 
+## How to demo each input mode
+
+PS7 §13 defines four modes and all four are implemented. `docs/DEMO-SCRIPT.md` is the
+5–8 minute run-sheet; this is the short version.
+
+| mode | input | how long | what proves it worked |
+|---|---|---|---|
+| `prompt` | a description | **~0.3 s** | copy reflects the prompt — accent, card count, CTA label |
+| `wireframe` | an image | **~6–19 s** | the section carries **the words written on the drawing** |
+| `code` | a §7-shaped React component | **~0.4 s** | element names and defaults come from the pasted file |
+| `combined` | two or more of the above | ~6–19 s | §6's order: prompt wins copy, wireframe wins layout |
+
+In the Studio at `/generate`, pick a mode, supply the input, press Generate. The stage
+trace appears below the preview as the job runs.
+
+**The one tell worth memorising.** After a wireframe run, look at the generated copy. If it
+says `PULSE FIT` / `CHALLENGE YOUR LIMITS`, that is the reference template and the wireframe
+did **not** reach the IR — check the stage-3 warnings. If it carries your drawing's own
+words, it worked.
+
+Over HTTP, if you prefer:
+
+```bash
+curl -X POST http://localhost:5000/api/generate   -F mode=wireframe -F pageName=Home -F sectionName=Demo   -F "wireframe=@gpu-test/wireframe.png;type=image/png"
+```
+
+## Known limitations
+
+Stated rather than discovered. Each one is measured; the benchmark that measured it is
+named.
+
+- **One section per image.** A wireframe holding several page mockups yields no hero region,
+  because no single panel reaches the 12% area floor. Crop to the one section you want.
+  Digital wireframes otherwise work as well as hand-drawn ones — the detector reads clean
+  vector edges *better* than pen strokes (B-011).
+- **Every accuracy figure comes from one photograph.** 7 of 7 slot geometry and 4 of 4 text
+  are real, and whether they generalise to other drawings is **unmeasured** (B-003, B-004).
+- **An image with no text yields the reference copy**, correctly — there is nothing to
+  extract — and on screen that is indistinguishable from the upload being ignored. The
+  warnings are the only difference (B-011).
+- **OCR bleed-through.** A photograph of a sheet with writing on its reverse can pick it up:
+  `SUB HEADLINE evoleldno`. The optional hosted reader returns it clean (B-007).
+- **`mode=code` reads §7-shaped components only** — a `const ids` map and `id={ids.x}`
+  markers. Arbitrary React is refused with a 422 that says so, rather than returning a
+  confident empty IR.
+- **The hosted model is optional and off by default.** With no key there is no network call
+  and the deterministic path runs unchanged. Configured but unreachable, it gives up after
+  three regions and falls back to local OCR (B-007, T-142, T-143).
+- **`visualSimilarity` is not measured.** It is reported in `notMeasured` on every stage-6
+  artifact rather than defaulted to a flattering number (B-010).
+- **Disk.** The OCR worker needs room for its page and model cache. Below ~256 MB it refuses
+  with a named reason rather than crashing (EC-015).
+
 ## Environment setup
 
 1. Copy the template: `cp .env.example .env`

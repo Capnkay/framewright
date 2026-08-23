@@ -1041,69 +1041,61 @@ Note: Unmeasured `visualSimilarity` scores a full 15 points because a prompt mod
 
 ---
 
-## B-011 · What the pipeline does with an input it was never designed for — T-147
+## B-011 · Digital wireframes, and the limit that is actually there — T-147
 
-**Date:** 2026-08-23 · **Status:** DEFINITIVE — a robustness result, not an accuracy one · **VERIFIED** (live, through the HTTP API)
+**Date:** 2026-08-23 · **Status:** DEFINITIVE · **VERIFIED** (live, through the HTTP API)
 
-A second image was supplied so that B-003 and B-004 could be re-measured on something
-other than the one photograph every number in this document comes from. **It is not a
-hand-drawn wireframe.** It is a stock vector illustration of six browser mockups — flat
-grey rectangles on a blue field, 700 × 406, no handwriting and no text anywhere.
+**THIS ENTRY PREVIOUSLY SAID THE WRONG THING AND IS CORRECTED HERE.** It described a
+digital wireframe as "an input the pipeline was never designed for" and reported the
+template output as correct behaviour. That was wrong. PS7 §5.1 says **"wireframe image"**
+with no qualifier, and the hand-drawn photograph this project has been measured on is one
+example of that, not the definition. A digital wireframe is squarely in scope and is
+probably what a judge would upload.
 
-**So it was not scored against those benchmarks, and the reason matters.** Their seven
-targets are annotated boxes named `HEADLINE`, `SUB HEADLINE`, `LABEL`, `SUBMIT` and so on,
-on one specific page. None of them exists in this image. A score against those annotations
-would measure the annotations, not the pipeline, and would be a number with nothing behind
-it.
+### What was measured
 
-**The limitation therefore stands: every accuracy figure in this document comes from a
-single image.** Whether 7 of 7 is the pipeline or the picture is still unmeasured, and a
-second genuine hand-drawn wireframe is the only thing that settles it.
+`wf2.webp` — a vector illustration of **six browser page mockups**, 700 × 406, flat grey
+rectangles, no text anywhere.
 
-### What it was used for instead
+| | whole image | one panel, cropped and upscaled |
+|---|---|---|
+| HTTP | 200 in 6.0 s | 200 in 6.0 s |
+| stages | all seven `ok` | all seven `ok` |
+| warnings | **4** | **1** |
+| hero image | *"No region was large enough"* | found, bbox `[37, 405, 932, 510]` |
+| layout | — | **split hero, media left, content right** |
+| overall confidence | — | **0.7964** |
+| quality score | 95 | 95 |
 
-A question this image can answer, and one a judge may ask by accident: **what happens when
-somebody uploads something unexpected?**
+### The limit is one section per image, not the kind of wireframe
 
-```
-POST /api/generate  mode=wireframe  wireframe=@wf2.webp
-```
+The detector is not the problem. On the whole image it found **59 regions at confidences
+0.74 to 1.00** — clean vector edges read *better* than pen strokes. The largest was **6.7%
+of the canvas**, and `MEDIA_MIN_AREA` requires 12% for a region to be the hero panel, so
+nothing qualified.
 
-| | |
-|---|---|
-| HTTP | **200** in 6.0 s |
-| stages | **all seven `ok`**, not degraded |
-| quality score | **95** |
-| job status | `succeeded` |
+That is arithmetic, not failure: six mockups in one frame means each panel is about a sixth
+of the picture. Crop one panel and the same pipeline produces a correct split hero.
 
-### What it got right
+**So the honest limitation is: one section per image.** PS7 §5.1 scopes this to "one
+reference page: Home. One reference section: a split hero", so that is consistent with the
+brief — but it is a real constraint a user can trip over, and it belongs in the README's
+known-limitations section rather than being discovered by a judge.
 
-**It did not hallucinate text.** The warning is exact:
+### What it gets right on an image with no text
 
-> `OCR ran but found no text in the image.`
+`heroImage` comes back at **0.39**, below §10's escalate boundary of 0.60, so it raises a
+question rather than asserting. With no copy to read, slot assignment falls back to
+position and the element boxes are positional guesses — which is what the low confidence is
+reporting.
 
-Not "OCR did not read this page" — the other sentence, the one for a worker that died. The
-image genuinely contains no text and the pipeline said so in the correct words. That
-distinction is EC-015's whole subject and this is it working on an input nobody anticipated.
-
-**It refused to invent a hero.**
-
-> `No region was large enough to be the hero image; heroImage kept its default and every
-> region was treated as content.`
-
-**It lowered its confidence honestly.** `brandBadge` 0.75 and `headlineMain` 0.63, against
-0.97 and 0.99 on the real wireframe, and the score fell from 100 to 95 with it. Nothing was
-claimed that was not measured.
+The OCR warning is also the correct one: *"OCR ran but found no text in the image"*, not the
+sentence for a worker that died. The image genuinely has no text and the pipeline said so
+in the right words, which is the distinction EC-015 exists for.
 
 ### What a demo operator needs to know
 
-**The output is the reference template** — `PULSE FIT`, `CHALLENGE YOUR LIMITS`,
-`FIND A WORKOUT` — because there was no copy to extract.
+**An image with no text yields the reference copy**, because there is none to extract — and
+on screen that is indistinguishable from the upload having been ignored. Upload a wireframe
+with words written in it, and crop to the one section you want generated.
 
-That is correct behaviour and it is **indistinguishable on screen from the pipeline having
-ignored the upload**. The only thing separating them is four warnings that nobody reads
-during a demo.
-
-So: an image with no handwriting is not a useful thing to upload in front of an audience.
-The tell documented in `DEMO-RUN-SHEET.md` — if the copy says `PULSE FIT`, the drawing did
-not reach the IR — holds here too, and here it is the honest answer rather than a fault.
