@@ -40,9 +40,6 @@ import StudioNav from './studio/StudioNav.jsx';
  */
 function isFramed() {
   try {
-    if (typeof window !== 'undefined' && window.location.pathname.includes('/preview')) {
-      return true;
-    }
     return typeof window !== 'undefined' && window.self !== window.top;
   } catch {
     return true; // access denied means there IS a parent, and a foreign one.
