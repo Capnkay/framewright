@@ -200,19 +200,19 @@ export default function GeneratePage({ initialJob = null }) {
           </details>
         </aside>
 
-        {/* ---------------------------------------------------------------
+         {/* ---------------------------------------------------------------
             The preview is the product, so it is the biggest thing here. It
             frames the real /preview route in an iframe via ResponsiveToggle's
             `src` — passing children instead narrows a container, which cannot
             trigger a `md:` breakpoint and so is a width preview rather than a
-            layout one (§7 R11).
+            layout one (A 7 R11).
         --------------------------------------------------------------- */}
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 pb-8">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 pb-8 overflow-y-auto custom-scrollbar pr-2">
           {submitError && (
             <ErrorBanner statusCode={submitError.statusCode} message={submitError.message} />
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised p-5 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500 relative">
+          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised p-5 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500 relative shrink-0 min-h-[640px]">
             <div className="absolute top-5 right-5 z-10 flex gap-4 items-center">
               <a href={previewSrc} target="_blank" rel="noopener noreferrer" className="text-studio-xs text-studio-accent hover:underline font-semibold">
                 Open preview in a new page
@@ -222,7 +222,6 @@ export default function GeneratePage({ initialJob = null }) {
                 onClick={async () => {
                   try {
                     await fetch(`/api/sections?pageName=${pageName}`, { method: 'DELETE' });
-                    // Refresh iframe by momentarily altering state or we can just reload
                     window.location.reload();
                   } catch(e) {}
                 }} 
@@ -235,7 +234,7 @@ export default function GeneratePage({ initialJob = null }) {
           </div>
 
           {job ? (
-            <div className="flex h-[24rem] shrink-0 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised shadow-studio-sm overflow-hidden hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500">
+            <div className="flex min-h-[800px] shrink-0 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised shadow-studio-sm overflow-hidden hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500">
               <div className="flex items-center gap-2 border-b border-studio-border bg-studio-bg-base/30 px-4 pt-3 pb-0">
                 {TABS.map((t) => (
                   <button
