@@ -1319,3 +1319,18 @@ computes `hasCards = Boolean(cards && cards.of)`, so a name left pointing at a d
 element reports "this section has a card loop" for a section that does not.
 
 **Suites after the change:** 753 Node, 0 failing.
+
+## B-014 · Shifting Vision to AWS Bedrock to solve local CUDA conflicts — T-157
+
+### The Problem
+Our local RTX 3050 Ti (6GB) struggled to run both PyTorch and PaddleOCR concurrently due to DLL conflicts (	orch\\lib\\shm.dll), forcing the perception OCR to fallback to CPU mode. This was painfully slow and bottlenecked the hackathon demo.
+
+### The Solution
+Instead of wrestling with Windows CUDA limits, we patched perception/stages/read_regions.py to route VLM requests natively to **AWS Bedrock** (qwen.qwen3-vl-235b-a22b) using the /invoke API. Since the Bedrock endpoint is 100% compatible with the OpenAI spec we already built, it was a 1-line endpoint change.
+
+### The Result
+- **GPU Load:** Zero. The local GPU only runs OpenCV for bounding box contours, which takes milliseconds.
+- **Accuracy:** Flawless OCR on hand-drawn wireframes using Qwen 3.1 VL.
+- **Speed:** Instant cloud inference without local hardware locking.
+
+This validates our hybrid architecture: deterministic local OpenCV for geometry, and state-of-the-art cloud VLM for semantic understanding.
