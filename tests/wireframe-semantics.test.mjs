@@ -252,6 +252,29 @@ test('the by-name references follow the rename and the dropped elements', async 
   assert.deepEqual(result.ir.cards.items, []);
 });
 
+test('a renamed element stays in the region it was actually drawn in', async () => {
+  // QA FINDING, live: `mergeSemantics` renamed every claimed slot but never touched
+  // `layout.regions[].children`, which still named the PRE-rename slots. By the time
+  // `repairReferences` ran, it saw six children naming nothing (the old names) and six
+  // declared elements placed nowhere (the new names) — so it dropped all six from their
+  // real regions and re-appended all six to the LAST region, collapsing the media/content
+  // split into one region. `heroImage` -> `brandArtwork` is the sharpest case: it starts
+  // alone in the `media` region and must not end up in `content` just because it changed
+  // its name.
+  const ir = perceivedLoginForm();
+  assert.deepEqual(ir.layout.regions[0].children, ['heroImage'], 'fixture assumption');
+  assert.equal(ir.layout.regions[0].role, 'media', 'fixture assumption');
+
+  const result = await applyWireframeSemantics(ir, { callModel: stubModel(loginNaming()) });
+  assert.equal(result.applied, true, result.reason || '');
+
+  const media = result.ir.layout.regions.find((r) => r.role === 'media');
+  const content = result.ir.layout.regions.find((r) => r.role === 'content');
+
+  assert.deepEqual(media.children, ['brandArtwork'], 'the renamed media element left its own region');
+  assert.ok(!content.children.includes('brandArtwork'), 'the media element was re-homed into content');
+});
+
 // ---------------------------------------------------------------------------
 // The doneWhen, item 1 — OpenCV still owns every bbox.
 // ---------------------------------------------------------------------------

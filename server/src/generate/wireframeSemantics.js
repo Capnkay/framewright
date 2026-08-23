@@ -230,6 +230,22 @@ export function observationFor(ir) {
  * Entries naming a slot that does not exist are ignored rather than appended. An element
  * this module invents is an element with no box, and a bespoke section is not improved by
  * a field nobody drew.
+ *
+ * RENAMING A SLOT MUST RENAME ITS OWN REFERENCE TOO, AND THIS IS THE BUG A LIVE RUN FOUND.
+ * `ir.layout.regions[].children` addresses elements by `elementName` — fuse.py wrote it
+ * using the seven template names, before this function ever runs. Renaming `element.
+ * elementName` alone leaves every region's `children` array pointing at the name that no
+ * longer exists, and by the time `repairReferences` looks for a stale reference to clean
+ * up, the rename that caused it has already happened and left no trace of the old name.
+ * Measured on a live hosted call against `demo_wf1.png`: the model renamed all six claimed
+ * slots (`headlineMain` -> `mainHeadline`, etc.), `repairReferences` then read the still-old
+ * `children` arrays, found none of the six new names in them, dropped all six as dangling
+ * references, and re-appended all six to the LAST region as orphans — collapsing the
+ * split-hero's media/content side split into one region and losing which side each element
+ * was actually drawn on. So the rename map is built here, where the old name is still known,
+ * and applied to every by-name reference in the same pass `repairElementNames` already uses
+ * for its own renames (`layout.regions[].children`, `cards.of`) — one mechanism, exercised
+ * by two different callers that each discover a name change at a different point.
  */
 export function mergeSemantics(ir, response) {
   const warnings = [];
@@ -241,6 +257,7 @@ export function mergeSemantics(ir, response) {
 
   let renamed = 0;
   const seen = new Set();
+  const renameMap = new Map(); // old elementName -> new elementName, this call only
 
   for (const entry of Array.isArray(response?.elements) ? response.elements : []) {
     const element = bySlot.get(entry?.slot);
@@ -283,6 +300,7 @@ export function mergeSemantics(ir, response) {
     // Renaming happens LAST, so every warning above still names the element by the slot
     // the reader is looking at in the perception artifact.
     if (typeof entry.elementName === 'string' && entry.elementName.trim() && entry.elementName !== element.elementName) {
+      renameMap.set(element.elementName, entry.elementName);
       element.elementName = entry.elementName;
       renamed += 1;
     }
@@ -290,6 +308,20 @@ export function mergeSemantics(ir, response) {
 
   if (typeof response?.sectionType === 'string' && ASSIGNABLE_SECTION_TYPES.has(response.sectionType)) {
     ir.sectionType = response.sectionType;
+  }
+
+  // Every by-name reference, rewritten in the same pass — see the note above on why this
+  // cannot wait for repairElementNames, which never sees the old name.
+  if (renameMap.size) {
+    if (ir.layout && Array.isArray(ir.layout.regions)) {
+      for (const region of ir.layout.regions) {
+        if (!region || !Array.isArray(region.children)) continue;
+        region.children = region.children.map((name) => renameMap.get(name) ?? name);
+      }
+    }
+    if (ir.cards && typeof ir.cards === 'object' && !Array.isArray(ir.cards) && renameMap.has(ir.cards.of)) {
+      ir.cards.of = renameMap.get(ir.cards.of);
+    }
   }
 
   return { warnings, renamed };
