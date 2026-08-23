@@ -377,6 +377,104 @@ test('an element with no reference default is left empty rather than invented', 
 
 
 // ---------------------------------------------------------------------
+// T-154 — codeToIr left the reference scaffold's `cards.of` in place for a
+// section with no card loop at all, so it "had" a card loop that named
+// nothing real.
+// ---------------------------------------------------------------------
+
+test('a pasted section with no card loop does not keep the reference scaffold’s cards.of', async () => {
+  // THE DEFECT: the "no loop in the source" branch built `cards` as
+  // `{ ...scaffold.cards, count: 0, items: [] }` — every field of the Pulse
+  // Fit reference's cards object except `count` and `items`, so `of` stayed
+  // "statBadges" even though this section's own elements contain no Cards
+  // element named that or anything else. emitComponent computes `hasCards =
+  // Boolean(cards && cards.of)`, so a plain two-field testimonial with no card
+  // loop was told it had one.
+  const testimonial = `
+    const ids = { quoteText: '9000000001', authorName: '9000000002' };
+    const DEFAULTS = { '9000000001': 'This tool changed how we ship.', '9000000002': 'Priya, CTO' };
+
+    export default function Testimonial({ data }) {
+      return (
+        <section>
+          <p id={ids.quoteText} dangerouslySetInnerHTML={{ __html: getHtml(getTextValue(data, ids.quoteText, DEFAULTS[ids.quoteText]), DEFAULTS[ids.quoteText]) }} />
+          <span id={ids.authorName} dangerouslySetInnerHTML={{ __html: getHtml(getTextValue(data, ids.authorName, DEFAULTS[ids.authorName]), DEFAULTS[ids.authorName]) }} />
+        </section>
+      );
+    }
+  `;
+
+  const ir = await codeToIr(testimonial, { pageName: 'Home', sectionName: 'Testimonial' });
+
+  // §6 still requires the field to be present…
+  assert.ok(ir.cards && typeof ir.cards === 'object', 'cards was dropped entirely, and §6 requires it');
+  // …but it must not name an element this section does not have.
+  assert.equal(ir.cards.of, '', `cards.of still names a reference element: ${JSON.stringify(ir.cards.of)}`);
+  assert.equal(ir.cards.count, 0);
+  assert.deepEqual(ir.cards.items, []);
+
+  // And the elements this two-field section actually has are still read from
+  // the code, not replaced by the reference set — the bug this guards against
+  // is narrow, not a return to T-124's "everything is the scaffold" failure.
+  assert.equal(ir.elements.length, 2);
+  for (const el of ir.elements) assert.equal(el.sourceOf, 'code');
+});
+
+test('a section with no card loop emits no dead card-loop code for an element it does not have', async () => {
+  // The end-to-end version of the assertion above: BEFORE this fix, the
+  // leftover cards.of made emitComponent's hasCards true, which wrote
+  // `getStatItems`, `DEFAULT_STAT_CARDS` and a `data[ids.statBadges]` lookup
+  // into a component whose own `ids` map has no `statBadges` key at all.
+  const testimonial = `
+    const ids = { quoteText: '9000000001', authorName: '9000000002' };
+    const DEFAULTS = { '9000000001': 'This tool changed how we ship.', '9000000002': 'Priya, CTO' };
+
+    export default function Testimonial({ data }) {
+      return (
+        <section>
+          <p id={ids.quoteText} dangerouslySetInnerHTML={{ __html: getHtml(getTextValue(data, ids.quoteText, DEFAULTS[ids.quoteText]), DEFAULTS[ids.quoteText]) }} />
+          <span id={ids.authorName} dangerouslySetInnerHTML={{ __html: getHtml(getTextValue(data, ids.authorName, DEFAULTS[ids.authorName]), DEFAULTS[ids.authorName]) }} />
+        </section>
+      );
+    }
+  `;
+
+  const ir = await codeToIr(testimonial, { pageName: 'Home', sectionName: 'Testimonial' });
+  let next = 5000000001;
+  for (const el of ir.elements) el.fieldId = String(next++);
+
+  const source = emitComponent(ir);
+
+  assert.doesNotMatch(source, /statBadges/, 'the reference cards element name leaked into the emitted component');
+  assert.doesNotMatch(source, /getStatItems/, 'a dead card-loop function was emitted for a section with no card loop');
+  assert.doesNotMatch(source, /DEFAULT_STAT_CARDS = \[/, 'a dead card-items constant was emitted for a section with no card loop');
+});
+
+test('a pasted section whose card loop names its own element keeps pointing at it, not statBadges', async () => {
+  // Regression guard for the other branch: when the pasted code DOES carry a
+  // loop, cards.of must still be the code's own element name after the
+  // repair pass runs, not silently repointed or dropped.
+  const withLoop = `
+    const ids = { teamMembers: '9000000010' };
+    export default function Team({ data }) {
+      return (
+        <div id={ids.teamMembers} className="grid">
+          {items.map(item => (
+            <div key={item.fieldId1}>
+              <span id={item.fieldId1} dangerouslySetInnerHTML={{ __html: getHtml(val, 'Name') }} />
+              <span id={item.fieldId2} dangerouslySetInnerHTML={{ __html: getHtml(val, 'Role') }} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+  `;
+
+  const ir = await codeToIr(withLoop, { pageName: 'Home', sectionName: 'Team' });
+  assert.equal(ir.cards.of, 'teamMembers', `cards.of was repointed away from the code's own loop: ${JSON.stringify(ir.cards.of)}`);
+});
+
+// ---------------------------------------------------------------------
 // The Studio's mode selector is authoritative, not advisory.
 // ---------------------------------------------------------------------
 

@@ -38,6 +38,7 @@
 import { parse } from '@babel/parser';
 
 import { promptToIrKeyless } from './promptToIrKeyless.js';
+import { repairElementNames, repairReferences } from './repairModelIr.js';
 
 /** Walk the AST and collect every node the predicate accepts. */
 function findNodes(ast, predicate) {
@@ -439,7 +440,7 @@ export async function codeToIr(jsxString, options = {}) {
     'layout regions, theme and designTokens were not read from the pasted code — a className does not carry §6’s regions, theme or token scale. Images were placed in the media region and everything else in the content region, and the theme and tokens come from the deterministic reference.',
   );
 
-  return {
+  const ir = {
     ...scaffold,
     sectionName,
     pageName,
@@ -454,6 +455,52 @@ export async function codeToIr(jsxString, options = {}) {
     cards,
     warnings,
   };
+
+  // T-154. repairModelIr.js's own header claims three callers — prompt,
+  // wireframe semantics, and code — and until this line codeToIr was not one of
+  // them. The gap it left: the "no loop in the source" branch above spreads
+  // `scaffold.cards` and overwrites only `count` and `items`, so `of` keeps the
+  // reference scaffold's element name ("statBadges") even when nothing in THIS
+  // section owns a card loop. emitComponent computes `hasCards =
+  // Boolean(cards && cards.of)`, so a plain two-field testimonial came back
+  // reporting a card loop it does not have, and emitted a dead
+  // getStatItems/DEFAULT_STAT_CARDS block reading `ids.statBadges` — a name
+  // absent from that section's own `ids` map. Measured: see
+  // docs/BENCHMARK-RESULTS.md.
+  //
+  // `repairElementNames` is a no-op for codeToIr today — `id={ids.name}` is a
+  // JS MemberExpression, so `name` is already a bare identifier by the
+  // language's own grammar before this module ever sees it — kept so the two
+  // callers share one floor rather than two copies that drift.
+  //
+  // `repairReferences`'s VIABILITY FLOOR (`MIN_PLACED_ELEMENTS`, currently 3)
+  // is deliberately NOT enforced here. It was calibrated against a model
+  // instructed to write 5 to 9 elements (B-012); §13's code mode has no such
+  // floor, and a real, legitimately two-field section — T-140's own "sibling
+  // module" fixture is exactly one — would be discarded by it. So `viable` is
+  // recorded as a warning, never as a refusal; only the reference repair
+  // (dangling `cards.of`, dangling region children, orphaned elements) runs.
+  ir.warnings.push(...repairElementNames(ir));
+  const { warnings: refWarnings, viable } = repairReferences(ir);
+  ir.warnings.push(...refWarnings);
+  if (!viable) {
+    ir.warnings.push(
+      'This section has fewer editable fields than §13’s instructed floor for a bespoke ' +
+        'section (3); nothing was discarded because that floor is calibrated for a model ' +
+        'asked to write 5 to 9 elements, not for a real component someone pasted.',
+    );
+  }
+  // §6 makes `cards` REQUIRED. `repairReferences` deletes it outright when no
+  // element unambiguously owns the loop — the ordinary case for the "no loop in
+  // the source" branch above, since "statBadges" now names nothing. An emptied
+  // `of` is the truthful statement of no owner: it satisfies §6's `string` type
+  // and, unlike the scaffold's leftover name, cannot be mistaken for a live
+  // reference.
+  if (!ir.cards || typeof ir.cards !== 'object') {
+    ir.cards = { ...cards, of: '', count: 0, gridColumns: 0, items: [] };
+  }
+
+  return ir;
 }
 
 export default codeToIr;
