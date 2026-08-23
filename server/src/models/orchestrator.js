@@ -130,7 +130,8 @@ async function withTimeout(fn, timeoutMs) {
  * change to one function rather than to every call site.
  */
 async function defaultTransport({ baseUrl, apiKey, model, input, schema, system, signal, fetchImpl }) {
-  const response = await fetchImpl(`${String(baseUrl).replace(/\/+$/, '')}/chat/completions`, {
+  const url = `${String(baseUrl).replace(/\/+$/, '')}/model/${model}/invoke`;
+  const response = await fetchImpl(url, {
     method: 'POST',
     signal,
     headers: {
@@ -138,7 +139,6 @@ async function defaultTransport({ baseUrl, apiKey, model, input, schema, system,
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
       // A system message when the caller supplies one. It was not optional in
       // practice: with only the bare user prompt and a JSON schema, the model returned
       // IR that validated and was unusable — dangling region children, a cards.of
@@ -147,10 +147,12 @@ async function defaultTransport({ baseUrl, apiKey, model, input, schema, system,
       messages: system
         ? [{ role: 'system', content: String(system) }, { role: 'user', content: String(input) }]
         : [{ role: 'user', content: String(input) }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: { name: 'structured_output', strict: true, schema },
-      },
+      ...(schema && {
+        response_format: {
+          type: 'json_schema',
+          json_schema: { name: 'structured_output', strict: true, schema },
+        }
+      })
     }),
   });
 

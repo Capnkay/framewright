@@ -60,34 +60,39 @@ export default function SideEditor({ fieldId, pageName = 'Home', apiUrl = '/api'
   };
 
   return (
-    <div className="side-editor">
-      <h3>
-        Edit Field: {fieldId}
-        <span className="ml-2">
-          <ConfidenceBadge confidence={confidenceFromStore} />
-        </span>
+    <div className="side-editor flex flex-col gap-4">
+      <h3 className="text-studio-sm font-semibold text-studio-text-primary flex items-center justify-between">
+        <span className="font-studio-mono">{fieldId}</span>
+        <ConfidenceBadge confidence={confidenceFromStore} />
       </h3>
-      <form onSubmit={handleSave}>
-        <div>
-          <label>Content</label>
+      <form onSubmit={handleSave} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-studio-xs font-medium text-studio-text-secondary uppercase">Content</label>
           <textarea
+            className="w-full min-h-24 bg-studio-bg-base border border-studio-border rounded-studio-sm p-2 text-studio-sm text-studio-text-primary focus:outline-none focus:border-studio-accent font-studio-mono"
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
         </div>
-        <div>
-          <label>CSS</label>
+        <div className="flex flex-col gap-1">
+          <label className="text-studio-xs font-medium text-studio-text-secondary uppercase">CSS (e.g. color: red;)</label>
           <textarea
+            className="w-full min-h-16 bg-studio-bg-base border border-studio-border rounded-studio-sm p-2 text-studio-sm text-studio-text-primary focus:outline-none focus:border-studio-accent font-studio-mono"
             value={css}
             onChange={(e) => setCss(e.target.value)}
+            placeholder="color, font-size, text-align..."
           />
         </div>
-        <button type="submit" disabled={status === 'saving'}>
-          {status === 'saving' ? 'Saving...' : 'Save'}
+        <button 
+          type="submit" 
+          disabled={status === 'saving'}
+          className="w-full bg-studio-accent hover:bg-studio-accent-hover text-studio-accent-foreground font-semibold py-2 rounded-studio-sm disabled:opacity-50 transition-colors mt-2"
+        >
+          {status === 'saving' ? 'Saving...' : 'Save Changes'}
         </button>
       </form>
-      {error && <div className="error">{error}</div>}
-      {status === 'success' && <div className="success">Saved</div>}
+      {error && <div className="text-studio-xs text-studio-destructive bg-studio-destructive/10 border border-studio-destructive/30 rounded-studio-sm p-2 mt-2">{error}</div>}
+      {status === 'success' && <div className="text-studio-xs text-green-500 bg-green-500/10 border border-green-500/30 rounded-studio-sm p-2 mt-2">Saved successfully</div>}
     </div>
   );
 }

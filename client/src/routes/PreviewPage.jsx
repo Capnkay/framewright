@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import SideEditor from '../studio/SideEditor';
 
 // Eagerly discover all generated JSX components.
 // Keys are relative paths: '../sections/generated/SectionName-1000000001-v1.jsx'
@@ -20,14 +21,6 @@ function SectionWrapper({ section, Component, pageName }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // §13.3 REQUIRES A MODE and this was not sending one, so every click
-          // answered 400 "mode is required and must be one of: ..." — and the
-          // handler below only acted on success, so the button silently did
-          // nothing. A visible control that does nothing and says nothing is
-          // worse than no control.
-          //
-          // `prompt` is the only mode regenerate implements; the other three
-          // answer 501 by design, so this is not a choice the user makes here.
           mode: 'prompt',
           prompt: regeneratePrompt || undefined,
           variation: regenerateVariation,
@@ -38,18 +31,11 @@ function SectionWrapper({ section, Component, pageName }) {
         window.location.reload();
         return;
       }
-
-      // The failure is SHOWN, not swallowed. §13.4's envelope is
-      // { ok:false, error:{ code, message } }, so `error` is an object — assigning
-      // it whole would render as a React child and blank the page, which is the
-      // bug T-114 hit on the Studio's own error path.
       let message = `Regenerate failed with status ${res.status}`;
       try {
         const body = await res.json();
         if (body?.error && typeof body.error.message === 'string') message = body.error.message;
-      } catch {
-        // A malformed error body falls back to the status line, deliberately.
-      }
+      } catch {}
       setRegenerateError(message);
     } catch (err) {
       setRegenerateError(err.message);
@@ -61,12 +47,12 @@ function SectionWrapper({ section, Component, pageName }) {
     <div className="relative group border border-studio-border rounded-studio-lg mb-8 p-4 bg-studio-bg-raised">
       <form 
         onSubmit={handleRegenerate}
-        className="absolute top-2 right-2 bg-studio-bg-overlay border border-studio-border shadow-studio-md rounded-studio-md px-3 py-2 z-10 flex flex-col gap-2 text-studio-sm"
+        className="absolute top-2 right-2 bg-studio-bg-overlay border border-studio-border shadow-studio-md rounded-studio-md px-3 py-2 z-10 flex flex-col gap-2 text-studio-sm opacity-0 group-hover:opacity-100 transition-opacity side-editor-ignore"
       >
         <div className="font-semibold text-studio-text-secondary">Regenerate Section</div>
-        {regenerateError ? (
+        {regenerateError && (
           <p className="rounded-studio-sm bg-studio-destructive/10 border border-studio-destructive/30 px-2 py-1 text-studio-xs text-studio-destructive">{regenerateError}</p>
-        ) : null}
+        )}
         <div className="flex gap-2 items-center justify-between text-studio-text-primary">
           <label>Prompt:</label>
           <input 
@@ -105,10 +91,11 @@ function SectionWrapper({ section, Component, pageName }) {
 }
 
 export default function PreviewPage() {
-  // §1: pageName is case-sensitive. Whatever case the URL carries is the key.
   const { pageName = 'Home' } = useParams();
-
   const [sectionDocs, setSectionDocs] = useState([]);
+  
+  const [editingFieldId, setEditingFieldId] = useState(null);
+  const [editorPos, setEditorPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     let active = true;
@@ -116,13 +103,6 @@ export default function PreviewPage() {
       .then(res => res.json())
       .then(data => {
         if (!active) return;
-        // §13.4: a collection read is a BARE ARRAY, never wrapped. This was
-        // `data.data || data`, which accommodates exactly the shape the
-        // contract forbids — and §9 names that accommodation as the way a
-        // reducer ends up with an empty store behind a page that renders
-        // perfectly. Reading it as what the contract says it is means a server
-        // that ever wrapped the response fails loudly here instead of quietly
-        // everywhere else.
         setSectionDocs(Array.isArray(data) ? data : []);
       })
       .catch(err => console.error(err));
@@ -134,11 +114,39 @@ export default function PreviewPage() {
   const status = useSelector((state) => state.cms.status);
   const error = useSelector((state) => state.cms.error);
 
+  // Click-to-edit canvas logic
+  useEffect(() => {
+    const handleClick = (e) => {
+      const el = e.target.closest('[id]');
+      
+      // Dismiss if clicking outside a valid field and not inside the editor
+      if (!el || !sections || sections[el.id] === undefined) {
+        if (!e.target.closest('.side-editor-ignore') && !e.target.closest('.side-editor-container')) {
+          setEditingFieldId(null);
+        }
+        return;
+      }
+      
+      if (e.target.closest('.side-editor-ignore') || e.target.closest('.side-editor-container')) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const rect = el.getBoundingClientRect();
+      setEditorPos({
+        top: window.scrollY + rect.top,
+        left: window.scrollX + rect.left + (rect.width > 300 ? rect.width / 2 : rect.width) + 10,
+      });
+      setEditingFieldId(el.id);
+    };
+
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [sections]);
+
   const keyCount = sections ? Object.keys(sections).length : 0;
   const missingCount = Array.isArray(missing) ? missing.length : 0;
 
-  // Sections whose component file is not on this machine. Collected while
-  // rendering and reported once, below, rather than a card each.
   const unbuilt = [];
 
   const renderedSections = sectionDocs.map((section) => {
@@ -172,12 +180,7 @@ export default function PreviewPage() {
   });
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] bg-studio-bg-base p-6 text-studio-text-primary">
-      {/* THE SECTIONS COME FIRST. This page is what a judge is shown, and what
-          it is FOR is the rendered result — the diagnostics below exist to make
-          §9 observable, not to be the headline. They were above the content,
-          with copy naming T-011, T-029 and T-015, which is a build note on a
-          product page. */}
+    <main className="min-h-[calc(100vh-5rem)] bg-studio-bg-base p-6 text-studio-text-primary relative">
       <div className="flex flex-col gap-8">{renderedSections}</div>
 
       {sectionDocs.length === 0 ? (
@@ -187,12 +190,25 @@ export default function PreviewPage() {
         </p>
       ) : null}
 
-      {/* §9's observability, kept in full and moved out of the way. AGENTS.md
-          rule 2: a completely dead store looks pixel-identical to a working one,
-          and these three numbers are the only thing on screen that can tell them
-          apart. Deleting them to tidy the page would remove the one instrument
-          that catches the failure the whole assertion exists for — which is
-          exactly what T-127 turned out to be. Closed by default, one click away. */}
+      {/* Floating Canvas Editor */}
+      {editingFieldId && (
+        <div 
+          className="absolute z-50 bg-studio-bg-overlay border border-studio-border shadow-studio-lg rounded-studio-lg p-4 side-editor-container"
+          style={{ top: editorPos.top, left: editorPos.left, width: '300px' }}
+        >
+          <div className="flex justify-between items-center mb-2 border-b border-studio-border pb-2">
+            <span className="text-studio-xs font-semibold uppercase text-studio-text-secondary">Edit Field</span>
+            <button 
+              onClick={() => setEditingFieldId(null)}
+              className="text-studio-text-secondary hover:text-studio-text-primary"
+            >
+              ×
+            </button>
+          </div>
+          <SideEditor fieldId={editingFieldId} pageName={pageName} apiUrl="/api" />
+        </div>
+      )}
+
       <details className="mt-12 max-w-md rounded-studio-lg border border-studio-border bg-studio-bg-raised p-4 text-studio-sm">
         <summary className="cursor-pointer font-medium text-studio-text-primary">
           Content status
