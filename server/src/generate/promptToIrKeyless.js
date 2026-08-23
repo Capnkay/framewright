@@ -113,6 +113,18 @@ const REFERENCE_CARDS = [
 // Filler used when a prompt asks for more cards than the reference provides.
 // Deliberately generic: inventing plausible-looking statistics would put
 // fabricated numbers in front of a judge.
+
+const REFERENCE_ELEMENTS_FEATURE = [
+  { elementName: 'headlineMain', contentType: 'Text', tag: 'h2', order: 1, default: 'Powerful Features', classes: 'text-3xl md:text-4xl font-bold text-center', css: null, alt: null },
+  { elementName: 'description', contentType: 'Textfield', tag: 'p', order: 2, default: 'Everything you need to succeed in your fitness journey.', classes: 'text-xl text-gray-500 text-center max-w-2xl mx-auto mt-4', css: null, alt: null },
+  { elementName: 'featureCards', contentType: 'Cards', tag: 'div', order: 3, default: null, classes: 'grid gap-8 mt-12 py-2', css: null, alt: null }
+];
+const REFERENCE_CARDS_FEATURE = [
+  { field1: 'Activity Tracking', field2: 'Monitor your daily steps, distance, and calories burned with precision.' },
+  { field1: 'Custom Workouts', field2: 'Get personalized workout plans tailored to your goals.' },
+  { field1: 'Analytics', field2: 'Visualize your improvements with detailed insights.' },
+];
+
 const FILLER_CARD = { field1: '—', field2: 'Add a label' };
 
 // --- keyword tables --------------------------------------------------------
@@ -168,6 +180,7 @@ const CARD_NOUNS = 'stats?|statistics?|cards?|badges?|metrics?|figures?|numbers?
 // else falls back to split-hero WITH a warning, rather than echoing a type
 // the emitter has no template for.
 const SECTION_TYPE_PATTERNS = [
+  { type: 'feature-grid', pattern: /\bfeature[\s-]?grid\b|\bfeatures\b|\bgrid\b/i },
   { type: 'split-hero', pattern: /\bsplit[\s-]?hero\b|\bhero\b|\bbanner\b|\bmasthead\b/i },
 ];
 
@@ -284,10 +297,10 @@ export function extractTextMode(prompt) {
 
 // --- card assembly ---------------------------------------------------------
 
-function buildCardItems(count) {
+function buildCardItems(count, templateCards = REFERENCE_CARDS) {
   const items = [];
   for (let i = 0; i < count; i += 1) {
-    items.push(i < REFERENCE_CARDS.length ? { ...REFERENCE_CARDS[i] } : { ...FILLER_CARD });
+    items.push(i < templateCards.length ? { ...templateCards[i] } : { ...FILLER_CARD });
   }
   return items;
 }
@@ -335,9 +348,9 @@ export function promptToIrKeyless(prompt, options = {}) {
   if (cardCount.clampedFrom !== undefined) {
     warnings.push(`Card count ${cardCount.clampedFrom} was outside 1-${MAX_CARD_COUNT}; clamped to ${cardCount.value}.`);
   }
-  if (cardCount.found && cardCount.value > REFERENCE_CARDS.length) {
+  if (cardCount.found && cardCount.value > templateCards.length) {
     warnings.push(
-      `Prompt asked for ${cardCount.value} cards; the reference template supplies ${REFERENCE_CARDS.length}, so ${cardCount.value - REFERENCE_CARDS.length} placeholder item(s) were added rather than inventing statistics.`,
+      `Prompt asked for ${cardCount.value} cards; the reference template supplies ${templateCards.length}, so ${cardCount.value - templateCards.length} placeholder item(s) were added rather than inventing statistics.`,
     );
   }
   if (!accent.found) {
@@ -355,7 +368,12 @@ export function promptToIrKeyless(prompt, options = {}) {
     warnings.push('No CTA label found in the prompt; the reference label was kept.');
   }
 
-  const elements = REFERENCE_ELEMENTS.map((el) => {
+  
+  const isFeature = sectionType.value === 'feature-grid';
+  const templateElements = isFeature ? REFERENCE_ELEMENTS_FEATURE : REFERENCE_ELEMENTS;
+  const templateCards = isFeature ? REFERENCE_CARDS_FEATURE : REFERENCE_CARDS;
+  
+  const elements = templateElements.map((el) => {
     const isCta = el.elementName === 'ctaButton';
     const overridden = isCta && ctaLabel.found;
     return {
@@ -386,11 +404,13 @@ export function promptToIrKeyless(prompt, options = {}) {
     },
 
     layout: {
-      direction: 'row',
+      direction: isFeature ? 'col' : 'row',
       breakpoint: 'md',
       mobileBehaviour: 'stack',
       container: { maxWidth: '1920px', padding: 'px-0 md:px-12' },
-      regions: [
+      regions: isFeature ? [
+        { role: 'content', side: 'center', width: 'w-full', children: ['headlineMain', 'description', 'featureCards'] }
+      ] : [
         { role: 'media', side: 'left', width: '1/2', children: ['heroImage'] },
         {
           role: 'content',
@@ -406,7 +426,7 @@ export function promptToIrKeyless(prompt, options = {}) {
           ],
         },
       ],
-      accents: [
+      accents: isFeature ? [] : [
         { edge: 'left', width: 'w-8', colour: accent.value, fromBreakpoint: 'md' },
         { edge: 'right', width: 'w-8', colour: accent.value, fromBreakpoint: 'md' },
       ],
@@ -429,12 +449,12 @@ export function promptToIrKeyless(prompt, options = {}) {
       : {}),
 
     cards: {
-      of: 'statBadges',
+      of: isFeature ? 'featureCards' : 'statBadges',
       count: cardCount.value,
       gridColumns: Math.min(cardCount.value, 4),
       layoutMode: 'grid',
       fieldsPerItem: 2,
-      items: buildCardItems(cardCount.value),
+      items: buildCardItems(cardCount.value, templateCards),
     },
 
     elements,
