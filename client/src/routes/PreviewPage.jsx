@@ -10,6 +10,7 @@ function SectionWrapper({ section, Component, pageName }) {
   const [regeneratePrompt, setRegeneratePrompt] = useState('');
   const [regenerateVariation, setRegenerateVariation] = useState(section.variations || section.variation || '1');
   const [regenerating, setRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState(null);
 
   const handleRegenerate = async (e) => {
     e.preventDefault();
@@ -18,7 +19,16 @@ function SectionWrapper({ section, Component, pageName }) {
       const res = await fetch(`/api/sections/${section.sectionId}/regenerate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
+          // §13.3 REQUIRES A MODE and this was not sending one, so every click
+          // answered 400 "mode is required and must be one of: ..." — and the
+          // handler below only acted on success, so the button silently did
+          // nothing. A visible control that does nothing and says nothing is
+          // worse than no control.
+          //
+          // `prompt` is the only mode regenerate implements; the other three
+          // answer 501 by design, so this is not a choice the user makes here.
+          mode: 'prompt',
           prompt: regeneratePrompt || undefined,
           variation: regenerateVariation,
           variations: regenerateVariation
@@ -26,9 +36,23 @@ function SectionWrapper({ section, Component, pageName }) {
       });
       if (res.ok) {
         window.location.reload();
+        return;
       }
+
+      // The failure is SHOWN, not swallowed. §13.4's envelope is
+      // { ok:false, error:{ code, message } }, so `error` is an object — assigning
+      // it whole would render as a React child and blank the page, which is the
+      // bug T-114 hit on the Studio's own error path.
+      let message = `Regenerate failed with status ${res.status}`;
+      try {
+        const body = await res.json();
+        if (body?.error && typeof body.error.message === 'string') message = body.error.message;
+      } catch {
+        // A malformed error body falls back to the status line, deliberately.
+      }
+      setRegenerateError(message);
     } catch (err) {
-      console.error(err);
+      setRegenerateError(err.message);
     }
     setRegenerating(false);
   };
@@ -40,6 +64,9 @@ function SectionWrapper({ section, Component, pageName }) {
         className="absolute top-2 right-2 bg-background shadow rounded px-3 py-2 z-10 flex flex-col gap-2 border text-sm"
       >
         <div className="font-semibold text-muted-foreground">Regenerate Section</div>
+        {regenerateError ? (
+          <p className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">{regenerateError}</p>
+        ) : null}
         <div className="flex gap-2 items-center">
           <label>Prompt:</label>
           <input 

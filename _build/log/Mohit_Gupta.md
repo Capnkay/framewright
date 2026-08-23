@@ -420,3 +420,10 @@
 - Device: Mohits_Victus
 - Files: client/src/App.jsx, tests/preview-chrome-is-not-doubled.test.mjs
 
+## T-146 — The preview's Regenerate button sends no mode, gets a 400, and says nothing
+- Started: 2026-08-23T11:19:21.588Z
+- Finished: 2026-08-23T11:21:20.392Z
+- Duration: 2m
+- Device: Mohits_Victus
+- Files: client/src/routes/PreviewPage.jsx, server/src/routes/regenerate.js, tests/regenerate-from-the-preview.test.mjs
+

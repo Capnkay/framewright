@@ -3011,6 +3011,27 @@
       ],
       "verify": "node --test tests/preview-chrome-is-not-doubled.test.mjs",
       "doneWhen": "Seen in a browser, not in a test. /preview/:pageName was wrapped in StudioLayout, which renders StudioNav, and the Studio frames that same route in an iframe - deliberately, because R11's stacking comes from a `md:` media query and only a real viewport triggers one. So 'Framewright / Home / Studio / Preview / Sign in' appeared a SECOND time inside the preview pane, nested in the Studio already showing it. Done when the layout drops its chrome while framed and keeps it when the route is opened directly, and when the frame check cannot itself throw - window.top raises on a cross-origin parent and these routes are also rendered by renderToString where there is no window at all."
+    },
+    {
+      "id": "T-146",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "30m",
+      "title": "The preview's Regenerate button sends no mode, gets a 400, and says nothing",
+      "contract": [
+        "§13.3",
+        "§11.1"
+      ],
+      "deps": [
+        "T-145"
+      ],
+      "files": [
+        "client/src/routes/PreviewPage.jsx",
+        "server/src/routes/regenerate.js",
+        "tests/regenerate-from-the-preview.test.mjs"
+      ],
+      "verify": "node --test tests/regenerate-from-the-preview.test.mjs",
+      "doneWhen": "Exercised against the live API. PreviewPage's handleRegenerate posts { prompt, variation, variations } and NO mode, so the endpoint answers 400 'mode is required and must be one of: wireframe, code, prompt, combined.' The handler then does `if (res.ok) window.location.reload()` - so on failure it neither reloads nor reports anything, and the control silently does nothing. It is on screen in the demo and a judge may click it. Verified the endpoint itself is fine: with mode=prompt supplied it returns 200, preserves the sectionId and the fieldIds per section 13.3's preserve policy. Second defect found in the same run: regenerate leaves the job at 'queued' after all its stages complete - the same terminal-status bug fixed in generate.js at T-138, which never reached this route. Done when the button sends a mode, when a failed regenerate is visible to the person who clicked it, and when a completed regenerate reports a terminal status."
     }
   ]
 }

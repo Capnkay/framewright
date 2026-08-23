@@ -219,6 +219,12 @@ export async function postRegenerate(ctx = {}) {
       }
     });
     
+    // §11.1's terminal status. T-138 fixed this in generate.js and it never
+    // reached here: a regenerate that ran every stage still reported "queued",
+    // so the Glass Box showed a finished run as waiting to start. Two routes,
+    // one omission, and only one of them was in that task's files list.
+    await jobStore.setStatus(job.jobId, 'succeeded');
+
     const finalJob = await jobStore.getJob(job.jobId);
     
     const safeName = String(ir.sectionName || 'Section').replace(/[^a-zA-Z0-9_]/g, '');
