@@ -1555,3 +1555,109 @@ on this synthetic distribution transfers to the real photograph is exactly the q
 B-009 already showed a synthetic image cannot answer by looking clean — noise here is
 sampled per seed for that reason, and the transfer question stays open until a trained model
 is actually scored against B-003's real targets.
+
+---
+
+## B-017 · A solid-fill media panel is invisible to the ink mask — a real limit, not a tuned one
+
+**Date:** 2026-08-24 · **Status:** DEFINITIVE for the mechanism; **research-level gap, not
+attempted as a patch** · **VERIFIED** (run on our hardware)
+
+### What was tested
+
+`signin-panel.png` — a clean, digital (Figma-style) split login form, downloaded for this QA
+pass from wireframe-examples.com's free tier ("Signin panel two sided form right image
+left"): a solid light-purple rectangle on the left ~40% of the frame standing in for the
+image/illustration, a form (headline, subline, two labelled inputs, a checkbox, a button, a
+disclaimer line) on the right. 1440×800 source, normalised to 1024×1024 per stage 2.
+
+This is a genuinely different input class from every wireframe in B-001 through B-016: every
+prior test image marks its media panel with either hand-drawn ink (a box someone drew) or a
+crossed/X-filled placeholder rectangle (`demo_wf1.png`). This one marks it with a **flat colour
+fill and no border stroke at all** — which is how Figma, and most real digital wireframe
+kits, actually draw an image placeholder.
+
+### What was measured
+
+```
+perception/.venv/Scripts/python -c "..." (detect_regions on the normalised 1024x1024 canvas)
+```
+
+| | |
+|---|---|
+| Regions detected, whole image | **9** |
+| Regions inside the left 40% (the media panel) | **0** |
+| Largest region detected anywhere | 131 px² area fraction ≈ 0.001 (a form-field border) |
+| Purple fill, greyscale value | **224** |
+| White background, greyscale value | **255** |
+| Luminance delta at the panel's edge | **31 / 255 (≈12%)** |
+| Real ink's typical delta on the same class of input (near-black text/strokes) | **≈200 / 255 (≈80%)** |
+
+Through the full `/perceive` call, the pipeline's own words for this: *"No region was large
+enough to be the hero image; heroImage kept its default and every region was treated as
+content."* That sentence is honest but points at the wrong stage — nothing about the panel's
+**size** disqualified it (a ~430×1024 block is ~43% of the canvas, far past `MEDIA_MIN_AREA`'s
+12% floor, B-011). It was never a **candidate** in the first place: `detect_regions` found
+nine small text-scale regions, all on the form side, and zero anywhere in the media panel's
+40%.
+
+### The mechanism, and why it is not a threshold to nudge
+
+`ink_mask()` (`perception/stages/detect_regions.py`) isolates fine-grained contrast — a
+heavily median-blurred copy of the image subtracted from the sharp original, so slow gradients
+(paper shading, a lighting fall-off) cancel and only fast-varying detail (a drawn line, a
+letterform) survives — then applies one global Otsu threshold to split "ink" from "paper" on
+whatever survives that subtraction.
+
+A **filled** rectangle's interior has no internal contrast at all — it is one flat colour —
+so the only signal is a thin ring at its own boundary, and that ring's strength is set by how
+different the fill is from the page background, not by how large the shape is. Measured here
+at 31/255, against real ink (hand-drawn or printed text/borders) at roughly 200/255. Otsu
+picks its cut point from the image's own histogram, dominated by the handful of genuinely
+high-contrast marks (the form's black text and borders); a boundary six times fainter than
+those falls below that cut and is read as paper. This is the same "ink vs. paper" model B-003
+built and B-009 carefully calibrated — correctly, for a photograph or a line drawing — meeting
+an input it was never asked to separate: two nearly-white colours divided by a soft pastel
+fill.
+
+### Why this is not a constant to retune
+
+B-009's own lesson applies here in reverse: every constant in this file (`STROKE_RATIO`,
+`GROUP_REGULARITY_FLOOR`, the Otsu split itself) is measured against the hand-drawn/photograph
+distribution this project's benchmark corpus is built from, and B-009's "Change 3" already
+showed that a change which looks like it only helps a weak case can quietly move the whole
+distribution. Lowering the effective contrast floor globally to catch a 31/255 edge would also
+start treating JPEG compression artefacts, anti-aliasing halos, and paper texture as ink —
+exactly the noise `ink_mask`'s median-blur subtraction exists to reject. Catching a solid-fill
+panel correctly needs a **second signal Otsu-on-one-channel does not have at all**: colour
+difference from the local background, independent of luminance, which is a hue/saturation
+comparison this module does not compute today. That is a new detection channel alongside the
+three B-003 already documents (drawn rectangles, handwriting clusters, regular series), not a
+constant inside one of them — the kind of change this session's own scope (small, additive,
+one-file patches, verified before/after) is not the place to attempt without a proper
+before/after harness against B-003's and B-004's existing targets, which a change of this size
+could easily move.
+
+### What this does and does not establish
+
+**Established:** on this specific, real, freely-available digital wireframe, the media panel
+is undetectable by the current pipeline for a reason that is structural (no channel looks at
+colour) rather than a tuning miss (no threshold, nudged, recovers it without also admitting
+noise the illumination-correction step was built to reject).
+
+**Not established:** how common this shape of input is among wireframes a judge would actually
+upload, or whether every solid-fill panel fails this way (a fill with much lower luminance —
+a saturated brand colour rather than a pastel tint — would very likely register, since its
+edge contrast would be closer to real ink's). This is one measured case, reported because it
+is real and reproducible, not a survey.
+
+### The honest line for a demo operator
+
+An image/media placeholder drawn as an **outlined** box (even a thin one) or an **X-crossed**
+rectangle — both of which are also standard wireframe conventions — is read correctly; the
+pipeline detected `demo_wf1.png`'s X-crossed placeholder as a hero-image candidate throughout
+this session (B-011's MEDIA_MIN_AREA arithmetic aside). A media placeholder drawn as a
+**solid, low-contrast colour fill with no border** is not detected today, and the failure is
+silent to a casual glance: the section still renders, still validates, and still reports a
+plausible-looking (if generic) confidence — nothing crashes, and nothing but the missing
+image and the one warning above says the drawing had a media panel at all.
