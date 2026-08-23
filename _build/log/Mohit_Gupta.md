@@ -370,3 +370,18 @@
 - Device: Mohits_Victus
 - Files: server/src/generate/codeToIr.js, tests/generate-code-mode.test.mjs
 
+## T-141 — README and SETUP promise `npm test` works on a fresh clone with no install, and it no longer does
+- Started: 2026-08-23T06:10:12.244Z
+- Finished: 2026-08-23T06:16:47.325Z
+- Duration: 7m
+- Device: Mohits_Victus
+- Files: README.md, SETUP.md
+- Note: Measured on a real fresh clone: server deps are required and README claimed otherwise.
+
+## T-142 — With the hosted reader configured and unreachable, stage 3b returns no text at all instead of falling back to PaddleOCR
+- Started: 2026-08-23T06:12:09.110Z
+- Finished: 2026-08-23T06:16:48.159Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: perception/stages/extract_text.py, perception/tests/test_read_regions.py
+

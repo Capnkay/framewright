@@ -372,3 +372,94 @@ def test_a_skipped_region_is_not_counted_as_a_failure():
     assert len(result.model_calls) == 1, "a skipped region still cost a model call"
     assert not any("could not read" in w for w in result.warnings)
     assert any("were not sent to the reader" in w for w in result.warnings)
+
+
+
+
+class _PaddleStub:
+    """PaddleOCR 2.x's shape: an OBJECT with .ocr(), not a function.
+
+    `read_lines` calls `reader.ocr(image)`; passing a bare function is why the
+    first version of the fallback test failed while the fallback itself worked.
+    """
+
+    def __init__(self, text="HEADLINE", box=(10, 20, 120, 60), score=0.97):
+        x, y, w, h = box
+        self._poly = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
+        self._text = text
+        self._score = score
+        self.calls = 0
+
+    def ocr(self, image, cls=None):  # noqa: ARG002 - signature parity
+        self.calls += 1
+        return [[[self._poly, (self._text, self._score)]]]
+
+
+# --- the two readers are a chain, not a choice -----------------------------
+
+
+def test_a_dead_hosted_reader_falls_back_to_the_local_one():
+    """T-142, measured by pointing LLM_BASE_URL at a dead port.
+
+    extract_text used to return the hosted result unconditionally, so configuring
+    a hosted reader meant the PaddleOCR one was never touched — even when every
+    hosted call failed. The real pipeline then took 49.9s, reported stage 3
+    degraded, and produced `headlineMain = "CHALLENGE YOUR LIMITS"`, the reference
+    template, instead of the wireframe's own "HEADLINE". On screen that is
+    indistinguishable from the wireframe having been ignored.
+
+    Rule 5 says the deterministic path always works. A hosted reader that is
+    CONFIGURED BUT UNREACHABLE had made it unreachable too, which is the failure
+    mode of a demo on a venue's wifi.
+    """
+    result = extract_text(
+        a_canvas(),
+        [a_region(x=10, y=20, w=120, h=60)],
+        reader=_PaddleStub(),
+        region_reader=reader_that_fails(),
+    )
+
+    assert result.ocr_available is True, "the local reader was never reached"
+    assert result.regions[0].text == "HEADLINE"
+    # And it is legible which reader answered.
+    assert "paddleocr" in result.reader_name
+    assert "failed" in result.reader_name
+    assert any("fell back" in w for w in result.warnings), result.warnings
+
+
+def test_the_failed_hosted_calls_are_still_reported_as_spend():
+    # §16.2. Roughly fifty seconds went somewhere, and a trace that shows only the
+    # local reader hides it.
+    result = extract_text(
+        a_canvas(), [a_region()], reader=_PaddleStub(), region_reader=reader_that_fails()
+    )
+
+    assert len(result.model_calls) >= 1
+    assert all(c["ok"] is False for c in result.model_calls)
+
+
+def test_a_working_hosted_reader_does_not_touch_the_local_one():
+    # The fallback must not become a second call on the happy path — it is for
+    # absence, not for belt and braces.
+    class _MustNotRun:
+        def ocr(self, image, cls=None):  # noqa: ARG002
+            raise AssertionError("PaddleOCR ran while the hosted reader was answering")
+
+    result = extract_text(
+        a_canvas(),
+        [a_region()],
+        reader=_MustNotRun(),
+        region_reader=reader_returning('{"text":"SUBMIT"}'),
+    )
+
+    assert result.regions[0].text == "SUBMIT"
+    assert result.reader_name == "vlm:test-vlm"
+
+
+def test_with_no_local_reader_a_dead_hosted_one_still_degrades_rather_than_raising():
+    # §12: the pipeline continues. Nothing to fall back to is a supported state.
+    result = extract_text(a_canvas(), [a_region()], reader=None, region_reader=reader_that_fails())
+
+    assert result.ocr_available is False
+    assert result.regions[0].text is None
+    assert result.regions[0].region.bbox == (10, 20, 120, 60)

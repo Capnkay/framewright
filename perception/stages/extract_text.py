@@ -841,7 +841,43 @@ def extract_text(
     # network and no GPU the pipeline does what it does today" is a property of
     # this branch not being taken rather than of a flag being read correctly.
     if region_reader is not None and regions:
-        return _extract_with_region_reader(image, regions, region_reader)
+        hosted = _extract_with_region_reader(image, regions, region_reader)
+
+        # A CHAIN, NOT A CHOICE, AND T-142 IS WHY. This used to return `hosted`
+        # unconditionally, so the two readers were alternatives: configure the
+        # hosted one and the PaddleOCR one was never touched, even when every
+        # call to it failed.
+        #
+        # Measured by pointing LLM_BASE_URL at a dead port and running the real
+        # pipeline: 49.9s, stage 3 degraded, every one of 11 calls failed, and
+        # `headlineMain` came back "CHALLENGE YOUR LIMITS" — the reference
+        # template — instead of the wireframe's own "HEADLINE". On screen that is
+        # indistinguishable from the wireframe having been ignored, which is the
+        # single worst thing this pipeline can do quietly.
+        #
+        # Rule 5 says the deterministic path always works. A hosted reader that is
+        # CONFIGURED BUT UNREACHABLE had made it unreachable too — the failure
+        # mode of a demo on a venue's wifi, which is exactly when it matters.
+        if hosted.ocr_available or reader is None:
+            return hosted
+
+        note = (
+            "The hosted reader answered for none of the regions; stage 3b fell back "
+            "to the local OCR path."
+        )
+        local = extract_text(image, regions, reader=reader, min_containment=min_containment)
+        return Extraction(
+            regions=local.regions,
+            unbound=local.unbound,
+            # Both accounts are kept. A reader that says only "PaddleOCR ran" hides
+            # that ~50 seconds went to a hosted reader first, and a reader that says
+            # only "the hosted reader failed" hides that the page WAS read.
+            warnings=tuple([*hosted.warnings, note, *local.warnings]),
+            ocr_available=local.ocr_available,
+            reader_name=f"{local.reader_name} (after {hosted.reader_name} failed)",
+            # The failed calls are still §16.2 spend and are still reported.
+            model_calls=hosted.model_calls,
+        )
 
     if reader is None:
         # Regions WITHOUT text, not an empty result. Every region keeps its

@@ -2915,6 +2915,42 @@
       ],
       "verify": "node --test tests/generate-code-mode.test.mjs",
       "doneWhen": "Found in a four-mode rehearsal against the live stack: wireframe gave headlineMain 'HEADLINE', prompt and combined gave 'CHALLENGE YOUR LIMITS', and code gave the empty string. All four returned 200 and no stage failed, so nothing announced it except 15 warnings nobody reads before a demo. The cause is real and documented: the golden HeroSection keeps `ids` and `DEFAULTS` in a sibling .logic.js, and codeToIr reads ONE pasted string, so `DEFAULTS[ids.x]` resolves to nothing. T-124 then fell back to '' - honest about having read nothing, and a blank section on screen. Done when an element whose default could not be resolved keeps the reference default for that element name instead of emptying it, when the warning still says the default did not come from the pasted code, and when a test pins that a component with its constants in a sibling module produces visible copy rather than blanks."
+    },
+    {
+      "id": "T-141",
+      "phase": 6,
+      "track": "any",
+      "size": "30m",
+      "title": "README and SETUP promise `npm test` works on a fresh clone with no install, and it no longer does",
+      "contract": [],
+      "deps": [
+        "T-140"
+      ],
+      "files": [
+        "README.md",
+        "SETUP.md"
+      ],
+      "verify": null,
+      "doneWhen": "MEASURED ON AN ACTUAL FRESH CLONE, not reasoned about. `git clone` then `npm test` fails every suite with ERR_MODULE_NOT_FOUND for @babel/parser, imported by server/src/generate/codeToIr.js. The zero-dependency property was real and deliberate - envelope.js's own header says the tests exercise it directly 'so npm test keeps working on a fresh clone with no npm install' - and T-124 broke it by wiring an AST parser into mode=code. The parser is not optional; mode=code cannot exist without one, and AGENTS.md forbids eval. So the claim is what has to change, not the code. Also measured: the client installs cleanly on a fresh clone and builds - the missing lucide-react and motion were a STALE node_modules in one working copy, where npm reported 'up to date' while both were absent, not a lockfile fault. Done when README and SETUP state what a fresh clone actually needs, in the order it needs it, and when the three install steps are not scattered across two files with one of them contradicted."
+    },
+    {
+      "id": "T-142",
+      "phase": 6,
+      "track": "perception",
+      "size": "45m",
+      "title": "With the hosted reader configured and unreachable, stage 3b returns no text at all instead of falling back to PaddleOCR",
+      "contract": [
+        "§12"
+      ],
+      "deps": [
+        "T-140"
+      ],
+      "files": [
+        "perception/stages/extract_text.py",
+        "perception/tests/test_read_regions.py"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_read_regions.py",
+      "doneWhen": "MEASURED by pointing LLM_BASE_URL at a dead port and running the real pipeline. extract_text treats its two readers as ALTERNATIVES, not a chain: when region_reader is not None it takes that branch and never touches the PaddleOCR reader, so every call failing yields regions with no text and the reference template downstream. Result: 49.9s, stage 3 degraded, headlineMain 'CHALLENGE YOUR LIMITS' instead of the wireframe's 'HEADLINE', confidence 0.7354. On screen that is indistinguishable from the wireframe having been ignored. Rule 5 says the deterministic path always works, and here a CONFIGURED-BUT-UNREACHABLE hosted reader made it unreachable too. Done when a region-reader run that reads nothing falls through to the PaddleOCR reader where one exists, when the warnings say both what was tried and what answered, and when a test drives it with a transport that always throws."
     }
   ]
 }
