@@ -65,14 +65,16 @@ function StudioLayout({ children }) {
 // here instead of StudioLayout. See docs/UI-SYSTEM.md §1/§2: LandingPage
 // stays on StudioLayout/Nav until its own (last-priority) pass.
 function StudioChrome({ children }) {
+  const framed = isFramed();
+
   return (
-    <div className="studio-theme flex min-h-screen flex-col bg-studio-bg-base text-studio-text-primary pt-20 studio-grid-bg relative overflow-hidden">
+    <div className={`studio-theme flex min-h-screen flex-col bg-studio-bg-base text-studio-text-primary studio-grid-bg relative overflow-hidden ${framed ? "" : "pt-20"}`}>
       {/* Subtle radial gradient overlay to make the center focus brighter and edges darker, breathing */}
       <div className="absolute inset-0 bg-gradient-to-br from-studio-accent/5 via-transparent to-transparent pointer-events-none animate-pulse opacity-70" style={{ animationDuration: '4s' }} />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,var(--studio-bg-base)_100%)] pointer-events-none" />
       
       <div className="relative z-10 w-full flex-1 flex flex-col">
-        <StudioNav />
+        {framed ? null : <StudioNav />}
         <div className="min-h-0 flex-1">{children}</div>
       </div>
     </div>
