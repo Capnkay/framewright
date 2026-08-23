@@ -2972,6 +2972,26 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_read_regions.py",
       "doneWhen": "T-142 made a dead hosted reader fall back to the local one, which fixed the OUTCOME and not the WAIT. Measured against a dead port: 49.9s before the fallback, 53.7s in total, because all eleven readable regions each burn section 16.2's two attempts before anything gives up. A demo on a venue's wifi pays that in front of a judge. Done when a run that has failed its first few regions outright stops trying and falls back, when the give-up rule is stated as a number with the reason for it, when the abandoned regions are still reported rather than silently skipped, and when a SINGLE failure among successes does not trigger it - one region failing is a bad crop, several in a row is a dead endpoint, and only the second is worth abandoning a page for."
+    },
+    {
+      "id": "T-144",
+      "phase": 6,
+      "track": "perception",
+      "size": "30m",
+      "title": "The OCR worker writes its page to the system temp drive, so a full C: silently degrades a wireframe run",
+      "contract": [
+        "§12"
+      ],
+      "deps": [
+        "T-143"
+      ],
+      "files": [
+        "perception/stages/extract_text.py",
+        "perception/tests/test_extract_text.py",
+        ".gitignore"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_extract_text.py",
+      "doneWhen": "MEASURED IN A LIVE REHEARSAL, hours before a deadline. C: fell to 253 MB, `_run_once` could not write the page, and a wireframe run returned the reference template - 'CHALLENGE YOUR LIMITS' instead of the wireframe's own 'HEADLINE' - while every stage reported ok and HTTP returned 200. T-131's free-space guard is what made it legible instead of an access violation, and it did its job. But the guard buys a good error message, not a working demo. The repository lives on a drive with 65 GB free while the worker writes to the system temp on a drive that went 4.67 GB -> 253 MB -> 2.17 GB in one day. Done when the scratch directory defaults to a location on the repository's own drive, when an env var can still override it for a machine that wants it elsewhere, when the directory is gitignored, and when T-131's guard remains as the backstop rather than being removed because the new default makes it unlikely."
     }
   ]
 }

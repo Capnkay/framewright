@@ -1,4 +1,4 @@
-c66a5444e65a884a89b5dd28d99fc89c21f5460b7f3a491df9fc80f130d6b72f *.gitignore
+bd7fc1a1caf4f4961212892e0af1a33c222b3c2c0106ca86e1e4d220d2f73b60 *.gitignore
 c0395ea71a31f40192eb9e3675a8dbdbc27b4021f60931b131ffee79c11446fa *.claude/hooks/_lib.mjs
 f14e4bedf1e5a9c610c1fd79135faa603e64d35dec5e3693450651668da40b58 *.claude/hooks/protect-secrets.mjs
 157ee8ba544313eb25d75cfd7dd2067c50014b475bf3ee0662a06efa4a4b4a96 *.claude/hooks/block-dangerous-shell.mjs

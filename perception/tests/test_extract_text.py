@@ -26,6 +26,8 @@ from __future__ import annotations
 import os
 
 import cv2
+import pathlib
+
 import numpy as np
 import pytest
 
@@ -754,3 +756,52 @@ def test_the_guard_does_not_fire_when_there_is_room():
     assert payload is None
     assert failure is not None
     assert "free" not in failure, f"the space guard fired on a machine with room: {failure}"
+
+
+def test_the_scratch_root_is_on_the_repository_s_own_drive():
+    """T-144. Measured in a live rehearsal, hours before a deadline.
+
+    C: fell to 253 MB, `_run_once` could not write the page, and a wireframe run
+    returned the reference template — "CHALLENGE YOUR LIMITS" instead of the
+    wireframe's own "HEADLINE" — while every stage reported ok and HTTP returned
+    200. T-131's guard made that legible instead of an access violation, and did
+    its job; but a good error message is not a working demo.
+
+    The repository sits on a drive with room. Which drive the OS put its temp
+    directory on is not a property of this pipeline and must not be able to
+    degrade it.
+    """
+    import pathlib
+
+    from perception.stages import extract_text as module
+
+    root = pathlib.Path(module.scratch_root()).resolve()
+    repo = pathlib.Path(module.__file__).resolve().parents[2]
+
+    assert root.drive.lower() == repo.drive.lower(), (
+        f"scratch is on {root.drive} while the repo is on {repo.drive}"
+    )
+    assert root.exists(), "the scratch directory was not created"
+
+
+def test_the_scratch_root_can_be_overridden(tmp_path, monkeypatch):
+    # A machine with a small system drive and a large one elsewhere is exactly the
+    # case this solves, and the right answer differs per machine.
+    from perception.stages import extract_text as module
+
+    monkeypatch.setenv("FRAMEWRIGHT_SCRATCH", str(tmp_path))
+    assert module.scratch_root() == str(tmp_path)
+
+    monkeypatch.setenv("FRAMEWRIGHT_SCRATCH", "   ")
+    assert module.scratch_root() != "   ", "whitespace was treated as a path"
+
+
+def test_the_free_space_guard_survives_the_new_default():
+    # T-131's guard is the backstop and is NOT removed because the new default
+    # makes a full drive unlikely. Unlikely is not never, and the guard is what
+    # turns the remaining case into words.
+    from perception.stages import extract_text as module
+
+    assert module.MIN_SCRATCH_BYTES > 0
+    source = pathlib.Path(module.__file__).read_text(encoding="utf-8")
+    assert "disk_usage" in source, "the free-space guard was removed"

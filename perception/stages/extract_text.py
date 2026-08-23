@@ -114,6 +114,41 @@ WORKER_RETRIES = 2
 MIN_SCRATCH_BYTES = 256 * 1024 * 1024
 
 
+def scratch_root() -> str:
+    """Where the worker writes the page it is about to read. T-144.
+
+    NOT `tempfile.gettempdir()`, AND THE REASON IS MEASURED. The system temp
+    directory is on C: on this machine, and C: went 4.67 GB -> 253 MB -> 2.17 GB
+    in a single day. At 253 MB a wireframe run came back with the reference
+    template - "CHALLENGE YOUR LIMITS" instead of the wireframe's own "HEADLINE" -
+    while every stage reported ok and HTTP returned 200. T-131's guard is what
+    made that legible rather than an access violation, but a good error message
+    is not a working demo.
+
+    The repository is on a drive with 65 GB free. Writing beside it removes the
+    dependency on whichever drive the OS happened to put temp on, which is not a
+    property of this pipeline and should not be able to degrade it.
+
+    `FRAMEWRIGHT_SCRATCH` overrides it, because a machine with a small system
+    drive and a large one elsewhere is exactly the case this is solving, and the
+    answer differs per machine.
+    """
+    override = (os.environ.get("FRAMEWRIGHT_SCRATCH") or "").strip()
+    if override:
+        return override
+
+    # perception/stages/extract_text.py -> up two is the repository root, the same
+    # count `_run_once` already uses to find the worker module.
+    root = pathlib.Path(__file__).resolve().parents[2] / ".scratch"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        return str(root)
+    except OSError:
+        # A read-only checkout, or a path we cannot create. The system temp is the
+        # honest fallback, and T-131's guard still reports it if that is full too.
+        return tempfile.gettempdir()
+
+
 @dataclass(frozen=True)
 class TextLine:
     """One line as the OCR engine reported it, in normalised space.
@@ -363,7 +398,7 @@ class SubprocessReader:
         """
         import cv2  # noqa: PLC0415 - only needed on this path
 
-        tmp = tempfile.mkdtemp(prefix="framewright-ocr-")
+        tmp = tempfile.mkdtemp(prefix="framewright-ocr-", dir=scratch_root())
         path = os.path.join(tmp, "page.png")
         try:
             # FREE SPACE IS CHECKED BEFORE THE WORKER IS SPAWNED, AND T-131 IS WHY.

@@ -406,3 +406,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/read_regions.py, perception/stages/extract_text.py, perception/tests/test_read_regions.py
 
+## T-144 — The OCR worker writes its page to the system temp drive, so a full C: silently degrades a wireframe run
+- Started: 2026-08-23T10:55:34.958Z
+- Finished: 2026-08-23T10:58:46.880Z
+- Duration: 3m
+- Device: Mohits_Victus
+- Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, .gitignore
+
