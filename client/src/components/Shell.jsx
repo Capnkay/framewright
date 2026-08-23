@@ -1,4 +1,4 @@
-import { cloneElement, useState } from "react";
+import { useEffect, useState, cloneElement } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Menu } from "lucide-react";
@@ -8,8 +8,50 @@ export const fade = { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0
 export function Logo() {
   return (
     <div className="logo" data-testid="framewright-logo">
-      <img src="/logo.png" alt="Framewright Logo" style={{ height: "32px", width: "auto" }} />
+      <img src="/navbar-logo.jpg" alt="Framewright Logo" style={{ height: "32px", width: "auto", mixBlendMode: 'lighten' }} />
     </div>
+  );
+}
+
+export function BootAnimation() {
+  const [show, setShow] = useState(() => !sessionStorage.getItem('framewright_booted'));
+
+  useEffect(() => {
+    if (show) {
+      const timer = setTimeout(() => {
+        setShow(false);
+        sessionStorage.setItem('framewright_booted', 'true');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [show]);
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.6, ease: "easeInOut" } }}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'var(--bg, #000)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+        >
+          <motion.img 
+            src="/boot-logo.png"
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1, transition: { duration: 0.8, ease: "easeOut" } }}
+            style={{ width: '160px', height: 'auto', objectFit: 'contain' }}
+            alt="Booting..."
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -96,6 +138,7 @@ export function Shell({ children }) {
   const framed = isFramed();
   return (
     <>
+      <BootAnimation />
       {framed ? null : <Nav />}
       <AnimatePresence mode="wait" initial={false}>
         <motion.main key={location.pathname} className="page-shell" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: .16 }}>

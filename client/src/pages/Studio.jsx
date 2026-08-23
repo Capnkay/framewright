@@ -241,12 +241,27 @@ export default function Studio() {
         <div className="studio-actions"><button className="icon-btn" data-testid="new-job-button"><Plus size={16} /></button><span className="job-count"><span className="live-dot" />3 jobs</span></div>
       </div>
       <div className="studio-layout">
-        <Composer
-          mode={mode} setMode={setMode} form={form} setForm={setForm} accent={accent} setAccent={setAccent}
-          generate={generate} running={jobState === "running"}
-          elements={elements} selectedField={selectedField} setSelectedField={setSelectedField}
-          onElementUpdate={onElementUpdate} onElementReorder={onElementReorder} onContentChange={onContentChange}
-        />
+        <div className="studio-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '13px', overflowY: 'auto', height: '100%' }}>
+          <Composer
+            mode={mode} setMode={setMode} form={form} setForm={setForm} accent={accent} setAccent={setAccent}
+            generate={generate} running={jobState === "running"}
+            elements={elements} selectedField={selectedField} setSelectedField={setSelectedField}
+            onElementUpdate={onElementUpdate} onElementReorder={onElementReorder} onContentChange={onContentChange}
+          />
+          <section className="history panel" data-testid="job-history">
+            <div className="history-head"><div><Label>JOB HISTORY</Label><h2>Recent generations</h2></div><button className="text-btn" data-testid="view-all-jobs-button">View all <ArrowRight size={13} /></button></div>
+            <div className="history-list">
+              {jobs.map(job => (
+                <button className="history-item" key={job.id} data-testid={`history-job-${job.id}`}>
+                  <span className="history-status"><Check size={12} /></span>
+                  <span className="history-name"><strong>{job.name}</strong><small>{job.mode} &middot; {job.time}</small></span>
+                  <Badge tone="green">Ready</Badge>
+                  <ArrowRight size={14} />
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
         <div className="studio-right-column">
           <SectionEditor elements={elements} accent={accent} code={codeText} selectedField={selectedField} setSelectedField={setSelectedField} onUpdate={onElementUpdate} />
           <PipelinePanel
@@ -261,19 +276,6 @@ export default function Studio() {
           />
         </div>
       </div>
-      <section className="history panel" data-testid="job-history">
-        <div className="history-head"><div><Label>JOB HISTORY</Label><h2>Recent generations</h2></div><button className="text-btn" data-testid="view-all-jobs-button">View all <ArrowRight size={13} /></button></div>
-        <div className="history-list">
-          {jobs.map(job => (
-            <button className="history-item" key={job.id} data-testid={`history-job-${job.id}`}>
-              <span className="history-status"><Check size={12} /></span>
-              <span className="history-name"><strong>{job.name}</strong><small>{job.mode} &middot; {job.time}</small></span>
-              <Badge tone="green">Ready</Badge>
-              <ArrowRight size={14} />
-            </button>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
