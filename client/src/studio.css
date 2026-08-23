@@ -5,7 +5,7 @@
 .disclosure-toggle svg{transition:transform .2s}
 .disclosure-toggle svg.rotate{transform:rotate(180deg)}
 .disclosure-hint{margin-left:auto;color:#52525b;text-transform:none;letter-spacing:0;font-size:9px}
-.accent-disclosure{border-top:1px solid rgba(255,255,255,.06);margin-top:4px}
+.accent-disclosure{border-top:1px solid rgba(255,255,255,.06);margin-top:10px;padding-top:8px}
 .accent-body{overflow:hidden;padding-bottom:12px}
 .accent-swatch-row{display:flex;align-items:center;gap:10px}
 .accent-swatch{position:relative;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--swatch);display:grid;place-items:center;cursor:pointer;overflow:hidden;flex-shrink:0}
