@@ -11,7 +11,7 @@ export function computeScore({
   structurePass = false,
   eslintErrors = 0,
   visualSimilarity = null,
-  axeSeriousViolations = 0,
+  axeSeriousViolations = null,
   confidenceMean = 0.0
 } = {}) {
   const structureScore = 40 * (structurePass ? 1 : 0);
@@ -22,7 +22,9 @@ export function computeScore({
   // "visualSimilarity is null - and therefore scored as 1.0 - when no wireframe was supplied."
   const visScore = 15 * (visualSimilarity !== null && visualSimilarity !== undefined ? visualSimilarity : 1.0);
   
-  const axePenalty = Math.min(1, axeSeriousViolations / 5);
+  const axePenalty = axeSeriousViolations !== null && axeSeriousViolations !== undefined 
+    ? Math.min(1, axeSeriousViolations / 5) 
+    : 1.0;
   const axeScore = 15 * (1 - axePenalty);
   
   const confScore = 5 * confidenceMean;
@@ -57,7 +59,7 @@ export function computeJobScore(job, stage6ArtifactData = null) {
   let structurePass = false;
   let eslintErrors = 0;
   let visualSimilarity = job.mode === 'prompt' ? 1.0 : null;
-  let axeSeriousViolations = 0;
+  let axeSeriousViolations = null;
 
   // 2. Extract from stage 6 (validation-qa)
   const s6 = job.stages.slice().reverse().find(s => s.stage === 6 && s.status !== 'failed');

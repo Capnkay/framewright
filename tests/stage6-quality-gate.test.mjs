@@ -74,8 +74,8 @@ test('the artifact says what it did NOT measure', async () => {
   const stage6 = job.stages.find((s) => s.stage === 6);
   const artifact = JSON.parse(await fs.readFile(stage6.outputRef, 'utf8'));
 
-  assert.deepEqual(artifact.measured, ['structurePass', 'eslintErrors']);
-  assert.deepEqual(artifact.notMeasured, ['visualSimilarity', 'axeSeriousViolations']);
+  assert.deepEqual(artifact.measured, ['structurePass', 'eslintErrors', 'axeSeriousViolations']);
+  assert.deepEqual(artifact.notMeasured, ['visualSimilarity']);
 });
 
 test('the emitted component passes §18.2, so structurePass is true and not merely default', async () => {

@@ -11,6 +11,7 @@ import { validateSection } from '../validate/sectionValidator.js';
 import { validateElement } from '../validate/elementValidator.js';
 import { PROJECT_NAME } from '../models/elementDoc.js';
 import createValidateAndRecover from '../generate/validateAndRecover.js';
+import { measureAccessibility } from '../quality/axe.js';
 import { resolveConflicts } from '../generate/resolveConflicts.js';
 import { codeToIr, CodeNotUnderstood } from '../generate/codeToIr.js';
 import { isSafeCssText } from '../sanitise/cssAllowList.js';
@@ -450,15 +451,28 @@ export async function postGenerate(ctx = {}) {
         if (!result.ok) {
           ctxStage.addWarning(`§18.2 ${result.kind}: ${result.error}`);
         }
-        // The shape computeJobScore already reads. The visual and accessibility
-        // metrics need a rendered page and a browser; they are not measured here and
-        // keep their documented fallbacks, so what the score does and does not measure
-        // stays legible rather than silently defaulting to a flattering number.
+        // The shape computeJobScore already reads. The visual metrics need a rendered
+        // page and a browser; it is not measured here and keeps its documented fallback.
+        const axeViolations = await measureAccessibility(s5.output);
+        if (axeViolations !== null && axeViolations > 0) {
+          ctxStage.addWarning(`axe-core: ${axeViolations} serious/critical accessibility violation(s) found.`);
+        }
+        
+        const measured = ['structurePass', 'eslintErrors'];
+        const notMeasured = ['visualSimilarity'];
+        
+        if (axeViolations !== null) {
+          measured.push('axeSeriousViolations');
+        } else {
+          notMeasured.push('axeSeriousViolations');
+        }
+
         return {
           structurePass: result.ok === true,
           eslintErrors: result.ok === false && result.kind === 'lint-error' ? 1 : 0,
-          measured: ['structurePass', 'eslintErrors'],
-          notMeasured: ['visualSimilarity', 'axeSeriousViolations'],
+          axeSeriousViolations: axeViolations,
+          measured,
+          notMeasured,
         };
       },
       outputName: 'validation-qa'
