@@ -144,7 +144,8 @@ export default function GeneratePage({ initialJob = null }) {
 
   const previewSrc = `/preview/${pageName}`;
 
-  return <main className="flex min-h-0 flex-1 flex-col">
+  return (
+    <main className="flex min-h-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-studio-border px-6 py-2 shadow-sm bg-studio-bg-base/80 backdrop-blur-xl z-10">
           <h1 className="text-studio-lg font-bold text-studio-text-primary tracking-tight">Generator Studio</h1>
           <span className="text-studio-sm text-studio-text-secondary hidden md:block">
