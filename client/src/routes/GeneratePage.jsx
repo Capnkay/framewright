@@ -142,10 +142,10 @@ export default function GeneratePage({ initialJob = null }) {
 
   return (
     <main className="flex h-full flex-col">
-      <header className="flex shrink-0 items-baseline justify-between border-b border-studio-border px-6 py-4">
+      <header className="flex shrink-0 items-baseline justify-between border-b border-studio-border px-8 py-5 bg-studio-bg-base/50 backdrop-blur-sm z-10 relative">
         <div>
-          <h1 className="text-studio-xl font-semibold tracking-tight text-studio-text-primary">Generator Studio</h1>
-          <p className="mt-1 text-studio-sm text-studio-text-secondary">
+          <h1 className="text-studio-xl font-bold tracking-tight text-studio-text-primary mb-1">Generator Studio</h1>
+          <p className="mt-1 text-studio-sm text-studio-text-secondary font-medium">
             Turn a wireframe, a description, or existing React into a CMS-ready section.
           </p>
         </div>
@@ -157,7 +157,7 @@ export default function GeneratePage({ initialJob = null }) {
         </Link>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-6 p-6">
+      <div className="flex min-h-0 flex-1 gap-6 p-8">
         {/* ---------------------------------------------------------------
             The input rail. Composer (docs/SURFACE-INSPO.md §1-2) is the one
             thing to do first; naming's accent picker and recent runs are
@@ -165,25 +165,26 @@ export default function GeneratePage({ initialJob = null }) {
             the same glance. Composer already owns page/section naming, so
             it isn't repeated as a top-level field here.
         --------------------------------------------------------------- */}
-        <aside className="flex w-[26rem] shrink-0 flex-col gap-4 overflow-y-auto pr-1">
+        <aside className="flex w-[26rem] shrink-0 flex-col gap-6 overflow-y-auto pr-2 pb-8">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: EASE_STANDARD }}
+            transition={{ duration: 0.4, ease: EASE_STANDARD }}
+            className="bg-studio-bg-raised p-5 rounded-2xl border border-studio-border shadow-studio-sm"
           >
             <Composer onSubmit={handleSubmit} />
-            {busy && <p className="mt-3 text-studio-sm text-studio-text-secondary">Generating…</p>}
+            {busy && <p className="mt-3 text-studio-sm text-studio-accent font-medium flex items-center gap-2"><span className="flex h-2 w-2 rounded-full bg-studio-accent animate-pulse"></span> Generating...</p>}
           </motion.div>
 
-          <details className="rounded-studio-lg border border-studio-border bg-studio-bg-raised p-4">
-            <summary className="cursor-pointer text-studio-sm font-medium text-studio-text-primary">
+          <details className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-5 shadow-studio-sm transition-all open:bg-studio-bg-overlay/50">
+            <summary className="cursor-pointer text-studio-sm font-semibold text-studio-text-primary outline-none">
               Accent colour
             </summary>
-            <p className="mt-1 text-studio-xs text-studio-text-tertiary">
+            <p className="mt-2 text-studio-xs text-studio-text-tertiary">
               Overrides the generated section's accent (page/section name above already cover
               where it goes in the CMS).
             </p>
-            <div className="mt-3">
+            <div className="mt-4 pt-4 border-t border-studio-border/50">
               <SectionFields
                 pageName={pageName}
                 setPageName={setPageName}
@@ -195,9 +196,9 @@ export default function GeneratePage({ initialJob = null }) {
             </div>
           </details>
 
-          <details className="rounded-studio-lg border border-studio-border bg-studio-bg-raised p-4">
-            <summary className="cursor-pointer text-studio-sm font-medium text-studio-text-primary">Recent runs</summary>
-            <div className="mt-3">
+          <details className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-5 shadow-studio-sm transition-all open:bg-studio-bg-overlay/50">
+            <summary className="cursor-pointer text-studio-sm font-semibold text-studio-text-primary outline-none">Recent runs</summary>
+            <div className="mt-4 pt-4 border-t border-studio-border/50">
               <JobHistory />
             </div>
           </details>
@@ -210,18 +211,18 @@ export default function GeneratePage({ initialJob = null }) {
             trigger a `md:` breakpoint and so is a width preview rather than a
             layout one (§7 R11).
         --------------------------------------------------------------- */}
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 pb-8">
           {submitError && (
             <ErrorBanner statusCode={submitError.statusCode} message={submitError.message} />
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col rounded-studio-lg border border-studio-border bg-studio-bg-raised p-4">
+          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-studio-border bg-studio-bg-raised p-5 shadow-studio-sm">
             <ResponsiveToggle src={previewSrc} title="Live preview" />
           </div>
 
           {job ? (
-            <div className="flex h-[22rem] shrink-0 flex-col rounded-studio-lg border border-studio-border bg-studio-bg-raised">
-              <div className="flex items-center gap-1 border-b border-studio-border px-3 pt-3">
+            <div className="flex h-[24rem] shrink-0 flex-col rounded-2xl border border-studio-border bg-studio-bg-raised shadow-studio-sm overflow-hidden">
+              <div className="flex items-center gap-2 border-b border-studio-border bg-studio-bg-base/30 px-4 pt-3 pb-0">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
@@ -229,20 +230,27 @@ export default function GeneratePage({ initialJob = null }) {
                     onClick={() => setTab(t.id)}
                     aria-pressed={tab === t.id}
                     className={
-                      'rounded-t-studio-sm px-3 py-2 text-studio-sm font-medium transition-colors duration-studio-fast ' +
+                      'relative rounded-t-lg px-4 py-2.5 text-studio-sm font-semibold transition-colors duration-studio-fast ' +
                       (tab === t.id
-                        ? 'bg-studio-bg-overlay text-studio-text-primary'
+                        ? 'text-studio-text-primary'
                         : 'text-studio-text-secondary hover:text-studio-text-primary')
                     }
                   >
-                    {t.label}
+                    {tab === t.id && (
+                      <motion.div
+                        layoutId="active-tab"
+                        className="absolute inset-0 bg-studio-bg-overlay border-t border-l border-r border-studio-border rounded-t-lg z-0"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{t.label}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 bg-studio-bg-overlay/30">
                 {tab === 'stages' && (
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-6">
                     <GenerationProgress jobId={job.jobId} initialJob={job} />
                     <QuestionPrompt jobId={job.jobId} status="awaiting-input" onResumed={() => {}} />
                     <JobTimeline job={job} />
@@ -253,8 +261,8 @@ export default function GeneratePage({ initialJob = null }) {
                 {tab === 'source' && <GeneratedSourceView jobId={job.jobId} pageName={pageName} />}
 
                 {tab === 'content' && (
-                  <div className="flex flex-col gap-3">
-                    <label className="text-studio-sm font-medium text-studio-text-primary" htmlFor="fw-field">
+                  <div className="flex flex-col gap-4">
+                    <label className="text-studio-sm font-semibold text-studio-text-primary" htmlFor="fw-field">
                       Field
                     </label>
                     {fields.length > 0 ? (
@@ -262,7 +270,7 @@ export default function GeneratePage({ initialJob = null }) {
                         id="fw-field"
                         value={fieldId}
                         onChange={(e) => setFieldId(e.target.value)}
-                        className="w-full rounded-studio-sm border border-studio-border bg-studio-bg-base p-2 text-studio-sm text-studio-text-primary"
+                        className="w-full rounded-xl border border-studio-border bg-studio-bg-base p-3 text-studio-sm text-studio-text-primary focus:border-studio-accent focus:ring-1 focus:ring-studio-accent transition-all outline-none"
                       >
                         {fields.map((f) => (
                           <option key={f.fieldId} value={f.fieldId}>
@@ -277,13 +285,15 @@ export default function GeneratePage({ initialJob = null }) {
                         value={fieldId}
                         onChange={(e) => setFieldId(e.target.value)}
                         placeholder="Field id"
-                        className="w-full rounded-studio-sm border border-studio-border bg-studio-bg-base p-2 text-studio-sm text-studio-text-primary"
+                        className="w-full rounded-xl border border-studio-border bg-studio-bg-base p-3 text-studio-sm text-studio-text-primary focus:border-studio-accent focus:ring-1 focus:ring-studio-accent transition-all outline-none"
                       />
                     )}
                     {fieldId ? (
-                      <SideEditor fieldId={fieldId} pageName={pageName} />
+                      <div className="mt-2 p-4 bg-studio-bg-base rounded-xl border border-studio-border shadow-inner">
+                        <SideEditor fieldId={fieldId} pageName={pageName} />
+                      </div>
                     ) : (
-                      <p className="text-studio-sm italic text-studio-text-tertiary">
+                      <p className="text-studio-sm italic text-studio-text-tertiary bg-studio-bg-base p-4 rounded-xl border border-studio-border/50 text-center">
                         Pick a field to edit its content.
                       </p>
                     )}
@@ -295,13 +305,18 @@ export default function GeneratePage({ initialJob = null }) {
             // The empty state carries the instructions the old layout never gave
             // anyone: what this does, in the order it does it.
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.28, ease: EASE_STANDARD, delay: 0.1 }}
-              className="shrink-0 rounded-studio-lg border border-dashed border-studio-border p-6 text-studio-sm text-studio-text-secondary"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: EASE_STANDARD, delay: 0.1 }}
+              className="shrink-0 rounded-2xl border-2 border-dashed border-studio-border/60 bg-studio-bg-overlay/10 p-8 text-center"
             >
-              <p className="font-medium text-studio-text-primary">Nothing generated yet.</p>
-              <p className="mt-1">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-studio-accent/10 mb-4">
+                <svg className="w-6 h-6 text-studio-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-studio-text-primary mb-2">Ready to generate</h3>
+              <p className="text-studio-sm text-studio-text-secondary max-w-md mx-auto leading-relaxed">
                 Choose a mode on the left and run it. Every stage of the pipeline shows up here as it
                 happens — what each one received, what it produced, and how confident it was.
               </p>

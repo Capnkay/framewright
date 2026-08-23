@@ -52,7 +52,7 @@ function StudioLayout({ children }) {
   const framed = isFramed();
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className={`min-h-screen bg-background text-foreground flex flex-col ${framed ? "" : "pt-20"}`}>
       {framed ? null : <StudioNav />}
       <div className="flex-1">
         {children}
@@ -66,7 +66,7 @@ function StudioLayout({ children }) {
 // stays on StudioLayout/Nav until its own (last-priority) pass.
 function StudioChrome({ children }) {
   return (
-    <div className="studio-theme flex min-h-screen flex-col bg-studio-bg-base text-studio-text-primary">
+    <div className="studio-theme flex min-h-screen flex-col bg-studio-bg-base text-studio-text-primary pt-20">
       <StudioNav />
       <div className="min-h-0 flex-1">{children}</div>
     </div>
