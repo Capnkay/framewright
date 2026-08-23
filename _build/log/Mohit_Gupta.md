@@ -427,3 +427,11 @@
 - Device: Mohits_Victus
 - Files: client/src/routes/PreviewPage.jsx, server/src/routes/regenerate.js, tests/regenerate-from-the-preview.test.mjs
 
+## T-147 — What the pipeline does with an input it was never designed for
+- Started: 2026-08-23T11:31:48.996Z
+- Finished: 2026-08-23T11:32:34.450Z
+- Duration: 1m
+- Device: Mohits_Victus
+- Files: docs/BENCHMARK-RESULTS.md
+- Note: Not a hand-drawn wireframe; used for robustness instead of accuracy, and the one-image limitation still stands.
+

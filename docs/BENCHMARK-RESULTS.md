@@ -1038,3 +1038,72 @@ We use `esbuild` to compile the generated component in an isolated environment (
 2. **Zero violations and never-checked no longer produce the same score.** An unmeasured metric correctly penalises the job rather than flattering it.
 
 Note: Unmeasured `visualSimilarity` scores a full 15 points because a prompt mode generation genuinely lacks a wireframe. Unmeasured `axeSeriousViolations`, however, scores 0 points (maximum penalty). This asymmetry is intentional: if axe fails to run on an emitted component, it is an environment or structural failure, which must not flatter the score.
+
+---
+
+## B-011 · What the pipeline does with an input it was never designed for — T-147
+
+**Date:** 2026-08-23 · **Status:** DEFINITIVE — a robustness result, not an accuracy one · **VERIFIED** (live, through the HTTP API)
+
+A second image was supplied so that B-003 and B-004 could be re-measured on something
+other than the one photograph every number in this document comes from. **It is not a
+hand-drawn wireframe.** It is a stock vector illustration of six browser mockups — flat
+grey rectangles on a blue field, 700 × 406, no handwriting and no text anywhere.
+
+**So it was not scored against those benchmarks, and the reason matters.** Their seven
+targets are annotated boxes named `HEADLINE`, `SUB HEADLINE`, `LABEL`, `SUBMIT` and so on,
+on one specific page. None of them exists in this image. A score against those annotations
+would measure the annotations, not the pipeline, and would be a number with nothing behind
+it.
+
+**The limitation therefore stands: every accuracy figure in this document comes from a
+single image.** Whether 7 of 7 is the pipeline or the picture is still unmeasured, and a
+second genuine hand-drawn wireframe is the only thing that settles it.
+
+### What it was used for instead
+
+A question this image can answer, and one a judge may ask by accident: **what happens when
+somebody uploads something unexpected?**
+
+```
+POST /api/generate  mode=wireframe  wireframe=@wf2.webp
+```
+
+| | |
+|---|---|
+| HTTP | **200** in 6.0 s |
+| stages | **all seven `ok`**, not degraded |
+| quality score | **95** |
+| job status | `succeeded` |
+
+### What it got right
+
+**It did not hallucinate text.** The warning is exact:
+
+> `OCR ran but found no text in the image.`
+
+Not "OCR did not read this page" — the other sentence, the one for a worker that died. The
+image genuinely contains no text and the pipeline said so in the correct words. That
+distinction is EC-015's whole subject and this is it working on an input nobody anticipated.
+
+**It refused to invent a hero.**
+
+> `No region was large enough to be the hero image; heroImage kept its default and every
+> region was treated as content.`
+
+**It lowered its confidence honestly.** `brandBadge` 0.75 and `headlineMain` 0.63, against
+0.97 and 0.99 on the real wireframe, and the score fell from 100 to 95 with it. Nothing was
+claimed that was not measured.
+
+### What a demo operator needs to know
+
+**The output is the reference template** — `PULSE FIT`, `CHALLENGE YOUR LIMITS`,
+`FIND A WORKOUT` — because there was no copy to extract.
+
+That is correct behaviour and it is **indistinguishable on screen from the pipeline having
+ignored the upload**. The only thing separating them is four warnings that nobody reads
+during a demo.
+
+So: an image with no handwriting is not a useful thing to upload in front of an audience.
+The tell documented in `DEMO-RUN-SHEET.md` — if the copy says `PULSE FIT`, the drawing did
+not reach the IR — holds here too, and here it is the honest answer rather than a fault.

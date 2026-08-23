@@ -3032,6 +3032,25 @@
       ],
       "verify": "node --test tests/regenerate-from-the-preview.test.mjs",
       "doneWhen": "Exercised against the live API. PreviewPage's handleRegenerate posts { prompt, variation, variations } and NO mode, so the endpoint answers 400 'mode is required and must be one of: wireframe, code, prompt, combined.' The handler then does `if (res.ok) window.location.reload()` - so on failure it neither reloads nor reports anything, and the control silently does nothing. It is on screen in the demo and a judge may click it. Verified the endpoint itself is fine: with mode=prompt supplied it returns 200, preserves the sectionId and the fieldIds per section 13.3's preserve policy. Second defect found in the same run: regenerate leaves the job at 'queued' after all its stages complete - the same terminal-status bug fixed in generate.js at T-138, which never reached this route. Done when the button sends a mode, when a failed regenerate is visible to the person who clicked it, and when a completed regenerate reports a terminal status."
+    },
+    {
+      "id": "T-147",
+      "phase": 6,
+      "track": "perception",
+      "size": "30m",
+      "title": "What the pipeline does with an input it was never designed for",
+      "contract": [
+        "§10",
+        "§12"
+      ],
+      "deps": [
+        "T-146"
+      ],
+      "files": [
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": null,
+      "doneWhen": "A second image was supplied for re-measuring B-003/B-004. It is not a hand-drawn wireframe - it is a stock vector illustration of six browser mockups, flat grey rectangles on blue, with no handwriting and no text anywhere. Scoring it against those benchmarks would measure the annotations rather than the pipeline, because their seven targets name HEADLINE, SUBMIT and LABEL and none of them exist in it. So it was used for the question it CAN answer, which a judge may well ask by accident: what happens when someone uploads something unexpected. Done when that run is written up with what it got right and what it could not do, and when the demo guidance says plainly that an image with no handwriting produces the reference template - correctly, and indistinguishably from a failure unless you read the warnings."
     }
   ]
 }
