@@ -14,6 +14,7 @@ import createValidateAndRecover from '../generate/validateAndRecover.js';
 import { measureAccessibility } from '../quality/axe.js';
 import { resolveConflicts } from '../generate/resolveConflicts.js';
 import { codeToIr, CodeNotUnderstood } from '../generate/codeToIr.js';
+import { applyWireframeSemantics } from '../generate/wireframeSemantics.js';
 import { isSafeCssText } from '../sanitise/cssAllowList.js';
 
 /**
@@ -187,6 +188,10 @@ export async function postGenerate(ctx = {}) {
     let perceived = null;
     let perceptionWarnings = [];
     const writeWarnings = [];
+    // T-153. Null when the semantics layer named the section, or when there was no
+    // wireframe to name. A string names why the reference template's slots survived —
+    // most often "no API key", which §16.2 makes a supported state rather than a fault.
+    let semanticsReason = null;
 
     if (isWireframe) {
       // Stage 1: the upload, persisted as this stage's artifact. §11.2 keeps artifacts
@@ -267,7 +272,28 @@ export async function postGenerate(ctx = {}) {
         // The wireframe path's IR is already assembled by perceiveOrDegrade — that is
         // what §12's named sub-objects are for, and reassembling them here would be a
         // second implementation of the split T-058 already owns and tests.
-        const wireframeIr = usesWireframe ? perceived.ir : null;
+        // T-153 — perception's geometry, named. `perceived.ir` describes every wireframe
+        // in the reference hero's seven slots, because that is the only vocabulary
+        // fuse.py has; this renames those slots after what was actually drawn and read,
+        // without touching a single bbox. It returns `perceived.ir` ITSELF when there is
+        // no key, no model, or nothing usable came back, so the deterministic demo is
+        // byte-for-byte what it was before this call existed (AGENTS.md rule 5).
+        //
+        // Wired here rather than "later": AGENTS.md rule 9 — a module built and left
+        // uncalled reads as 100 of 100 on the board while the feature does not exist,
+        // and this repository has already found three of those.
+        let wireframeIr = usesWireframe ? perceived.ir : null;
+        if (wireframeIr) {
+          const named = await applyWireframeSemantics(wireframeIr);
+          wireframeIr = named.ir;
+          for (const warning of named.warnings) writeWarnings.push(warning);
+          if (!named.applied && named.reason) {
+            // Not a warning. §16.2 calls an unset key "a supported state, not an error",
+            // and the Glass Box already shows enough red on a working deterministic run.
+            // It is recorded so the Studio can say WHY a section came back generic.
+            semanticsReason = named.reason;
+          }
+        }
         const promptIr = usesPrompt
           ? await promptToIrHosted(body.prompt, { pageName, sectionName })
           : null;
@@ -523,6 +549,10 @@ export async function postGenerate(ctx = {}) {
     const allWarnings = [...perceptionWarnings, ...writeWarnings];
     if (allWarnings.length) payload.warnings = allWarnings;
     if (perceived && perceived.stageStatus === STAGE_DEGRADED) payload.degraded = true;
+    // T-153 — the same honesty one level down. `degraded` says the upload was ignored;
+    // this says the upload was read and then described in the reference section's
+    // vocabulary because nothing was available to name it any better.
+    if (semanticsReason) payload.semanticsReason = semanticsReason;
 
     return {
       status: STATUS.OK,

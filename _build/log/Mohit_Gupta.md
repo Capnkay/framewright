@@ -465,3 +465,10 @@
 - Files: server/src/generate/promptToIrHosted.js, server/src/models/orchestrator.js, server/src/routes/generate.js, docs/BENCHMARK-RESULTS.md
 - Note: Deterministic name and reference repair, a system prompt, and a viability floor; four prompts now emit four different CMS-bound sections over HTTP. B-012.
 
+## T-153 — A wireframe of anything comes back as the reference section’s seven slots
+- Started: 2026-08-23T12:55:15.911Z
+- Finished: 2026-08-23T13:26:38.347Z
+- Duration: 31m
+- Device: Mohits_Victus
+- Files: server/src/generate/repairModelIr.js, server/src/generate/wireframeSemantics.js, server/src/generate/perceiveAndAssembleIr.js, server/src/routes/generate.js, docs/BENCHMARK-RESULTS.md, tests/wireframe-semantics.test.mjs
+

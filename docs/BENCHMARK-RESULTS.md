@@ -1194,3 +1194,128 @@ fallback is behaving as specified — but roughly one run in six does not get it
 section. Prompt mode without a key remains ~0.3 s.
 
 **Suites after the change:** 739 Node, 0 failing. §9 store-liveness: all five steps.
+
+---
+
+## B-013 — The wireframe path's geometry was never the problem; its vocabulary was — T-153
+
+**Date:** 2026-08-23 · **Status:** DEFINITIVE for the deterministic half · **VERIFIED** (run on our hardware)
+
+### What was actually broken
+
+The reported defect was "a wireframe of anything comes back as the reference section". The
+obvious reading of that — perception is not looking at the drawing, so it falls back to the
+template — is **wrong**, and acting on it would have meant rewriting a stage that measures
+correct. B-003 and B-004 already say so: OpenCV locates the regions and PaddleOCR reads
+their words, and those readings reach the IR.
+
+The defect is one layer up. `perception/stages/fuse.py` builds its element list as "the
+reference set, always, in template order" — `heroImage`, `brandBadge`, `headlineMain`,
+`headlineSub`, `description`, `statBadges`, `ctaButton` — and lets detections claim those
+seven slots. So the geometry of any wireframe survives and its **meaning** does not: there
+is no slot for a price, a form field or an article title, and a slot claimed by a region
+whose OCR read nothing keeps the template's copy rather than reporting a blank.
+
+That second half shows up directly in this run's own output, and it is the sharper of the
+two:
+
+```
+"description": { "sourceOf": "wireframe", "iou": 0.743, "geometry_correct": true,
+                 "text": "Join trainer-led workout sessions designed to kickstart
+                          your fitness journey, at your convenience." }
+```
+
+The box is right — IoU 0.743 against the annotated target — and the copy inside it is
+PULSE FIT's, in a section built from someone else's drawing.
+
+### B-004, re-measured on today's tree
+
+Same command, same image, same annotated targets:
+
+```
+perception/.venv/Scripts/python -m perception.benchmarks.slots_wireframe ../gpu-test/wireframe.png
+```
+
+| | Recorded at T-100 | Today |
+|---|---|---|
+| Slots with the right geometry | 6 of 7 | **7 of 7** |
+| Slots with the right text | 4 of 4 | **4 of 4** |
+| Escalation questions raised | 0 | **0** |
+| Regions detected / with text | 35 / 7 | 35 / 7 |
+| Fusion time | < 0.01 s | 0.0004 s |
+| OCR time | — | 5.26 s, 1 attempt |
+
+| Slot | IoU today | IoU at T-100 |
+|---|---|---|
+| `heroImage` | 0.880 | 0.88 |
+| `brandBadge` | 0.687 | 0.55 |
+| `headlineMain` | **0.727** | **0.291** ✗ |
+| `headlineSub` | 0.862 | 0.86 |
+| `description` | 0.743 | 0.74 |
+| `statBadges` | 0.829 | 0.83 |
+| `ctaButton` | 0.809 | 0.81 |
+
+**The 6-of-7 in B-004's table is out of date, and the improvement is not T-153's.**
+`headlineMain` was B-004's one miss at IoU 0.291 — a box drawn tightly around the
+handwriting rather than around the headline row, which B-004 named as a stage-3a question
+rather than a fusion one. Stage 3a has since been worked (T-133/T-134) and the box is now
+0.727. T-153 touched no file under `perception/`, so this is a number that moved earlier
+and had not been re-measured; it is recorded here rather than left to look like a result of
+this task.
+
+### The fix, and where it deliberately is not
+
+`server/src/generate/wireframeSemantics.js` — a naming pass in **Node**, over perception's
+output. It is handed the boxes, the text OCR already read, and the region layout, and it
+asks a model one question: what is each of these, in this design? It is never asked for
+coordinates — B-006 measured what happens when a VLM is asked to place a box — so OpenCV
+keeps every bbox, and the write set is four fields: `elementName`, `default`,
+`contentType`, `tag`. `bbox`, `confidence`, `order`, `classes`, `css` and `sourceOf` are
+not writable from the response at all.
+
+Elements no region claimed (`sourceOf: "default"`) are dropped rather than renamed. They
+are not a weak reading of the drawing — nothing claimed them — so what they carry is
+template residue, and a login form with `description` still holding the fitness paragraph
+is precisely the reported defect.
+
+`sourceOf` stays `wireframe` on the renamed elements. The geometry, the words and the fact
+that there is an element here all still come from the image; the model supplied a label.
+Flipping them to `prompt` would tell §6's `sourceOf` audit that a prompt produced elements
+in a run that had no prompt.
+
+### Measured — the deterministic half
+
+`tests/wireframe-semantics.test.mjs`, 14 tests, model injected, no network and no key:
+
+| Property | Result |
+|---|---|
+| No key → the caller's own IR, by object identity | ✔ |
+| Orchestrator throws → the caller's own IR | ✔ |
+| Fewer than 2 claimed regions → no model call is made at all | ✔ |
+| A response that moves a bbox does not move it | ✔ |
+| A response that rewrites `confidence` / `sourceOf` / `order` does not | ✔ |
+| Every surviving element keeps its slot's bbox exactly | ✔ |
+| A login wireframe → `brandArtwork, formTitle, welcomeHeadline, emailField` | ✔ |
+| No `trainer-led` / `limitless` / `FIND A WORKOUT` anywhere in the result | ✔ |
+| `tag: "div onLoad={fetch(…)}"` is refused, not sanitised | ✔ |
+| Promotion to `Cards` with no loop behind it is refused | ✔ |
+| A slot perception never detected is ignored, not appended | ✔ |
+| `"Form Title"` cannot reach §9's `ids` map | ✔ |
+| Region children and `cards.of` follow the rename and the drops | ✔ |
+
+**Not measured here:** the naming quality of a live hosted call. That is a judgement about
+model output, not a number this file can carry honestly, and B-005's latency caveat applies
+unchanged — roughly one hosted run in six does not come back inside NFR-02's ceiling and
+falls back, which in this path means the seven template slots, exactly as before.
+
+### One defect found while wiring it
+
+`repairReferences` **deletes `ir.cards`** when no element is left to own the loop. §6 makes
+`cards` a required top-level field, so the resulting IR fails validation — which in the
+prompt path merely wastes a hosted call, and in this path would have fired on the ordinary
+case, since a wireframe that drew no series of boxes never claims `statBadges`. The
+semantics layer restores an emptied loop, and empties `cards.of` with it: `emitComponent`
+computes `hasCards = Boolean(cards && cards.of)`, so a name left pointing at a dropped
+element reports "this section has a card loop" for a section that does not.
+
+**Suites after the change:** 753 Node, 0 failing.

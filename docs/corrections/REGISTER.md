@@ -2053,3 +2053,20 @@ looking at an empty page with nothing in the UI to explain why.
 
 **Owner.** Antigravity wrote the feature. The contract amendment, the cascade and the
 seed exclusion are mine, at the owner's direction.
+
+## T-153 — the task record gained a test file and a verification
+
+**Changed.** `_build/tasks.json`: T-153's `files` list gains
+`tests/wireframe-semantics.test.mjs`, and its `verify` — which was `null` — becomes
+`node --test tests/wireframe-semantics.test.mjs`.
+
+**Why.** AGENTS.md rule 6 makes producer and verifier separate, and the working agreement
+forbids editing a file the task does not declare. A task whose `files` list is four source
+files and a document therefore has no legal place to put its test, and a `verify` of `null`
+means `baton done` accepts it on assertion. Both are properties of the task record rather
+than of the work, so the record is what moves.
+
+The three conditions in T-153's own `doneWhen` are all testable without a network or a
+key — the model is injected — so there was no reason for this one to close unverified.
+
+**Owner.** Mine.

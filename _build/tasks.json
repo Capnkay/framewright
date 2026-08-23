@@ -3171,9 +3171,10 @@
         "server/src/generate/wireframeSemantics.js",
         "server/src/generate/perceiveAndAssembleIr.js",
         "server/src/routes/generate.js",
-        "docs/BENCHMARK-RESULTS.md"
+        "docs/BENCHMARK-RESULTS.md",
+        "tests/wireframe-semantics.test.mjs"
       ],
-      "verify": null,
+      "verify": "node --test tests/wireframe-semantics.test.mjs",
       "doneWhen": "OpenCV still owns every bbox and B-003/B-004 do not regress. A wireframe whose regions do not match the reference section produces semantically named elements rather than heroImage/brandBadge/headlineMain. Any model failure returns exactly today’s deterministic perception IR."
     },
     {
