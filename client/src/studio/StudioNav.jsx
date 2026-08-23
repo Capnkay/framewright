@@ -1,29 +1,12 @@
 // client/src/studio/StudioNav.jsx
-import React, { useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import Logo from './Logo.jsx';
 
 export default function StudioNav() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // ignore if typing in input
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-      
-      // We don't want to break standard modifier shortcuts like Ctrl+P
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      
-      if (e.key === 'g' || e.key === 'G') navigate('/generate');
-      if (e.key === 'p' || e.key === 'P') navigate('/preview');
-      if (e.key === 'h' || e.key === 'H') navigate('/');
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
-
-  const link = (to, label, shortcut) => {
+  const link = (to, label) => {
     const active = pathname.startsWith(to) && to !== '/' || (to === '/' && pathname === '/');
     return (
       <Link
@@ -36,17 +19,6 @@ export default function StudioNav() {
         }
       >
         <span>{label}</span>
-        {shortcut && (
-          <span 
-            className={`flex h-5 items-center rounded border px-1.5 text-[10px] font-medium transition-colors duration-studio-fast ${
-              active 
-                ? 'border-studio-border-strong bg-studio-bg-base text-studio-text-secondary' 
-                : 'border-studio-border bg-studio-bg-base text-studio-text-tertiary group-hover:border-studio-border-strong group-hover:text-studio-text-secondary'
-            }`}
-          >
-            {shortcut}
-          </span>
-        )}
       </Link>
     );
   };
@@ -65,9 +37,9 @@ export default function StudioNav() {
           <span className="font-semibold tracking-tight text-studio-text-primary">Framewright</span>
         </Link>
         <div className="flex items-center gap-1">
-          {link('/', 'Home', 'H')}
-          {link('/generate', 'Studio', 'G')}
-          {link('/preview', 'Preview', 'P')}
+          {link('/', 'Home')}
+          {link('/generate', 'Studio')}
+          {link('/preview', 'Preview')}
         </div>
       </div>
       <div className="flex items-center gap-4">
