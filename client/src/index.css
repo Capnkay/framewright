@@ -83,3 +83,31 @@
     color: var(--studio-text-primary);
   }
 }
+
+@layer utilities {
+  .studio-grid-bg {
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .studio-dot-bg {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  
+  .studio-glass {
+    background-color: rgba(28, 28, 33, 0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--studio-border);
+    box-shadow: var(--studio-shadow-md);
+  }
+
+  .studio-glass-raised {
+    background-color: rgba(20, 20, 23, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--studio-border);
+    box-shadow: var(--studio-shadow-sm);
+  }
+}

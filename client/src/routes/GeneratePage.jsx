@@ -170,13 +170,13 @@ export default function GeneratePage({ initialJob = null }) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: EASE_STANDARD }}
-            className="bg-studio-bg-raised p-5 rounded-2xl border border-studio-border shadow-studio-sm"
+            className="studio-glass-raised p-5 rounded-2xl border border-studio-border/50 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500 relative overflow-hidden group"
           >
             <Composer onSubmit={handleSubmit} />
             {busy && <p className="mt-3 text-studio-sm text-studio-accent font-medium flex items-center gap-2"><span className="flex h-2 w-2 rounded-full bg-studio-accent animate-pulse"></span> Generating...</p>}
           </motion.div>
 
-          <details className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-5 shadow-studio-sm transition-all open:bg-studio-bg-overlay/50">
+          <details className="group rounded-2xl border border-studio-border/50 studio-glass-raised p-5 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500 open:bg-studio-bg-overlay/50">
             <summary className="cursor-pointer text-studio-sm font-semibold text-studio-text-primary outline-none">
               Accent colour
             </summary>
@@ -196,7 +196,7 @@ export default function GeneratePage({ initialJob = null }) {
             </div>
           </details>
 
-          <details className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-5 shadow-studio-sm transition-all open:bg-studio-bg-overlay/50">
+          <details className="group rounded-2xl border border-studio-border/50 studio-glass-raised p-5 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500 open:bg-studio-bg-overlay/50">
             <summary className="cursor-pointer text-studio-sm font-semibold text-studio-text-primary outline-none">Recent runs</summary>
             <div className="mt-4 pt-4 border-t border-studio-border/50">
               <JobHistory />
@@ -216,12 +216,12 @@ export default function GeneratePage({ initialJob = null }) {
             <ErrorBanner statusCode={submitError.statusCode} message={submitError.message} />
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-studio-border bg-studio-bg-raised p-5 shadow-studio-sm">
+          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised p-5 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500">
             <ResponsiveToggle src={previewSrc} title="Live preview" />
           </div>
 
           {job ? (
-            <div className="flex h-[24rem] shrink-0 flex-col rounded-2xl border border-studio-border bg-studio-bg-raised shadow-studio-sm overflow-hidden">
+            <div className="flex h-[24rem] shrink-0 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised shadow-studio-sm overflow-hidden hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500">
               <div className="flex items-center gap-2 border-b border-studio-border bg-studio-bg-base/30 px-4 pt-3 pb-0">
                 {TABS.map((t) => (
                   <button

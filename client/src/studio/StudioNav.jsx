@@ -19,7 +19,7 @@ export default function StudioNav() {
         {active && (
           <motion.div
             layoutId="navbar-active-pill"
-            className="absolute inset-0 z-[-1] rounded-full bg-studio-bg-overlay shadow-studio-sm"
+            className="absolute inset-0 z-[-1] rounded-full bg-studio-bg-overlay border border-studio-border/50 shadow-[0_0_12px_rgba(255,255,255,0.05)]"
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
           />
         )}

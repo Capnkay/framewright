@@ -31,7 +31,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6, ease: EASE_STANDARD }}
           className="relative z-10 flex flex-col items-start text-left"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full bg-studio-bg-raised border border-studio-border text-studio-text-secondary text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full studio-glass-raised backdrop-blur-lg border border-studio-border text-studio-text-secondary text-sm font-medium">
             <Sparkles className="w-4 h-4 text-studio-text-primary" />
             <span className="text-studio-text-primary">FrameWright Studio v2.0</span>
           </div>
@@ -68,7 +68,7 @@ export default function LandingPage() {
           className="relative z-10"
         >
           {/* Main Browser Window */}
-          <div className="relative rounded-2xl border border-studio-border bg-studio-bg-raised p-2 shadow-2xl shadow-black/50 overflow-hidden">
+          <div className="relative rounded-2xl border border-studio-border studio-glass-raised backdrop-blur-lg p-2 shadow-2xl shadow-black/50 overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             
             {/* Browser Header */}
@@ -139,7 +139,7 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
-          <div className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
+          <div className="group rounded-2xl border border-studio-border studio-glass-raised backdrop-blur-lg p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
             <div className="w-12 h-12 rounded-xl border border-studio-border bg-studio-bg-base flex items-center justify-center mb-6">
               <Box className="w-6 h-6 text-studio-text-primary" />
             </div>
@@ -154,7 +154,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
+          <div className="group rounded-2xl border border-studio-border studio-glass-raised backdrop-blur-lg p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
             <div className="w-12 h-12 rounded-xl border border-studio-border bg-studio-bg-base flex items-center justify-center mb-6">
               <Database className="w-6 h-6 text-studio-text-primary" />
             </div>
@@ -169,7 +169,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
+          <div className="group rounded-2xl border border-studio-border studio-glass-raised backdrop-blur-lg p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
             <div className="w-12 h-12 rounded-xl border border-studio-border bg-studio-bg-base flex items-center justify-center mb-6">
               <Eye className="w-6 h-6 text-studio-text-primary" />
             </div>
@@ -184,7 +184,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="group rounded-2xl border border-studio-border bg-studio-bg-raised p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
+          <div className="group rounded-2xl border border-studio-border studio-glass-raised backdrop-blur-lg p-6 hover:bg-studio-bg-overlay transition-colors flex flex-col">
             <div className="w-12 h-12 rounded-xl border border-studio-border bg-studio-bg-base flex items-center justify-center mb-6">
               <Zap className="w-6 h-6 text-studio-text-primary" />
             </div>
@@ -206,7 +206,7 @@ export default function LandingPage() {
         STATS BAR
       */}
       <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="rounded-2xl border border-studio-border bg-studio-bg-raised p-8 grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-studio-border/50 text-center relative overflow-hidden">
+        <div className="rounded-2xl border border-studio-border studio-glass-raised backdrop-blur-lg p-8 grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-studio-border/50 text-center relative overflow-hidden">
           {/* Subtle gradient behind stats */}
           <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
           
@@ -240,7 +240,7 @@ export default function LandingPage() {
           </p>
           <Link 
             to="/generate" 
-            className="group inline-flex items-center gap-2 bg-studio-bg-raised border border-studio-border text-studio-text-primary font-medium text-sm px-6 py-2.5 rounded-full hover:bg-studio-bg-overlay transition-colors"
+            className="group inline-flex items-center gap-2 studio-glass-raised backdrop-blur-lg border border-studio-border text-studio-text-primary font-medium text-sm px-6 py-2.5 rounded-full hover:bg-studio-bg-overlay transition-colors"
           >
             Explore Showcase
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -248,7 +248,7 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-studio-border bg-studio-bg-raised overflow-hidden flex flex-col">
+          <div className="rounded-xl border border-studio-border studio-glass-raised backdrop-blur-lg overflow-hidden flex flex-col">
             <div className="h-40 bg-studio-bg-base/50 p-4 border-b border-studio-border flex flex-col justify-center items-center">
               {/* Mockup SVG/Divs */}
               <div className="w-full h-24 rounded border border-studio-border/50 bg-studio-bg-base flex flex-col p-3">
@@ -263,7 +263,7 @@ export default function LandingPage() {
             </div>
           </div>
           
-          <div className="rounded-xl border border-studio-border bg-studio-bg-raised overflow-hidden flex flex-col">
+          <div className="rounded-xl border border-studio-border studio-glass-raised backdrop-blur-lg overflow-hidden flex flex-col">
             <div className="h-40 bg-studio-bg-base/50 p-4 border-b border-studio-border flex gap-2 justify-center items-center">
               {/* Mockup for Pricing */}
               {[19, 49, 99].map((price, i) => (
@@ -281,7 +281,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-studio-border bg-studio-bg-raised overflow-hidden flex flex-col">
+          <div className="rounded-xl border border-studio-border studio-glass-raised backdrop-blur-lg overflow-hidden flex flex-col">
             <div className="h-40 bg-studio-bg-base/50 p-4 border-b border-studio-border grid grid-cols-2 grid-rows-2 gap-2">
               {/* Mockup for Testimonial */}
               {[1, 2, 3, 4].map((i) => (
@@ -320,7 +320,7 @@ export default function LandingPage() {
             { num: '05', title: 'Deploy', icon: Rocket, desc: 'Copy, paste, and ship to production.' },
           ].map((step, i) => (
             <div key={i} className="relative z-10 flex flex-col items-center max-w-[140px]">
-              <div className="w-16 h-16 rounded-full border border-studio-border bg-studio-bg-raised flex items-center justify-center mb-6 shadow-sm">
+              <div className="w-16 h-16 rounded-full border border-studio-border studio-glass-raised backdrop-blur-lg flex items-center justify-center mb-6 shadow-sm">
                 <step.icon className="w-6 h-6 text-studio-text-primary" />
               </div>
               <span className="text-xs font-mono text-studio-text-tertiary mb-2">{step.num}</span>
@@ -335,7 +335,7 @@ export default function LandingPage() {
         BOTTOM CTA
       */}
       <section className="max-w-7xl mx-auto px-6 py-20">
-        <div className="relative overflow-hidden rounded-3xl border border-studio-border bg-studio-bg-raised p-12 md:p-16 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="relative overflow-hidden rounded-3xl border border-studio-border studio-glass-raised backdrop-blur-lg p-12 md:p-16 flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Abstract background shapes */}
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/5 rounded-full blur-[80px]" />
           <div className="absolute -bottom-24 -right-24 w-64 h-64 border border-white/10 rounded-full" />
@@ -416,7 +416,7 @@ export default function LandingPage() {
           <p>© 2025 FrameWright. All rights reserved.</p>
           <div className="mt-4 md:mt-0 flex items-center gap-4">
             <span>Stay updated</span>
-            <div className="flex bg-studio-bg-raised border border-studio-border rounded-full overflow-hidden">
+            <div className="flex studio-glass-raised backdrop-blur-lg border border-studio-border rounded-full overflow-hidden">
               <input type="email" placeholder="Enter your email" className="bg-transparent border-none outline-none text-xs px-4 py-2 w-48 placeholder:text-studio-text-tertiary text-studio-text-primary" />
               <button className="bg-studio-bg-overlay px-3 border-l border-studio-border hover:bg-studio-border transition-colors">
                 <ArrowRight className="w-3 h-3 text-studio-text-primary" />
