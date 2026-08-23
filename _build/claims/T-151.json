@@ -3,7 +3,10 @@
   "who": "Mohit Gupta",
   "device": "Mohits_Victus",
   "claimedAt": "2026-08-23T12:49:21.696Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-23T12:51:24.886Z",
+  "durationMs": 123190,
+  "note": "Dependency-free .env loader running before any other import; API now takes the hosted path when a key is present, deterministic when not."
 }

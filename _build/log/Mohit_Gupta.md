@@ -449,3 +449,19 @@
 - Device: Mohits_Victus
 - Files: client/src/studio/CodePromptInputs.logic.js, client/src/studio/Composer.jsx, tests/generate-code-mode.test.mjs
 
+## T-151 — The API never loaded .env, so every hosted path silently took the deterministic fallback
+- Started: 2026-08-23T12:49:21.696Z
+- Finished: 2026-08-23T12:51:24.886Z
+- Duration: 2m
+- Device: Mohits_Victus
+- Files: server/src/loadEnvFile.js, server/src/server.js
+- Note: Dependency-free .env loader running before any other import; API now takes the hosted path when a key is present, deterministic when not.
+
+## T-152 — Hosted IR validates against the schema and is still unrenderable: bad names, dangling references, no editable field
+- Started: 2026-08-23T12:49:22.313Z
+- Finished: 2026-08-23T12:51:25.549Z
+- Duration: 2m
+- Device: Mohits_Victus
+- Files: server/src/generate/promptToIrHosted.js, server/src/models/orchestrator.js, server/src/routes/generate.js, docs/BENCHMARK-RESULTS.md
+- Note: Deterministic name and reference repair, a system prompt, and a viability floor; four prompts now emit four different CMS-bound sections over HTTP. B-012.
+

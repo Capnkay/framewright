@@ -3,7 +3,10 @@
   "who": "Mohit Gupta",
   "device": "Mohits_Victus",
   "claimedAt": "2026-08-23T12:49:22.313Z",
-  "status": "active",
+  "status": "done",
   "takenFrom": null,
-  "takenAt": null
+  "takenAt": null,
+  "finishedAt": "2026-08-23T12:51:25.549Z",
+  "durationMs": 123236,
+  "note": "Deterministic name and reference repair, a system prompt, and a viability floor; four prompts now emit four different CMS-bound sections over HTTP. B-012."
 }
