@@ -21,6 +21,13 @@ export function createMongoStore(uri = 'mongodb://localhost:27017/framewright') 
       return col.findOne({ sectionId: String(sectionId) });
     },
     
+    deleteSections: async ({ pageName } = {}) => {
+      const col = await getCollection('sections');
+      const query = pageName ? { pageName } : {};
+      const res = await col.deleteMany(query);
+      return res.deletedCount;
+    },
+
     insertSection: async (doc) => {
       const col = await getCollection('sections');
       await col.insertOne(doc);

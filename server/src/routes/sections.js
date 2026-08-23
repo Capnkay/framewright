@@ -31,3 +31,15 @@ export async function getSection(ctx = {}) {
   const section = await store.findSection(sectionId);
   return document(section, `section ${sectionId}`);
 }
+
+export async function deleteSectionsRoute(ctx = {}) {
+  const env = ctx.env || {};
+  const store = createStore(env);
+  const query = ctx.query || {};
+  const pageName = query.pageName;
+  if (!pageName) {
+    return badRequest('pageName is required to delete sections.');
+  }
+  const deletedCount = await store.deleteSections({ pageName });
+  return { status: STATUS.OK, body: document({ deletedCount }, 'delete result') };
+}

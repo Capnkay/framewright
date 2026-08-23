@@ -100,13 +100,17 @@ export default function GeneratePage({ initialJob = null }) {
     setBusy(true);
     setTab('stages');
 
-    // Composer owns the naming fields now (docs/UI-SYSTEM.md §3) and submits
-    // them as part of the same FormData rather than through separate props —
-    // read them back out so previewSrc and the Content tab stay correct.
-    const submittedPageName = formData.get('pageName');
-    const submittedSectionName = formData.get('sectionName');
+    const submittedPageName = formData.get('pageName') || pageName;
+    const submittedSectionName = formData.get('sectionName') || sectionName;
     if (submittedPageName) setPageName(submittedPageName);
     if (submittedSectionName) setSectionName(submittedSectionName);
+
+    // Clear the existing page so the new generation replaces instead of stacking
+    try {
+      await fetch(`/api/sections?pageName=${submittedPageName}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Failed to clear canvas', e);
+    }
 
     try {
       const res = await fetch('/api/generate', { method: 'POST', body: formData });
@@ -140,22 +144,13 @@ export default function GeneratePage({ initialJob = null }) {
 
   const previewSrc = `/preview/${pageName}`;
 
-  return (
-    <main className="flex h-full flex-col">
-      <header className="flex shrink-0 items-baseline justify-between border-b border-studio-border px-8 py-5 bg-studio-bg-base/50 backdrop-blur-sm z-10 relative">
-        <div>
-          <h1 className="text-studio-xl font-bold tracking-tight text-studio-text-primary mb-1">Generator Studio</h1>
-          <p className="mt-1 text-studio-sm text-studio-text-secondary font-medium">
+  return <main className="flex min-h-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-studio-border px-6 py-2 shadow-sm bg-studio-bg-base/80 backdrop-blur-xl z-10">
+          <h1 className="text-studio-lg font-bold text-studio-text-primary tracking-tight">Generator Studio</h1>
+          <span className="text-studio-sm text-studio-text-secondary hidden md:block">
             Turn a wireframe, a description, or existing React into a CMS-ready section.
-          </p>
-        </div>
-        <Link
-          to={previewSrc}
-          className="text-studio-sm font-medium text-studio-accent underline transition-colors duration-studio-fast hover:text-studio-accent-hover"
-        >
-          Open preview in a new page
-        </Link>
-      </header>
+          </span>
+        </header>
 
       <div className="flex min-h-0 flex-1 gap-6 p-8">
         {/* ---------------------------------------------------------------
@@ -216,7 +211,25 @@ export default function GeneratePage({ initialJob = null }) {
             <ErrorBanner statusCode={submitError.statusCode} message={submitError.message} />
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised p-5 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500">
+          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-studio-border/50 studio-glass-raised p-5 hover:border-studio-accent/30 hover:shadow-studio-lg transition-all duration-500 relative">
+            <div className="absolute top-5 right-5 z-10 flex gap-4 items-center">
+              <a href={previewSrc} target="_blank" rel="noopener noreferrer" className="text-studio-xs text-studio-accent hover:underline font-semibold">
+                Open preview in a new page
+              </a>
+              <button 
+                type="button" 
+                onClick={async () => {
+                  try {
+                    await fetch(`/api/sections?pageName=${pageName}`, { method: 'DELETE' });
+                    // Refresh iframe by momentarily altering state or we can just reload
+                    window.location.reload();
+                  } catch(e) {}
+                }} 
+                className="text-studio-xs bg-studio-destructive/10 text-studio-destructive font-semibold px-3 py-1.5 rounded-full hover:bg-studio-destructive hover:text-white transition-colors border border-studio-destructive/20"
+              >
+                Clear Page
+              </button>
+            </div>
             <ResponsiveToggle src={previewSrc} title="Live preview" />
           </div>
 

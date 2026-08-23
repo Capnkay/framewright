@@ -39,6 +39,17 @@ export function createJsonStore(filePath = './server/data/store.json') {
     },
     
     findSection: async (sectionId) => {
+        const data = await readData();
+        return data.sections.find(s => String(s.sectionId) === String(sectionId)) || null;
+      },
+      deleteSections: async ({ pageName } = {}) => {
+        return enqueue(async () => {
+          const data = await readData();
+          const before = data.sections.length;
+          data.sections = data.sections.filter(s => pageName ? s.pageName !== pageName : false);
+          await writeData(data);
+          return before - data.sections.length;
+        });
       const data = await readData();
       return (data.sections || []).find(s => s.sectionId === String(sectionId)) || null;
     },

@@ -27,6 +27,7 @@ export function createAdapter(rawStore) {
   return {
     findSections: async (args) => stripStorageKeys(await rawStore.findSections(args)),
     findSection: async (sectionId) => stripStorageKeys(await rawStore.findSection(sectionId)),
+    deleteSections: async (args) => await rawStore.deleteSections(args),
     insertSection: async (doc) => stripStorageKeys(await rawStore.insertSection(doc)),
     updateSection: async (sectionId, patch) => stripStorageKeys(await rawStore.updateSection(sectionId, patch)),
     findElements: async (args) => stripStorageKeys(await rawStore.findElements(args)),
