@@ -65,6 +65,12 @@ function StudioLayout({ children }) {
 // here instead of StudioLayout. See docs/UI-SYSTEM.md §1/§2: LandingPage
 // stays on StudioLayout/Nav until its own (last-priority) pass.
 function StudioChrome({ children }) {
+  // T-145's rule, carried across. The preview route moved onto this chrome with the
+  // dark-theme pass, and this component rendered <StudioNav /> unconditionally — so the
+  // app's own navigation came back a SECOND time inside the Studio's preview iframe, and
+  // the framed document paid 80px of `pt-20` for a nav it was not showing. The defect
+  // T-145 fixed does not belong to StudioLayout; it belongs to any chrome the framed
+  // route can land in, so the check lives in both.
   const framed = isFramed();
 
   return (

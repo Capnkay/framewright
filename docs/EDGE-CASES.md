@@ -579,3 +579,62 @@ Two tests hold it: one that the guard fires with a named, actionable reason and
 **not** the empty-page sentence, and one that it stays invisible on a machine with
 room — a check that refuses on a healthy machine would trade an episodic failure for
 a constant one, which is worse than the bug.
+
+---
+
+## EC-016 · A UI dependency that needs `document` at import time takes down every test that renders the page
+
+**Found:** 2026-08-23, running the suite after `git pull --rebase`.
+**Status:** fixed — the dependency is gone.
+
+### The shape of it
+
+`react-syntax-highlighter` was added for the Studio's IDE-look source panel. Ten tests
+went red. Only two of them were about the source panel.
+
+The other eight — every test in `studio-information-architecture.test.mjs` and
+`studio-submits-and-renders-a-job.test.mjs` — failed with:
+
+```
+ReferenceError: document is not defined
+  at client/node_modules/decode-named-character-reference/index.dom.js
+  at client/node_modules/parse-entities/lib/index.js
+  at client/node_modules/refractor/lib/core.js
+  at client/node_modules/refractor/lib/all.js
+```
+
+The chain is `react-syntax-highlighter → refractor → parse-entities →
+decode-named-character-reference`, and the last one reads `document` **at module init**,
+not inside a component. These tests bundle the Studio page with esbuild and evaluate it
+before jsdom's globals are installed, so the bundle throws at load and every test in the
+file dies — including the ones that never touch the source view. They import the page; the
+page imports the component; the component imports the package.
+
+### Why it did not look like a dependency problem
+
+Before `npm install` it read as `Could not resolve "react-syntax-highlighter"`, which
+points at a missing install. Installing it converted that into eight `document is not
+defined` errors in files whose names say nothing about syntax highlighting — so the
+obvious next move is to go and read the Studio's information architecture, where nothing
+is wrong.
+
+**The tell is the stack, not the test name.** Eight failures with an identical stack that
+bottoms out in `node_modules` are one import, not eight defects.
+
+### What was changed
+
+The dependency was removed and the panel now colours its own code:
+`client/src/studio/GeneratedSourceView.logic.js`, a linear scanner of about a hundred
+lines with no imports at all. `tests/generated-source-highlighting.test.mjs` holds it, and
+its first assertion is that `globalThis.document` is undefined while it runs.
+
+This also restored FR-G06's evidence. The requirement is that generated source renders
+READ-ONLY, and T-049 reads that off a literal `<pre><code>` block. `SyntaxHighlighter`
+emits one at runtime, so the requirement stayed met while the proof of it disappeared —
+which is the same nothing-failed-but-nothing-worked shape as §9's dead store.
+
+### The general rule
+
+A browser-only module reached from a route component is not contained to that component.
+It is contained to nothing: every test that renders any page importing it fails, and none
+of them will be named after it.

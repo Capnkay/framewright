@@ -50,11 +50,29 @@ test('the frame check cannot throw the app down', async () => {
 test('the preview still has chrome when opened directly', async () => {
   // The nav was added on purpose. This removes it only in the framed case, so a
   // person who opens /preview/Home in a tab still gets a way back.
+  //
+  // NAMED BY WRAPPER RATHER THAN PINNED TO ONE. This asserted `<StudioLayout>`
+  // literally, and T-155's dark-theme pass moved the route onto `<StudioChrome>` —
+  // at which point the assertion failed for the right reason and the wrong one at
+  // once. The right one: StudioChrome rendered StudioNav unconditionally, so the
+  // doubled nav was genuinely back. The wrong one: the route is allowed to change
+  // which chrome it wears, and this test is not about the name.
+  //
+  // So it reads the wrapper the route actually uses and then holds THAT wrapper to
+  // the framed rule, which is the property T-145 was about.
   const source = await fs.readFile(APP, 'utf8');
 
+  const route = source.match(/path="\/preview\/:pageName"\s+element=\{<([A-Za-z]+)>/);
+  assert.ok(route, 'the preview route no longer wraps its page in any chrome at all');
+
+  const wrapper = route[1];
+  const component = source.match(new RegExp(`function ${wrapper}\\(\\{[^}]*\\}\\)\\s*\\{[\\s\\S]*?\\n\\}`));
+  assert.ok(component, `${wrapper} wraps the preview route but is not defined in App.jsx`);
+
+  assert.match(component[0], /const framed = isFramed\(\)/, `${wrapper} never asks whether it is framed`);
   assert.match(
-    source,
-    /path="\/preview\/:pageName"\s+element=\{<StudioLayout>/,
-    'the preview route no longer uses the layout at all',
+    component[0],
+    /framed\s*\?\s*null\s*:\s*<StudioNav/,
+    `${wrapper} renders StudioNav unconditionally — the app's nav appears again inside the preview iframe`,
   );
 });

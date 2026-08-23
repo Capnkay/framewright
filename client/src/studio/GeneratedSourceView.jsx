@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { highlight, TOKEN_COLOURS } from './GeneratedSourceView.logic.js';
 
 export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
   const [sourceCode, setSourceCode] = useState('');
@@ -29,6 +28,11 @@ export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
     
     return () => { isMounted = false; };
   }, [jobId]);
+
+  // Recomputed only when the source changes — the scanner is linear, but so is typing in
+  // the copy button's `setTimeout`, and re-tokenising 400 lines on a "Copied" flash is
+  // work nobody asked for.
+  const lines = React.useMemo(() => highlight(sourceCode), [sourceCode]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(sourceCode);
@@ -72,29 +76,37 @@ export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
             </div>
           </div>
           
-          {/* Editor Body */}
-          <div className="flex-1 overflow-hidden bg-[#1e1e1e]">
-            <SyntaxHighlighter 
-              language="jsx" 
-              style={vscDarkPlus} 
-              showLineNumbers={true}
-              customStyle={{ 
-                margin: 0, 
-                padding: '1.25rem',
-                backgroundColor: 'transparent',
-                fontSize: '0.85rem',
-                height: '100%',
-                overflow: 'auto'
-              }}
-              lineNumberStyle={{
-                minWidth: '2.5em',
-                paddingRight: '1em',
-                color: '#6e7681',
-                textAlign: 'right'
-              }}
-            >
-              {sourceCode}
-            </SyntaxHighlighter>
+          {/* Editor Body.
+
+              FR-G06 (T-049) — generated source renders READ-ONLY, and a <pre><code>
+              block is how that is stated and how the test reads it. No textarea, no
+              contentEditable: there is nothing here for a stray keystroke to change.
+              The colouring is our own scanner (GeneratedSourceView.logic.js); the
+              package that used to do it needs `document` at import time and took eight
+              unrelated tests down with it. */}
+          <div className="flex-1 overflow-auto bg-[#1e1e1e]">
+            <pre className="m-0 p-5 text-[0.85rem] leading-relaxed font-mono">
+              <code className="grid">
+                {lines.map((tokens, index) => (
+                  <span key={index} className="grid grid-cols-[2.5em_1fr] gap-4">
+                    <span
+                      className="select-none text-right tabular-nums"
+                      style={{ color: '#6e7681' }}
+                      aria-hidden="true"
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="whitespace-pre">
+                      {tokens.map((token, at) => (
+                        <span key={at} style={{ color: TOKEN_COLOURS[token.kind] }}>
+                          {token.text}
+                        </span>
+                      ))}
+                    </span>
+                  </span>
+                ))}
+              </code>
+            </pre>
           </div>
         </div>
       ) : (
