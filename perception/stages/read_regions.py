@@ -269,7 +269,7 @@ def _openai_transport(base_url: str, api_key: str, model: str, timeout_s: float)
     configure both halves of this system.
     """
 
-    endpoint = base_url.rstrip("/") + "/chat/completions"
+    endpoint = base_url.rstrip("/") + f"/model/{model}/invoke"
 
     def transport(png: bytes) -> str:
         body = {
