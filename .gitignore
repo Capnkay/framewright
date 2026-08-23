@@ -70,3 +70,4 @@ tools/_store_scratch.json
 # T-144: the OCR worker writes the page it is about to read here, on the
 # repository's own drive rather than wherever the OS put the system temp.
 .scratch/
+.cache/

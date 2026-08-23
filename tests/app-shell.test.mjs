@@ -155,8 +155,50 @@ test('the Tailwind content globs cover the generated-sections directory', () => 
   const globMatch = config.match(/content:\s*\[([^\]]+)\]/);
   assert.ok(globMatch, 'a content array must be declared');
 
+  // Assert the PROPERTY this test's comment describes — that a generated
+  // section is scanned — rather than one literal spelling of the glob.
+  // `./src/**/*.{js,jsx,ts,tsx}` covers every generated .jsx and is what the
+  // config actually carries; matching the exact substring `{js,jsx}` failed
+  // against a strictly wider glob, which is a false negative on the only
+  // question that matters here.
   const globs = globMatch[1];
-  assert.match(globs, /\.\/src\/\*\*\/\*\.\{js,jsx\}/, 'src/**/*.{js,jsx} must be scanned');
+  const patterns = [...globs.matchAll(/["'`]([^"'`]+)["'`]/g)].map((m) => m[1]);
+  assert.ok(patterns.length, 'the content array must list at least one glob');
+
+  // Expand the glob by scanning it, rather than by a chain of regex replaces:
+  // escaping the metacharacters first would escape `{` and `}` too, and the
+  // brace-expansion pass would then never match its own delimiters.
+  const covers = (glob, file) => {
+    const src = glob.replace(/^\.\//, '');
+    let rx = '';
+    for (let i = 0; i < src.length; i += 1) {
+      const c = src[i];
+      if (c === '*') {
+        if (src[i + 1] === '*') {
+          rx += '(?:.*/)?';
+          i += 1;
+          if (src[i + 1] === '/') i += 1;
+        } else {
+          rx += '[^/]*';
+        }
+      } else if (c === '{') {
+        const close = src.indexOf('}', i);
+        rx += '(?:' + src.slice(i + 1, close).split(',').join('|') + ')';
+        i = close;
+      } else if ('.+^$()|[]\\?'.includes(c)) {
+        rx += '\\' + c;
+      } else {
+        rx += c;
+      }
+    }
+    return new RegExp('^' + rx + '$').test(file);
+  };
+
+  const generated = 'src/sections/generated/HeroSection.jsx';
+  assert.ok(
+    patterns.some((g) => covers(g, generated)),
+    `no content glob scans ${generated} — generated sections would purge to unstyled. Globs: ${patterns.join(', ')}`,
+  );
 
   // The golden component is the concrete case that must be covered today.
   assert.ok(exists('client/src/sections/generated/HeroSection.jsx'));

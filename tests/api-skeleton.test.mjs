@@ -123,8 +123,8 @@ test('a document read returns 404 with the error envelope when absent', async ()
   }
 });
 
-test('an acting endpoint’s success body carries ok:true, flat, never nested under data', () => {
-  const { status, body } = getHealth({ env: {} });
+test('an acting endpoint’s success body carries ok:true, flat, never nested under data', async () => {
+  const { status, body } = await getHealth({ env: {} });
   assert.equal(status, STATUS.OK);
   assert.equal(body.ok, true);
   assert.ok(!('data' in body), 'the envelope is flat — there is no data key anywhere in it');
@@ -132,8 +132,8 @@ test('an acting endpoint’s success body carries ok:true, flat, never nested un
 
 // --- /api/health, §13.4 ----------------------------------------------------
 
-test('GET /api/health returns the §13.4 shape and never fabricates perception uptime', () => {
-  const json = getHealth({ env: {} });
+test('GET /api/health returns the §13.4 shape and never fabricates perception uptime', async () => {
+  const json = await getHealth({ env: {} });
   assert.equal(json.status, STATUS.OK);
   assert.deepEqual(Object.keys(json.body).sort(), ['ok', 'perception', 'store']);
   assert.equal(json.body.ok, true);
@@ -147,7 +147,7 @@ test('GET /api/health returns the §13.4 shape and never fabricates perception u
   // honest answer — reporting "up" would be a fabricated number.
   assert.equal(json.body.perception, 'down');
 
-  const withMongo = getHealth({ env: { MONGODB_URI: 'mongodb://localhost:27017/framewright_dev' } });
+  const withMongo = await getHealth({ env: { MONGODB_URI: 'mongodb://localhost:27017/framewright_dev' } });
   assert.equal(withMongo.body.store, 'mongo');
 });
 

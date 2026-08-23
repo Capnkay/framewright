@@ -4,6 +4,7 @@
 
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Button } from 'primereact/button';
 
 import { fetchElementsByIds } from '../../redux/fetchElementsByIds.js';
 import { getHtml, getTextValue, getCardFieldValue } from '../../utils/getHtml.js';
@@ -97,7 +98,7 @@ export default function Custom({ pageName = 'Home', section = {} }) {
   const items = getStatItems(data); // R9 — never a fixed-length guard
 
   return (
-    <section className="w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row">
+    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row ${textContrastClass}`}>
       <div className="w-full md:w-1/2">
         <img
           id={ids.heroImage}
@@ -122,7 +123,7 @@ export default function Custom({ pageName = 'Home', section = {} }) {
 
         <h1
           id={ids.headlineMain}
-          className="dynamicStyle text-4xl md:text-5xl font-extrabold tracking-tight leading-tight"
+          className="dynamicStyle text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-gray-800"
           dangerouslySetInnerHTML={{
             __html: getHtml(
               getTextValue(data, ids.headlineMain, DEFAULTS[ids.headlineMain]),
@@ -174,18 +175,16 @@ export default function Custom({ pageName = 'Home', section = {} }) {
           ))}
         </div>
 
-        {/* R8 — PrimeReact <Button> swaps in here once "primereact" is installed. */}
-        <button
+        <Button
           id={ids.ctaButton}
           type="button"
           className="dynamicStyle bg-red-500 text-white font-bold px-8 py-3"
           aria-label={getTextValue(data, ids.ctaButton, DEFAULTS[ids.ctaButton])}
+          label={getTextValue(data, ids.ctaButton, DEFAULTS[ids.ctaButton])}
           onClick={() => {
             // Stub — wired in a later phase.
           }}
-        >
-          {getTextValue(data, ids.ctaButton, DEFAULTS[ids.ctaButton])}
-        </button>
+        />
       </div>
     </section>
   );

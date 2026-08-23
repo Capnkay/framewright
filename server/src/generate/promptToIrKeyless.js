@@ -336,6 +336,10 @@ export function promptToIrKeyless(prompt, options = {}) {
   const ctaLabel = extractCtaLabel(text);
   const textMode = extractTextMode(text);
 
+  const isFeature = sectionType.value === 'feature-grid';
+  const templateElements = isFeature ? REFERENCE_ELEMENTS_FEATURE : REFERENCE_ELEMENTS;
+  const templateCards = isFeature ? REFERENCE_CARDS_FEATURE : REFERENCE_CARDS;
+
   if (!text.trim()) {
     warnings.push('Prompt was empty; the full Pulse Fit reference template was used unchanged.');
   }
@@ -368,11 +372,7 @@ export function promptToIrKeyless(prompt, options = {}) {
     warnings.push('No CTA label found in the prompt; the reference label was kept.');
   }
 
-  
-  const isFeature = sectionType.value === 'feature-grid';
-  const templateElements = isFeature ? REFERENCE_ELEMENTS_FEATURE : REFERENCE_ELEMENTS;
-  const templateCards = isFeature ? REFERENCE_CARDS_FEATURE : REFERENCE_CARDS;
-  
+
   const elements = templateElements.map((el) => {
     const isCta = el.elementName === 'ctaButton';
     const overridden = isCta && ctaLabel.found;

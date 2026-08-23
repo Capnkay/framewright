@@ -1,0 +1,21 @@
+{
+  "summary": "Focused mobile regression completed. Drawer opens, all Home/Studio/Preview links navigate and close it, and Studio/Preview render successfully. Landing has reproducible horizontal overflow at 390px.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [{"screen": "Landing at 390px", "issues": ["document scrollWidth exceeds viewport width, producing horizontal overflow"]}]
+  },
+  "test_report_links": [],
+  "action_items": ["Find and constrain the landing page element causing horizontal overflow at 390px mobile width."],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "N/A (frontend-only request)", "frontend": "90%"},
+  "seed_data_creation": "",
+  "retest_needed": true,
+  "should_call_test_agent_after_fix": true,
+  "context_for_next_testing_agent": "At 390x844, drawer navigation passed for /, /generate, and /preview; drawer closed after each navigation. Studio and Preview had no overflow; landing alone did.",
+  "rca of the issue": "The landing DOM reports scrollWidth greater than 390px while other routes do not. Likely a landing-specific child/card or transformed decorative element exceeds the viewport; inspect computed widths and overflow contributors in the landing bento/hero.",
+  "test_credentials": "Not applicable; no auth flow tested.",
+  "mocked_integrations": "MOCKED client-side generation, history, confidence, and login session remain intentionally used."
+}

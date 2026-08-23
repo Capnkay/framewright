@@ -1,0 +1,35 @@
+{
+  "summary": "Follow-up frontend-only re-test of Framewright (no backend). Verified all 6 fixes from iteration_4 with concrete DOM measurements (getBoundingClientRect / documentElement.scrollWidth) at 1920px and 390px, plus a light smoke pass on navigation, all 5 pipeline states, content-tab live preview, job history and mock login. All 6 fixes PASS; zero console errors/pageerrors across every run.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Studio /generate @390px - Live Preview iframe (Mobile breakpoint)", "issues": ["Inside the mocked preview iframe (314px wide) the 'Start building' / 'Watch demo' CTA labels wrap and get vertically clipped by the button box. Purely cosmetic inside the mock srcDoc, no page overflow."]},
+      {"screen": "Studio /generate @1920px - Pipeline panel (idle)", "issues": ["Idle state still leaves a fairly tall empty region below 'Telemetry starts here' due to .pipeline min-height:300px; acceptable but could be tightened."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CodeTab copy() is now safe (guards navigator.clipboard?.writeText and .catch(()=>{})). Consider surfacing a subtle 'Copy failed' hint instead of a fully silent no-op for UX clarity.",
+    "Studio.generate() re-entry guard + timerRef cleanup on unmount are correct; note the button re-enables the instant jobState flips to 'done', so a click ~3.4s after start legitimately restarts a run (verified: pipeline still reaches DONE with exactly 7 stage nodes)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (no backend)", "frontend": "100% (6/6 fixes verified, 8/8 smoke checks passed)"},
+  "seed_data_creation": "None - fully client-side mock app",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Mock auth - any email/password accepted (used qa@example.com / pass1234)",
+  "verification_details": {
+    "FIX1_clipboard": "PASS - clicked pipeline-code-copy-button with no clipboard permission granted; 0 #webpack-dev-server-client-overlay nodes, no pageerror/unhandled rejection, page remained interactive (tab switch back to Stages worked).",
+    "FIX2_fields_grid_1920": "PASS - composer panel right=760; page-name-input right=560 (w=169), section-name-input right=739 (w=169). No clipping; document scrollWidth==clientWidth==1920.",
+    "FIX3_breakpoint_toggle_390": "PASS - Mobile/Tablet/Desktop all keep documentElement.scrollWidth=390 (==clientWidth); live-preview-frame-wrap stays 314px wide inside panel.",
+    "FIX4_stage_timeline_390": "PASS - RUNNING: timeline scrollWidth=614 vs clientWidth=316 with overflow-x:auto, document scrollWidth stays 390. DONE (Stages tab) also 390.",
+    "FIX5_code_tab_390": "PASS - <pre> scrollWidth=407 vs clientWidth=316, overflow-x:auto; document scrollWidth stays 390. Full DOM scan found 0 elements exceeding viewport+2px.",
+    "FIX6_generate_reentry": "PASS - after first click button is disabled with text 'Generating…'; rapid re-clicks blocked by Playwright actionability (no concurrent timers). Navigating Home mid-run produced zero console errors/warnings (no setState-on-unmounted warning).",
+    "smoke": "Home<->Studio<->Preview 5 cycles: 0 blank flashes. Dropzone text 'PNG, JPG or WEBP · max 8MB'. Accent disclosure toggles, 6 buttons (5 presets + Reset), value shows #3B82F6. All 5 dev-switcher states render correct pills (IDLE/RUNNING/NEEDS INPUT/DONE/FAILED). Content tab headline edit -> live iframe updated to 'QA Headline 42'. Job history shows 3 items. Login mock -> /generate with user-avatar-button; avatar click logs out back to / with Sign in pill. Landing hero console shows no animated border-trail."
+  },
+  "context_for_next_testing_agent": "All iteration_4 defects are fixed and verified via DOM measurement at 1920px and 390px. Useful testids: composer-panel, page-name-input, section-name-input, generate-button, breakpoint-{mobile|tablet|desktop}-button, live-preview-frame-wrap, live-preview-iframe, stage-timeline, dev-state-{idle|running|needs-input|done|failed}-button, pipeline-tab-{stages|code|content}-button, pipeline-code-tab, pipeline-code-copy-button, content-field-value-textarea, nav-{home|studio|preview}-link, nav-sign-in-button, login-{email-input|password-input|submit-button}, user-avatar-button. Note the Code/Content tabs only exist in DONE state. Untested areas remaining: /preview page depth, mobile drawer nav, tablet 768px layout.",
+  "rca_of_the_issue": "Previous clipboard bug was an unhandled promise rejection from navigator.clipboard.writeText; now wrapped in .then/.catch with a capability guard. Overflow bugs were caused by missing min-width:0 on grid/flex children which prevented shrinking and pushed page-level scrollWidth; min-width:0 + overflow-x:auto on stage-timeline/pre now contains scrolling internally."
+}

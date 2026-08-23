@@ -1,0 +1,21 @@
+@media (max-width:760px){
+  .hero-modern{grid-template-columns:1fr;gap:36px;min-height:0;padding:42px 0 30px}
+  .hero-modern h1{font-size:52px}
+  .hero-modern p{font-size:13px}
+  .hero-trust{gap:10px;margin-top:28px;font-size:8px}
+  .hero-trust span:nth-last-child(-n+2){font-size:9px}
+  .hero-console{min-height:430px;padding:14px;border-radius:14px}
+  .console-graph{height:135px}
+  .graph-node{font-size:8px;padding:6px 7px}
+  .node-a{left:4%;top:67%}
+  .node-b{left:40%;top:15%}
+  .node-c{right:3%;top:13%}
+  .signal-rail{align-items:flex-start;flex-wrap:wrap;gap:12px;margin:10px 0 28px;padding:15px 0}
+  .signal-rail>div{order:3;flex-basis:100%;gap:10px;flex-wrap:wrap}
+  .signal-rail strong{margin-left:auto}
+  .feature-deck{grid-template-columns:1fr;padding:0}
+  .feature-deck .bento-card{min-height:150px}
+  .closing-prompt{margin:14px 0 0;padding:20px;align-items:flex-start;gap:20px;flex-direction:column}
+  .closing-prompt h2{font-size:19px}
+  .closing-prompt button{width:100%;justify-content:center}
+}

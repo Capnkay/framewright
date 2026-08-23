@@ -472,3 +472,31 @@
 - Device: Mohits_Victus
 - Files: server/src/generate/repairModelIr.js, server/src/generate/wireframeSemantics.js, server/src/generate/perceiveAndAssembleIr.js, server/src/routes/generate.js, docs/BENCHMARK-RESULTS.md, tests/wireframe-semantics.test.mjs
 
+## T-156 — Multi-provider model registry — Gemini, Grok and Qwen behind the one §16.2 call site
+- Started: 2026-08-23T18:44:26.451Z
+- Finished: 2026-08-23T18:44:38.094Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: server/src/models/providers.js, server/src/models/orchestrator.js, tests/model-orchestrator.test.mjs
+
+## T-157 — Rewrite the visual critic through callModel — it read credentials directly and could not link
+- Started: 2026-08-23T18:44:38.432Z
+- Finished: 2026-08-23T18:44:41.585Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: server/src/quality/critic.js, tests/model-orchestrator.test.mjs
+
+## T-158 — Render a generated component to a screenshot without a dev server
+- Started: 2026-08-23T18:44:41.948Z
+- Finished: 2026-08-23T18:45:36.367Z
+- Duration: 1m
+- Device: Mohits_Victus
+- Files: server/src/quality/render.js, server/src/quality/browser.js, tests/stage6-quality-gate.test.mjs
+
+## T-159 — Wire the self-correcting critic loop into POST /api/generate between stages 5 and 6
+- Started: 2026-08-23T18:45:36.757Z
+- Finished: 2026-08-23T18:45:45.539Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: server/src/quality/criticLoop.js, server/src/routes/generate.js, tests/generate-wireframe-mode.test.mjs
+

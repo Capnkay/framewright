@@ -6,8 +6,13 @@ import { patchElement } from '../server/src/routes/elements.js';
 const mockData = {
   sections: [],
   elements: [
-    { fieldId: '2000000001', component: 'HeroSection', content: 'Old content' },
-    { fieldId: '2000000002', component: 'Cards', loop: [{ fieldId1: '3000000001', field1: 'Card 1' }] }
+    // §3's discriminator is `contentType`, not `component` — parseElementDoc
+    // validates it against the closed set and elements.js reads it to decide
+    // that a Cards element ignores `content`. The fixture previously said
+    // `component: 'Cards'`, so `contentType` was undefined, the Cards branch
+    // never fired, and the test read that as a production bug.
+    { fieldId: '2000000001', contentType: 'Text', component: 'HeroSection', content: 'Old content' },
+    { fieldId: '2000000002', contentType: 'Cards', component: 'Cards', loop: [{ fieldId1: '3000000001', field1: 'Card 1' }] }
   ]
 };
 

@@ -42,9 +42,20 @@
 // from the API, always. The system prompt says so and `preserveFieldIds` below
 // enforces it, because a prompt is a request and this is a requirement.
 
-import { callModel } from '../models/orchestrator.js';
+import { callModel, MAX_TIMEOUT_MS } from '../models/orchestrator.js';
 
 export const PURPOSE = 'visual-critic';
+
+// The critic is the heaviest call in the system: two full-page images plus the
+// whole IR in one request, where every other caller sends text or a single
+// image. Measured against gemini-3.5-flash, a one-image request returns in
+// ~2.6s and this one does not finish inside the orchestrator's 30s DEFAULT —
+// the first live run timed out and the loop degraded to a no-op with the IR
+// unchanged, which is correct behaviour for a wrong budget rather than a
+// reason to widen the ceiling. So this caller opts into §16.2's documented
+// MAX (60s) rather than the default. It is not a new limit: MAX_TIMEOUT_MS is
+// the hard ceiling clampTimeout already enforces for everyone.
+export const DEFAULT_CRITIC_TIMEOUT_MS = MAX_TIMEOUT_MS;
 
 const SYSTEM_PROMPT = [
   'You are a UI QA engineer comparing a wireframe against a screenshot of the UI generated from it.',
@@ -144,7 +155,7 @@ export async function runCritic({
   wireframe,
   screenshot,
   ir,
-  timeoutMs,
+  timeoutMs = DEFAULT_CRITIC_TIMEOUT_MS,
   callModel: injectedCallModel = callModel,
 } = {}) {
   if (!ir || typeof ir !== 'object') {

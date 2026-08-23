@@ -167,7 +167,30 @@ URL_HOSTS=$(grep -Eio 'https?://[a-zA-Z0-9._-]+' "$TMPFILE" | sed -E 's#https?:/
 #                           in another region edits this security file to get a push
 #                           through, and editing the floor is exactly the habit this
 #                           file is trying not to teach.
-ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|paulmillr\.com|json-schema\.org|bedrock-runtime\.[a-z0-9-]+\.amazonaws\.com|bedrock-runtime\.|magicui\.design|motion-primitives\.com|ui\.aceternity\.com|www\.raycast\.com)$'
+#
+#   generativelanguage.googleapis.com
+#   api.x.ai
+#   dashscope.aliyuncs.com
+#                           The remaining provider profiles in
+#                           server/src/models/providers.js (T-156), admitted on exactly
+#                           the same reasoning as bedrock-runtime above and no wider a
+#                           one. Each is a vendor's published, globally identical
+#                           OpenAI-compatible endpoint: Google Gemini, xAI Grok, and
+#                           Alibaba DashScope for Qwen. None names a client, a tenant,
+#                           an account or any private infrastructure, which is the class
+#                           of thing this gate exists to keep out of history.
+#
+#                           NOTHING IN THE REPOSITORY FETCHES THESE. They are default
+#                           base URLs in a registry, and the registry is data — it holds
+#                           no credential and opens no socket. §16.2 still permits
+#                           exactly one module to do that, and it reads LLM_BASE_URL
+#                           from the environment. .env.example ships them commented as
+#                           documentation with every value blank.
+#
+#                           Deliberately NOT added: localhost:11434 and the other local
+#                           runtime hosts, which the `localhost` entry above already
+#                           covers.
+ALLOWED_HOST_RE='^(localhost|127\.0\.0\.1|([a-z0-9-]+\.)?example\.(com|org|net)|([a-z0-9-]+\.)*example|([a-z0-9-]+\.)*[a-z0-9-]+\.local|agents\.md|download\.pytorch\.org|registry\.npmjs\.org|github\.com|www\.patreon\.com|opencollective\.com|tidelift\.com|feross\.org|paulmillr\.com|json-schema\.org|bedrock-runtime\.[a-z0-9-]+\.amazonaws\.com|bedrock-runtime\.|magicui\.design|motion-primitives\.com|ui\.aceternity\.com|www\.raycast\.com|generativelanguage\.googleapis\.com|api\.x\.ai|dashscope\.aliyuncs\.com)$'
 
 if [ -n "$URL_HOSTS" ]; then
   FORBIDDEN_HOSTS=$(printf '%s\n' "$URL_HOSTS" | grep -Eiv "$ALLOWED_HOST_RE")

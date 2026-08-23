@@ -74,11 +74,16 @@ function isFieldId(value) {
 export async function getHealth(ctx = {}) {
   const env = ctx.env || {};
   let perception = 'down';
+  // §12 and .env.example both make the perception service's location
+  // configurable; probing a hardcoded localhost:8000 reports "down" for every
+  // deployment that moved it, which is a fabricated answer in the one field
+  // §13.4 exists to report honestly.
+  const base = String(env.PERCEPTION_SERVICE_URL || 'http://localhost:8000').replace(/\/+$/, '');
   try {
-    const res = await fetch('http://localhost:8000/health', { signal: AbortSignal.timeout(1000) });
+    const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(1000) });
     if (res.ok) perception = 'up';
   } catch (e) {
-    // down
+    // down — §12 makes an absent perception service a supported state.
   }
   return {
     status: STATUS.OK,

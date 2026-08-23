@@ -3333,6 +3333,68 @@
       ],
       "verify": "npm test -- generate-wireframe-mode",
       "doneWhen": "With CRITIC_LOOP=on and a wireframe, the loop renders, critiques and re-emits under a hard iteration cap, reconciles corrected defaults into the persisted element documents, and records every degradation as a warning. With CRITIC_LOOP unset nothing is rendered, launched or called."
+    },
+    {
+      "id": "T-164",
+      "phase": 6,
+      "track": "generation",
+      "size": "30m",
+      "title": "Fetch a deterministic Design2Code subset and extract its ground-truth text",
+      "contract": [
+        "18"
+      ],
+      "deps": [
+        "T-159"
+      ],
+      "files": [
+        "tools/design2code/fetch.mjs",
+        "tools/design2code/groundTruth.mjs",
+        "tests/design2code-groundtruth.test.mjs"
+      ],
+      "verify": "npm test -- design2code-groundtruth",
+      "doneWhen": "A seeded N-sample subset downloads to a gitignored cache and is byte-stable across runs; ground-truth text is extracted from each paired .html as an ordered list of visible strings, with script/style/head content and collapsed whitespace excluded. No network access at scoring time."
+    },
+    {
+      "id": "T-165",
+      "phase": 6,
+      "track": "generation",
+      "size": "45m",
+      "title": "Score text fidelity of a produced IR against ground truth, critic ON vs OFF",
+      "contract": [
+        "18",
+        "18.1"
+      ],
+      "deps": [
+        "T-164"
+      ],
+      "files": [
+        "tools/design2code/textFidelity.mjs",
+        "tools/design2code/bench.mjs",
+        "tests/design2code-text-fidelity.test.mjs"
+      ],
+      "verify": "npm test -- design2code-text-fidelity",
+      "doneWhen": "Recall (ground-truth strings appearing verbatim in the IR) and hallucination rate (IR strings absent from ground truth) are computed per sample and aggregated; the harness runs both arms over one subset and writes a machine-readable result file. A failed generation scores as a recorded miss, never as a crash."
+    },
+    {
+      "id": "T-166",
+      "phase": 6,
+      "track": "generation",
+      "size": "45m",
+      "title": "Design2Code official metrics as a second pass, with the domain caveat recorded",
+      "contract": [
+        "18"
+      ],
+      "deps": [
+        "T-165"
+      ],
+      "files": [
+        "tools/design2code/officialMetrics.mjs",
+        "docs/BENCHMARK-RESULTS.md",
+        "README.md",
+        "tests/design2code-text-fidelity.test.mjs"
+      ],
+      "verify": "npm test -- design2code-text-fidelity",
+      "doneWhen": "Block-match, text, position and colour similarity are computed over the emitted section against the reference render, each reported beside an explicit statement that Framewright emits ONE section where the benchmark assumes a full page, so the sub-scores measure template coverage and not generation quality. ODC-BY attribution for the dataset is added to the README licence table."
     }
   ]
 }

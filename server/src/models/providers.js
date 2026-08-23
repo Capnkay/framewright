@@ -260,8 +260,49 @@ export function endpointFor(profile, baseUrl, model) {
  * is a 4xx on strict providers, and §16.2 never retries a 4xx, so sending one
  * speculatively converts a soft degradation into a hard failure.
  */
+/**
+ * Does this schema actually constrain a shape, or does it only name a type?
+ *
+ * WHY THIS EXISTS — a measured failure, not a hypothetical. critic.js passes
+ * `{ type: 'object' }` deliberately: §16.2 requires a caller schema, and the
+ * critic's real schema (the IR's) is enforced downstream, so asserting it here
+ * too would give two schemas that drift. That is sound reasoning, and handing
+ * the bare object to a provider as a `json_schema` response format is not.
+ *
+ * Measured against gemini-3.5-flash with two images: the same request returns
+ * in 2.8s with no response_format, and takes 47s and answers `{}` when
+ * `{ type: 'object' }` is sent as a json_schema. The compat layer converts it
+ * to a response schema with no fields and then honours it — an empty object is
+ * the CORRECT answer to the question we asked. So the critic timed out, and on
+ * a slower-but-successful run it would have "corrected" the IR to nothing.
+ *
+ * A schema with no properties, no items and no composition keywords says only
+ * "some JSON object". That is exactly what the JSON_OBJECT rung means, so it is
+ * sent as that rather than as an empty shape. Nothing is weakened: §16.2's
+ * validation is orchestrator-side and still runs against the caller's schema
+ * whatever the request asked for.
+ */
+export function describesShape(schema) {
+  if (!schema || typeof schema !== 'object') return false;
+  const keys = ['properties', 'items', 'oneOf', 'anyOf', 'allOf', 'enum', '$ref', 'patternProperties', 'prefixItems'];
+  return keys.some((k) => {
+    const v = schema[k];
+    if (v === undefined || v === null) return false;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return Object.keys(v).length > 0;
+    return true;
+  });
+}
+
 export function responseFormatFor(profile, schema) {
   if (!schema) return null;
+
+  // A type-only schema constrains nothing; asking a provider to enforce it is
+  // what produced the 47s empty-object reply described on describesShape.
+  if (!describesShape(schema)) {
+    return profile.structured === STRUCTURED.PROMPT_ONLY ? null : { type: 'json_object' };
+  }
+
   switch (profile.structured) {
     case STRUCTURED.SCHEMA_STRICT:
       return {

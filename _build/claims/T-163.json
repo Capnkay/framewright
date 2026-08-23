@@ -1,0 +1,12 @@
+{
+  "taskId": "T-163",
+  "who": "Mohit Gupta",
+  "device": "Mohits_Victus",
+  "claimedAt": "2026-08-23T18:45:36.757Z",
+  "status": "done",
+  "takenFrom": null,
+  "takenAt": null,
+  "finishedAt": "2026-08-23T18:45:45.539Z",
+  "durationMs": 8782,
+  "note": "Renumbered from T-159 to T-163 on rebase: Gibbs already-merged T-159 (unwire protect-secrets) holds that id, per the T-092->T-095 and T-138->T-159 collision precedent in REGISTER.md."
+}

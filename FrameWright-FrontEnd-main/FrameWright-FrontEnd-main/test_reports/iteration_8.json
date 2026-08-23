@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only verification of the new always-visible composer editor (SectionEditor) on /generate. Verified: editor renders in DEFAULT IDLE state below Accent colour with Layers (4 rows + up/down), draggable canvas (4 blocks), full style inspector, GENERATED CODE preview and working 'Download .jsx' (real download, filename Hero.jsx). Live two-way sync confirmed between composer editor <-> Live Preview iframe <-> composer code preview <-> pipeline Done-state Design tab <-> pipeline Code tab. Dual-mount isolation verified (composer-* prefixed testids vs unprefixed pipeline testids, no collisions). pipeline-code-download-button downloads Hero.jsx. Regression smoke passed: 5 dev states, Generate animation, accent presets updating CTA bg inside composer canvas, dropzone 'max 8MB', Home/Studio/Preview nav, /preview 03 Custom reflecting composer edits from localStorage, single-column stacked layout with zero horizontal overflow at both 1920px and 390px. Zero console errors across all runs.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Composer editor @390px", "issues": ["Layer row labels ('Supporting copy') wrap/clip inside the flex 1 1 130px chips at mobile width - cosmetic only, rows remain clickable"]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/screens_it8a", "/app/test_reports/screens_it8b", "/app/test_reports/screens_it8c", "/app/test_reports/screens_it8e"],
+  "action_items": [
+    "OPTIONAL/minor: data-testid=\"status-badge\" appears 3x in the DOM (shared Badge in components/Shell.jsx line 13) - pre-existing, unrelated to this change, but it is the only duplicate testid on the page; consider making it unique per usage.",
+    "OPTIONAL/cosmetic: allow layer-row labels to ellipsize instead of wrapping at 390px."
+  ],
+  "critical_code_review_comments": [
+    "SectionEditor.downloadCode duplicates the download helper now also present in PipelinePanel - extract a single shared util to avoid divergence (e.g. filename/mime changes).",
+    "DesignTab scope-prefix approach works, but the wrapper testid is 'composer-section-editor' while SectionEditor's outer div is 'composer-section-editor-wrap' - names are easy to confuse; both verified present and unique.",
+    "downloadCode revokes the object URL synchronously right after a.click(); it worked in Chromium but is technically racy - prefer revoking in a setTimeout/onload."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (no backend)", "frontend": "100%"},
+  "seed_data_creation": "None - client-side mock state only; edits made during tests persist in localStorage (headline text left as 'CUSTOM PERSIST 8' from the last run).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "None needed (mock auth)",
+  "context_for_next_testing_agent": "Iteration 8 verified the composer-embedded SectionEditor end to end. Notes for reuse: accent control testids are accent-colour-toggle / accent-colour-input / accent-preset-<hex-without-#>; there is no accent-hex-input. The pipeline Code tab is a <textarea> so use input_value(), not inner_text(). /preview variation buttons are variation-a/-b/-c-button (labels 01/02/03) and the custom one renders inside custom-preview-iframe. Only duplicate testid in DOM is 'status-badge' (x3, from Shell.jsx Badge).",
+  "rca_of_the_issue": "No defects found. Two initial test failures were test-script artifacts (wrong accent testid guess; using inner_text on a textarea), both re-verified as passing with correct selectors."
+}

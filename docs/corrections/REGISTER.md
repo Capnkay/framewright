@@ -2151,3 +2151,115 @@ floor removed with one, because the next person (or the next hour of the same pe
 no way to know what stopped protecting them. Re-wiring any of the three is a matter of
 restoring the `PreToolUse` block from git history (`git log -p -- .claude/settings.json`)
 if there's time after submission.
+## 2026-08-24 · pre-push admits three model-provider hosts (T-156)
+
+**Changed.** `.githooks/pre-push`: `ALLOWED_HOST_RE` gains
+`generativelanguage.googleapis.com`, `api.x.ai` and `dashscope.aliyuncs.com`, each
+documented in the comment block above it.
+
+**Why.** T-156 replaced the transport's single inline vendor branch with a provider
+registry (`server/src/models/providers.js`) carrying default base URLs for Gemini, xAI
+Grok and Alibaba DashScope. Those three literals in a source file are three forbidden
+hostnames to the pre-push scan, so the push failed.
+
+**Why this is an extension rather than a weakening.** The hook's own failure message names
+this as the sanctioned response — "if it is a legitimate documentation reference, add it to
+ALLOWED_HOST_RE with a comment" — and `bedrock-runtime.<region>.amazonaws.com` is already
+admitted on identical reasoning. Each of the three is a vendor's published,
+globally identical endpoint. None names a client, a tenant, an account or any private
+infrastructure, which is the class of thing this gate exists to keep out of history. The
+registry holds no credential and opens no socket; §16.2 still permits exactly one module
+to do that, and it reads `LLM_BASE_URL` from the environment.
+
+The local-runtime profile's `localhost:11434` was deliberately not added — the existing
+`localhost` entry already covers it, and a narrower change is the right one.
+
+**What was NOT done.** The alternative was to strip the default base URLs out of
+`providers.js` and require every operator to supply one. That would have kept the hook
+untouched at the cost of making the registry unable to answer the question it exists to
+answer, and would have pushed the same three hostnames into `.env.example` instead, where
+the same scan reads them.
+
+**Owner.** Mine.
+
+---
+
+## 2026-08-24 · a type-only schema is sent as `json_object`, not as an empty `json_schema` (T-157)
+
+**Changed.** `server/src/models/providers.js` gains `describesShape(schema)`, and
+`responseFormatFor` consults it before the `profile.structured` switch: a schema carrying
+no `properties`, `items`, composition keyword, `enum` or `$ref` is requested as
+`{ type: 'json_object' }` on every rung above PROMPT_ONLY, rather than as a `json_schema`
+wrapping an empty shape. `server/src/quality/critic.js` additionally defaults its
+`timeoutMs` to §16.2's documented `MAX_TIMEOUT_MS` rather than the 30s default.
+
+**Why.** `runCritic` passes `REPLY_SCHEMA = { type: 'object' }` on purpose — §16.2 requires
+a caller schema, and the IR's real schema is enforced downstream, so asserting it twice here
+would give two schemas that drift. That reasoning is sound. Handing the bare object to a
+provider as a response format is not.
+
+**Measured, against `gemini-3.5-flash`, two images plus the IR:**
+
+| Request | Latency | Reply |
+|---|---|---|
+| no `response_format` | 2.8s | correct prose JSON |
+| `json_schema` wrapping `{ type: 'object' }` | 47.3s | `{}` |
+
+The compat layer converts the empty object schema into a response schema with no fields and
+then honours it. An empty object is the *correct* answer to the question that request asks.
+
+**Why this was worth chasing rather than papering over with a bigger budget.** The first
+live loop timed out at 30s; raising the critic to the 60s ceiling produced a second timeout
+at 60s, which is what ruled the budget out as the cause. The failure mode that mattered was
+never the timeout — it was that a slower-but-successful run would have returned `{}` as the
+"corrected" IR. The loop's emit guard would have discarded it and recorded a warning, so
+nothing would have crashed; the critic would simply have been a permanent silent no-op that
+looked configured and worked never. That is precisely the class of defect AGENTS.md rule 9
+and §9's Glass Box exist to make visible.
+
+**Why this does not weaken §16.2.** Validation is orchestrator-side and unchanged: every
+reply is still validated against the caller's schema whatever the request asked for. This
+changes only what the provider is *asked* to enforce, and a type-only schema asks for
+nothing that `json_object` does not already express.
+
+**Verified.** The full loop now converges in 2 iterations / 23s against `demo_wf1.png`,
+replacing the reference template's copy with the wireframe's own — `"CHALLENGE YOUR
+LIMITS"` → `"Track your fitness journey"` — with no warnings. Suite unchanged at 754 pass.
+
+**Owner.** Mine.
+
+---
+
+## 2026-08-24 · `promptToIrKeyless` edited outside any claimed task's `files` list
+
+**Changed.** `server/src/generate/promptToIrKeyless.js`: `isFeature`, `templateElements`
+and `templateCards` moved from line ~374 to immediately after the extractor calls, above
+the warnings block at line ~350 that reads `templateCards.length`.
+
+**Why.** The declarations sat 24 lines *below* their first use, so
+`if (cardCount.found && cardCount.value > templateCards.length)` threw
+`ReferenceError: Cannot access 'templateCards' before initialization` — a temporal dead
+zone, reached only when a prompt names a card count.
+
+**Why it was worth breaking the one-task rule for.** This is the deterministic keyless
+path — AGENTS.md rule 5's "always works" fallback, which every other path falls back to.
+Stage 4 could not produce an IR, and the failure cascaded: **97 of 762 tests failed**, and
+none of T-156…T-159's verifications could run at all while it stood. Fixing it was a
+precondition of verifying anything, not a tidy-up. After the move: **754 pass, 8 fail**,
+all 8 pre-existing and unrelated (see below).
+
+**Declared, not assumed.** The file belongs to no task in `_build/tasks.json` currently
+open. Logging it here is the disclosure AGENTS.md's working agreement asks for when a task
+edits a file it does not declare.
+
+**Still failing, and NOT diagnosed by me** — 8 pre-existing failures, untouched:
+`api-skeleton` ×2, `app-shell` (Tailwind globs), `patch-elements` (Cards content ignored),
+`preview-chrome-is-not-doubled` ×3 (client `App.jsx` lost its frame detection),
+`reference-component-diff` ×1. The last one is worth a claim of its own: the fresh emit
+lacks PrimeReact `<Button>` and the `${textContrastClass}` interpolation that the committed
+reference carries. Both code paths still exist in `emitComponent.js` (lines 129, 350, 409),
+so this is branch-conditional rather than a deletion — but R8 and §7 contrast are both
+graded, and AGENTS.md rule 3 names exactly this class of "improvement" as the most likely
+way the project gets damaged.
+
+**Owner.** Mine.

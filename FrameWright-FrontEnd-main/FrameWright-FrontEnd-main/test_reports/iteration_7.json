@@ -1,0 +1,24 @@
+{
+  "summary": "Round-2 frontend-only re-test of the Studio Design tab / editable Code tab fixes (iteration_6 defects). BOTH FIXES VERIFIED. FIX 1: .design-canvas-wrap computed justify-content = flex-start; wrap is 317px wide over a 760px canvas (scrollWidth 788, max scrollLeft 473). Blocks at canvas-relative x: headline 40, subtext 40, cta 95, image 470. Without horizontal scroll, document.elementFromPoint at centre returned design-block-headline / design-block-subtext / design-block-cta correctly and real mouse down->move->up drags moved each bounding box by exactly the drag delta (40,25) and (55,30). After el.scrollLeft=500 (clamped to 473) the image block became reachable (elementFromPoint -> design-block-image) and dragged by exactly (40,25). Only note: at scrollLeft=473 the CTA (canvas x 95) scrolls out of view on the left and is then unhittable - this is normal scroll-clipping, it is fully reachable/draggable at scrollLeft 0, so no bug. FIX 2: edited Code tab (bumped cta `top` by 20, background untouched) -> Design tab CTA shows NO design-bg-reset button (background still inherited); changing accent-colour-input to #22c55e updated the CTA div in the Live Preview iframe to rgb(34,197,94) and the Code tab background for data-el=\"cta\" to #22c55e (not stuck on #3b82f6). Smoke pass: layers up/down reorder works and reverts, inspector fields (font size 52, weight 700, width 500, padding 8, align center, text colour #ff0000) all propagate to the preview + Code text, Content tab edit ('QA headline text') propagated to preview/Code/Design content input, tab-switch state retention OK, /preview '03' custom variation renders the Studio design from localStorage with the green accent CTA, all 5 dev-switcher states show the right status pill, generate button transitions to RUNNING, and Home/Preview/Studio nav works. ZERO console/page errors across all runs.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/preview variation 03", "issues": ["The Studio-design iframe is narrower than the surrounding preview card, leaving dark gaps on the left/right of the white frame - cosmetic only"]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "buildPreviewDoc emits plain <div> blocks without any data-el / data-testid attributes, so preview blocks can only be located by text content in automated tests. Adding data-el=\"${el.id}\" to the generated block markup would make preview assertions robust (testability only, no functional impact)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (no backend)", "frontend": "100%"},
+  "seed_data_creation": "None - mock data only; localStorage studio design state written by normal app usage",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Not needed (mock auth, no login flow exercised)",
+  "context_for_next_testing_agent": "Both iteration_6 defects are fixed and verified with measurements. When measuring design blocks, note the canvas column is ~317px wide vs a 760px canvas, so blocks at canvas x>~320 need .design-canvas-wrap scrollLeft > 0 while cta/headline/subtext (x<=95) require scrollLeft ~0 - always set scrollLeft appropriately for the specific block before elementFromPoint. Live Preview iframe blocks have no data-el attributes; locate them via text content inside .canvas div. Drag must use real mouse.down/move/up (framer-motion).",
+  "rca_of_the_issue": "FIX 1 root cause was justify-content:center on the flex .design-canvas-wrap: with a 760px child in a 317px overflow container, centering shifts the child left out of the scrollable area making it unreachable; flex-start keeps the overflow scrollable and hit-testable. FIX 2 root cause was parseCodeToElements unconditionally writing the parsed background into el.bg, converting inherited accent backgrounds into hard overrides; it now compares against effectiveBg({...el,bg:''}, accent) and stores '' when equal, and Studio.jsx regenerates codeText on accent change so the Code tab never goes stale."
+}

@@ -1,0 +1,63 @@
+{
+  "app_name": "Framewright",
+  "app_type": "hybrid_fullstack",
+  "design_context": "Marketing & Developer Product Studio (Linear / Vercel / Raycast Aesthetic)",
+  "color_palette": {
+    "background_primary": "#07080A",
+    "background_secondary": "#0D0E12",
+    "background_surface": "#12131A",
+    "background_elevated": "#1A1B24",
+    "border_subtle": "rgba(255, 255, 255, 0.08)",
+    "border_highlight": "rgba(94, 106, 210, 0.4)",
+    "text_primary": "#F7F8F8",
+    "text_secondary": "#9BA1A6",
+    "text_muted": "#686D76",
+    "primary": "#5E6AD2",
+    "primary_hover": "#6E7AE2",
+    "accent_glow": "rgba(94, 106, 210, 0.25)",
+    "success": "#22C55E",
+    "warning": "#F59E0B",
+    "error": "#EF4444"
+  },
+  "typography": {
+    "font_family_sans": "Inter, system-ui, -apple-system, sans-serif",
+    "font_family_mono": "JetBrains Mono, Fira Code, monospace",
+    "headings": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight font-semibold leading-none",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-semibold",
+      "h3": "text-xl sm:text-2xl tracking-tight font-medium",
+      "h4": "text-lg sm:text-xl font-medium"
+    },
+    "body": "text-sm sm:text-base text-[#9BA1A6] leading-relaxed"
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-[#07080A]/80 border-b border-white/[0.08]",
+    "tracing_beam": "relative rounded-xl border border-white/[0.08] bg-[#12131A] overflow-hidden before:absolute before:inset-0 before:p-[1px] before:rounded-xl before:bg-gradient-to-r before:from-[#5E6AD2] before:via-transparent before:to-[#5E6AD2] before:opacity-40 before:-z-10",
+    "surface_ladder": "Staged elevation: #07080A (canvas) -> #0D0E12 (panels) -> #12131A (cards) -> #1A1B24 (popovers)"
+  },
+  "component_path": "/app/frontend/src/components",
+  "image_urls": [
+    {
+      "category": "hero_abstract_ui",
+      "url": "https://images.unsplash.com/photo-1647546505441-8dd417cf5114?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGRhcmslMjBnbGFzcyUyMHdpcmVmcmFtZSUyMGNvZGUlMjBVSXxlbnwwfHx8fDE3ODc0OTMyOTh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract dark glass wireframe code UI glow"
+    },
+    {
+      "category": "tech_dashboard_preview",
+      "url": "https://images.pexels.com/photos/27141314/pexels-photo-27141314.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Dark tech grid dashboard interface"
+    },
+    {
+      "category": "code_preview",
+      "url": "https://images.pexels.com/photos/256502/pexels-photo-256502.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=650&w=940",
+      "description": "Close-up of CSS code lines on screen"
+    }
+  ],
+  "instructions_to_main_agent": "Build Framewright as a fully featured frontend React + Tailwind app matching Linear/Vercel/Raycast design system. Ensure all interactive elements have data-testid attributes, support mock generation pipeline across 13 stages with stage inspector, confidence counter, live responsive preview, side code editor, history, and theme toggle.",
+  "universal_guidelines": [
+    "Never use pure black #000000; use #07080A with surface ladder.",
+    "All interactive elements must include data-testid.",
+    "Do not use transparent headers without backdrop blur.",
+    "Provide smooth fake async flows with realistic 13-stage pipeline telemetry."
+  ]
+}
