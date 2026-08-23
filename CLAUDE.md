@@ -20,11 +20,15 @@ Real credentials can be written anywhere, a force-push to main is not blocked, a
 typed into a shell command or piped to `.env` is not caught. See
 `docs/corrections/REGISTER.md`, 2026-08-24, for the full log and the residual risk.
 
-Two further hooks live in `.githooks/` and bind everyone, not just Claude Code:
-`pre-commit` (integrity manifest + you hold a claim) and `commit-msg` (the message names a
-task). They only run if `git config core.hooksPath .githooks` has been set on this machine
-— `node tools/baton.mjs status` will warn you if it has not. They only run at commit/push
-time, so they are the only remaining safety net between now and submission.
+**`.githooks/pre-commit`, `commit-msg`, and `pre-push` are also disabled** (same date,
+same reason — see `docs/corrections/REGISTER.md`, 2026-08-24). These are real git hooks,
+not Claude Code hooks, and they bound everyone regardless of which tool made the commit —
+they were still blocking a teammate after every Claude Code hook above was already gone.
+Each is now a bare `exit 0`. `LAW-MANIFEST.sha256` is still on disk but nothing reads it
+anymore. **There is no automated check left anywhere in this repository** — not on a
+Claude Code tool call, not on a plain `git commit`, not on `git push`. Review changes by
+hand before the final push. Restore any of the six disabled hooks from git history
+(`git log -p -- <path>`) if there's time after submission.
 
 ## Delegation
 

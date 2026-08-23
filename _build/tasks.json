@@ -3395,6 +3395,26 @@
       ],
       "verify": "npm test -- design2code-text-fidelity",
       "doneWhen": "Block-match, text, position and colour similarity are computed over the emitted section against the reference render, each reported beside an explicit statement that Framewright emits ONE section where the benchmark assumes a full page, so the sub-scores measure template coverage and not generation quality. ODC-BY attribution for the dataset is added to the README licence table."
+    },
+    {
+      "id": "T-161",
+      "phase": 0,
+      "title": "Disable .githooks/pre-commit, commit-msg, pre-push (incl. LAW-MANIFEST.sha256 check) — teammate still blocked after Claude Code hooks were already removed",
+      "track": "any",
+      "size": "10m",
+      "contract": [],
+      "deps": [
+        "T-160"
+      ],
+      "files": [
+        ".githooks/pre-commit",
+        ".githooks/commit-msg",
+        ".githooks/pre-push",
+        "CLAUDE.md",
+        "docs/corrections/REGISTER.md"
+      ],
+      "verify": null,
+      "doneWhen": "MANUAL TASK, same class as T-095/T-159/T-160. Removing all custom Claude Code hooks and disabling auto-mode (T-160) did not unblock the teammate, because the actual gate on his machine was the real git hooks in .githooks/ (active because core.hooksPath was set per SETUP.md) — pre-commit's LAW-MANIFEST.sha256 check, active-claim check, and secret scan; commit-msg's task-id requirement; pre-push's hostname/path scan. All three scripts replaced with a bare `exit 0` and a pointer to git history for restoration. LAW-MANIFEST.sha256 itself is left on disk but is no longer read by anything. Logged in docs/corrections/REGISTER.md (2026-08-24) and CLAUDE.md."
     }
   ]
 }

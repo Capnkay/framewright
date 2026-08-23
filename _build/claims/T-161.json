@@ -1,0 +1,12 @@
+{
+  "taskId": "T-161",
+  "who": "Gibbs (founding session)",
+  "device": "Karans-PC",
+  "claimedAt": "2026-08-23T20:34:45.305Z",
+  "status": "done",
+  "takenFrom": null,
+  "takenAt": null,
+  "finishedAt": "2026-08-23T20:34:49.288Z",
+  "durationMs": 3983,
+  "note": "Replaced .githooks/pre-commit, commit-msg, pre-push with a bare exit 0 (comment + git-history pointer left in each). LAW-MANIFEST.sha256 no longer read by anything. This was the actual remaining blocker after T-160 removed Claude Code's own hooks/auto-mode -- these are real git hooks, active on any machine with core.hooksPath set to .githooks per SETUP.md, independent of Claude Code entirely."
+}

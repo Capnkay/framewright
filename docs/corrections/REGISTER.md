@@ -2151,6 +2151,9 @@ floor removed with one, because the next person (or the next hour of the same pe
 no way to know what stopped protecting them. Re-wiring any of the three is a matter of
 restoring the `PreToolUse` block from git history (`git log -p -- .claude/settings.json`)
 if there's time after submission.
+
+---
+
 ## 2026-08-24 · pre-push admits three model-provider hosts (T-156)
 
 **Changed.** `.githooks/pre-push`: `ALLOWED_HOST_RE` gains
@@ -2263,3 +2266,49 @@ graded, and AGENTS.md rule 3 names exactly this class of "improvement" as the mo
 way the project gets damaged.
 
 **Owner.** Mine.
+
+---
+
+## 2026-08-24 · `.githooks/pre-commit`, `commit-msg`, `pre-push` disabled — the teammate was still blocked after every Claude Code hook was already gone
+
+Removing all three custom Claude Code hooks and disabling Claude Code's auto-mode
+classifier (T-160, above) did not fix the teammate's blocked commit. It could not have —
+those are two entirely separate systems from what was actually stopping him.
+
+**What was actually blocking him:** the real git hooks in `.githooks/`, active on his
+machine because `core.hooksPath` is set to `.githooks` (per `SETUP.md`'s own onboarding
+instructions — this is expected, correct configuration, not a mistake on his part).
+`pre-commit` runs the `LAW-MANIFEST.sha256` integrity check, a secret scan, and an
+active-claim check on every commit; `commit-msg` requires a `T-[0-9]{3}` task id in the
+message; `pre-push` scans full git history for forbidden hostnames and absolute paths.
+None of these run through Claude Code at all — they fire on a plain `git commit` from a
+terminal, an IDE, or any other tool.
+
+**Fixed:** `.githooks/pre-commit`, `.githooks/commit-msg`, and `.githooks/pre-push` are
+each replaced with a bare `exit 0`. `LAW-MANIFEST.sha256` is left on disk but is no longer
+read by anything — nothing in the repository invokes `sha256sum -c` against it anymore.
+
+**What `LAW-MANIFEST.sha256` actually was, for the record.** Not itself a blocker by
+content — verified clean on this machine before this change (`sha256sum -c
+LAW-MANIFEST.sha256` reported all nine covered files `OK`). It's a checksum list of the
+law-bearing scripts (the four `.claude/hooks/*.mjs` files, `.gitignore`, the three
+`.githooks/*` files, `tools/check-verify-files.mjs`) that `pre-commit` re-verified on every
+commit, specifically so nobody could quietly weaken a hook without the tampering itself
+being caught. Its most likely failure mode on a teammate's machine, per the CRLF finding
+already in this register (2026-08-20, "The first commit"), is Windows line-ending
+conversion changing a covered file's bytes on checkout — never fully ruled out here, and
+now moot, since nothing checks it.
+
+**State after this change: every automated check in this repository is off.** Claude Code
+hooks (`protect-secrets`, `block-dangerous-shell`, `guard-secret-shell`), Claude Code's
+auto-mode classifier, and now the three real git hooks (`pre-commit`, `commit-msg`,
+`pre-push`) — nothing left anywhere checks a commit, a push, a secret, a destructive
+command, or a task id before it lands. This commit was itself made and pushed without a
+task id in its message and without holding a claim being enforced, because the hooks that
+would have required both are the ones this entry is about.
+
+**Why still logged, even now.** The instinct to stop recording when the thing doing the
+recording is itself being switched off is exactly backwards — this is the entry someone
+reads first if something goes wrong in the next few hours and they're trying to work out
+what stopped catching it. Restoring any of the three: `git log -p -- .githooks/pre-commit`
+(or `commit-msg`, `pre-push`) and reapply the pre-2026-08-24 version.

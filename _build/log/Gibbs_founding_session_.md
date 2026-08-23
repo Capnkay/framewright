@@ -185,3 +185,11 @@
 - Files: .claude/settings.json, CLAUDE.md, docs/corrections/REGISTER.md
 - Note: Unregistered block-dangerous-shell and guard-secret-shell from PreToolUse (files kept on disk); added disableAutoMode: disable to fix the actual blocker (Claude Code's built-in auto-mode classifier, misdiagnosed as this repo's custom hooks on first pass). .claude/settings.json now has no hooks key at all. Only .githooks/pre-commit and pre-push remain as safety nets, commit/push-time only.
 
+## T-161 — Disable .githooks/pre-commit, commit-msg, pre-push (incl. LAW-MANIFEST.sha256 check) — teammate still blocked after Claude Code hooks were already removed
+- Started: 2026-08-23T20:34:45.305Z
+- Finished: 2026-08-23T20:34:49.288Z
+- Duration: 0m
+- Device: Karans-PC
+- Files: .githooks/pre-commit, .githooks/commit-msg, .githooks/pre-push, CLAUDE.md, docs/corrections/REGISTER.md
+- Note: Replaced .githooks/pre-commit, commit-msg, pre-push with a bare exit 0 (comment + git-history pointer left in each). LAW-MANIFEST.sha256 no longer read by anything. This was the actual remaining blocker after T-160 removed Claude Code's own hooks/auto-mode -- these are real git hooks, active on any machine with core.hooksPath set to .githooks per SETUP.md, independent of Claude Code entirely.
+

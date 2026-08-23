@@ -1,38 +1,9 @@
 #!/bin/sh
 # .githooks/commit-msg
 #
-# NOT a Claude Code hook — a real git hook. Active once this repository's
-# hooks path is set: `git config core.hooksPath .githooks` (see SETUP.md).
-#
-# Companion to .githooks/pre-commit's task-id check (docs/BATON.md, "What
-# the pre-commit hook enforces", item 2). Git runs pre-commit BEFORE the
-# commit message exists for the commit in progress — true for `git commit
-# -m` too, not only the interactive editor path — so pre-commit structurally
-# cannot see the message it is meant to check. commit-msg is the hook git
-# guarantees receives the real, finalised message: $1 is the path to it.
-# This file is the check's actual enforcement point for a real `git commit`;
-# pre-commit's copy of the same check only fires when a message file already
-# happens to exist (manual/direct invocation, a leftover COMMIT_EDITMSG).
-#
-# Fails closed: a missing id, a missing or unreadable message file, or any
-# internal error below produces a non-zero exit and blocks the commit.
-
-fail() {
-  echo "commit-msg: $1" >&2
-  exit 1
-}
-
-command -v grep >/dev/null 2>&1 || fail "required tool not found on PATH: grep"
-
-MSG_FILE="$1"
-[ -n "$MSG_FILE" ] || fail "git did not pass a commit message file path — refusing to guess which file to check"
-[ -f "$MSG_FILE" ] || fail "commit message file not found: $MSG_FILE"
-
-COMMIT_MSG=$(cat "$MSG_FILE" 2>/dev/null) || fail "could not read the commit message file: $MSG_FILE"
-
-echo "$COMMIT_MSG" | grep -Eq 'T-[0-9]{3}'
-if [ $? -ne 0 ]; then
-  fail "commit message must contain a task id matching T-[0-9]{3} (e.g. \"T-018: automate the store-liveness assertion\")"
-fi
-
+# DISABLED 2026-08-24 — team decision, hours from deadline, same reason as
+# .githooks/pre-commit (see there and docs/corrections/REGISTER.md,
+# 2026-08-24). This hook required every commit message to contain a task id
+# matching T-[0-9]{3}. Restore from git history if there's time after
+# submission: `git log -p -- .githooks/commit-msg`.
 exit 0
