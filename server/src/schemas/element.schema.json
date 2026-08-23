@@ -24,7 +24,8 @@
       }
     },
     "projectName": { "type": "string" },
-    "pageName": { "type": "string" }
+    "pageName": { "type": "string" },
+    "confidence": { "type": "number" }
   },
   "required": [
     "sectionId",

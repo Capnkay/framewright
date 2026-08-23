@@ -427,7 +427,8 @@ export async function postGenerate(ctx = {}) {
         // hydrateElements, which filters on it. T-111 fixed the seed; this is now safe.
         loop: null,
         projectName: PROJECT_NAME,
-        pageName: ir.pageName
+        pageName: ir.pageName,
+        confidence: typeof el.confidence === 'number' ? el.confidence : undefined
       };
       
       if (el.contentType === 'Cards' && ir.cards) {

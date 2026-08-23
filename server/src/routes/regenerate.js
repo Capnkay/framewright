@@ -6,7 +6,8 @@ import promptToIrHosted from '../generate/promptToIrHosted.js';
 import { emitComponent } from '../generate/emitComponent.js';
 import { writeComponentFile } from '../generate/writeComponentFile.js';
 import { sanitiseGenerateBody } from '../sanitise/sanitiseWrite.js';
-
+import { validateElement } from '../validate/elementValidator.js';
+import { PROJECT_NAME } from '../models/elementDoc.js';
 const TEN_DIGITS = /^[0-9]{10}$/;
 function isSectionId(value) {
   return typeof value === 'string' && TEN_DIGITS.test(value) && value.startsWith('1');
@@ -178,13 +179,23 @@ export async function postRegenerate(ctx = {}) {
         tag: el.tag,
         order: el.order,
         content: el.default,
-        css: el.css || null
+        css: el.css || null,
+        loop: null,
+        projectName: existingSection.projectName || PROJECT_NAME,
+        pageName: existingSection.pageName,
+        confidence: typeof el.confidence === 'number' ? el.confidence : undefined
       };
       
       if (el.contentType === 'Cards' && ir.cards) {
         elementDoc.content = null;
         elementDoc.loop = ir.cards.items;
       }
+      
+      const val = validateElement(elementDoc);
+      if (!val.valid) {
+        throw new Error(`Schema validation failed on the element document for ${el.elementName}: ${JSON.stringify(val.errors)}`);
+      }
+
       
       const isPreserved = Object.values(preservedIds).includes(el.fieldId);
       if (isPreserved) {

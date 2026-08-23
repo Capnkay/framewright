@@ -25,6 +25,8 @@ const REQUIRED_FIELDS = [
   'pageName',
 ];
 
+const OPTIONAL_FIELDS = ['confidence'];
+
 // Every field §4 requires on a single Cards loop item.
 const REQUIRED_LOOP_ITEM_FIELDS = ['field1', 'fieldType1', 'fieldId1', 'field2', 'fieldType2', 'fieldId2'];
 
@@ -79,6 +81,11 @@ export function parseElementDoc(raw) {
   const doc = {};
   for (const field of REQUIRED_FIELDS) {
     doc[field] = raw[field];
+  }
+  for (const field of OPTIONAL_FIELDS) {
+    if (field in raw) {
+      doc[field] = raw[field];
+    }
   }
   return doc;
 }

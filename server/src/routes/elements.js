@@ -105,7 +105,7 @@ export async function patchElement(ctx = {}) {
       }
       const element = elements[0];
 
-      if (element.component === 'Cards') {
+      if (element.contentType === 'Cards') {
         delete patch.content;
       }
 

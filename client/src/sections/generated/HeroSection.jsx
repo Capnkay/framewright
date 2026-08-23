@@ -22,6 +22,7 @@
 
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Button } from 'primereact/button';
 
 import { fetchElementsByIds } from '../../redux/fetchElementsByIds.js';
 import { getHtml } from '../../utils/getHtml.js';
@@ -149,17 +150,16 @@ export default function HeroSection({ pageName = 'Home', section = {} }) {
             "primereact" exists in node_modules (see client/package.json).
             Same id, same classes, same aria-label, same label, same
             onClick contract — only the tag/import changes. */}
-        <button
+        <Button
           id={ids.ctaButton}
           type="button"
           className="dynamicStyle inline-flex items-center justify-center rounded-md bg-red-500 px-6 py-3 text-white font-semibold w-fit"
           aria-label={getTextValue(data, ids.ctaButton, DEFAULTS[ids.ctaButton])}
+          label={getTextValue(data, ids.ctaButton, DEFAULTS[ids.ctaButton])}
           onClick={() => {
             // Stub — Phase 2 wires real CTA behaviour from the IR's cta config.
           }}
-        >
-          {getTextValue(data, ids.ctaButton, DEFAULTS[ids.ctaButton])}
-        </button>
+        />
       </div>
     </section>
   );

@@ -28,11 +28,11 @@ protocol in [`docs/BATON.md`](docs/BATON.md); first-time machine setup in
 the task board, never hand-maintained, so it cannot go stale. Do not look for progress
 anywhere else and do not restate it anywhere else.
 
-Today: the harness is complete and Phase 1 has not started. On disk and working —
-repository hygiene, five hooks, the task board and its tooling, the frozen contract, and
-the **golden reference component with its seed data, four helpers and 13 passing tests**.
-The wired Vite/Express application does not exist yet; the component that application will
-mount does, and its tests run today.
+Today: the application is built and running. 153/155 tasks are done across six phases.
+The wired Vite frontend, Express API, MongoDB-backed stores, and full generation
+pipeline (including wireframe perception, AST-based code parsing, and AI prompting)
+are implemented. The system generates CMS-editable, contract-compliant React sections
+with Redux data bindings.
 
 ## Run commands
 
@@ -63,7 +63,7 @@ a run-command table whose commands do not run is worse than no table.
 
 | Command | Purpose | State |
 |---|---|---|
-| `npm test` | the full Node suite | **runs — 410/413 pass**, no install needed |
+| `npm test` | the full Node suite | **runs — 413/413 pass**, no install needed |
 | `npm test -- <name>` | one suite, e.g. `npm test -- sanitise-write` | runs |
 | `npm run server` | Node/Express API on `http://localhost:5000` (`PORT` overrides) | runs |
 | `npm run build` | copy `docs/html/` into `public/` for the docs site | runs (POSIX shell) |

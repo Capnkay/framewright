@@ -71,15 +71,20 @@ function isFieldId(value) {
  * This one is NOT a stub. It is the liveness surface the whole team and the
  * demo rely on, and it can be answered truthfully today.
  */
-export function getHealth(ctx = {}) {
+export async function getHealth(ctx = {}) {
   const env = ctx.env || {};
+  let perception = 'down';
+  try {
+    const res = await fetch('http://localhost:8000/health', { signal: AbortSignal.timeout(1000) });
+    if (res.ok) perception = 'up';
+  } catch (e) {
+    // down
+  }
   return {
     status: STATUS.OK,
     body: ok({
       store: env.MONGODB_URI ? 'mongo' : 'json',
-      // Wired to a real probe at T-058, when Node first calls /perceive.
-      // Until then the honest answer is "down", never a fabricated "up".
-      perception: 'down',
+      perception,
     }),
   };
 }

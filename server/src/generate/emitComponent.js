@@ -126,18 +126,16 @@ function renderElementNode(el, tokens) {
   }
 
   if (contentType === 'Button') {
-    return `        {/* R8 — PrimeReact <Button> swaps in here once "primereact" is installed. */}
-        <button
+    return `        <Button
           id={${idExpr}}
           type="button"
           className="dynamicStyle ${buttonClasses(classes, tokens)}"
           aria-label={getTextValue(data, ids.${elementName}, DEFAULTS[ids.${elementName}])}
+          label={getTextValue(data, ids.${elementName}, DEFAULTS[ids.${elementName}])}
           onClick={() => {
             // Stub — wired in a later phase.
           }}
-        >
-          {getTextValue(data, ids.${elementName}, DEFAULTS[ids.${elementName}])}
-        </button>`;
+        />`;
   }
 
   if (contentType === 'Cards') {
@@ -146,9 +144,16 @@ function renderElementNode(el, tokens) {
   }
 
   // Text / Textfield
+  const textClasses = [classes || ''];
+  if (!/(^|\s)text-(?!sm\b|base\b|lg\b|xl\b|\dxl\b|left\b|center\b|right\b)\S+/.test(textClasses[0])) {
+    if (/badge/i.test(elementName)) textClasses.push(`text-${tokens.colors.accent}`);
+    else if (/sub|description/i.test(elementName)) textClasses.push(`text-${tokens.colors.textMuted}`);
+    else textClasses.push(`text-${tokens.colors.text}`);
+  }
+
   return `        <${tag}
           id={${idExpr}}
-          className="dynamicStyle ${classes || ''}"
+          className="dynamicStyle ${textClasses.join(' ').trim()}"
           dangerouslySetInnerHTML={{
             __html: getHtml(
               getTextValue(data, ids.${elementName}, DEFAULTS[ids.${elementName}]),
@@ -342,6 +347,7 @@ function emitComponent(ir) {
 
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Button } from 'primereact/button';
 
 import { fetchElementsByIds } from '../../redux/fetchElementsByIds.js';
 import { getHtml, getTextValue${hasCards ? ', getCardFieldValue' : ''} } from '../../utils/getHtml.js';
@@ -400,7 +406,7 @@ export default function ${componentName}({ pageName = '${pageName}', section = {
   ${hasCards ? `const items = getStatItems(data); // R9 — never a fixed-length guard` : ''}
 
   return (
-    <section className="${sectionClassName}">
+    <section className={\`${sectionClassName} \${textContrastClass}\`}>
 ${regionBlocks}
     </section>
   );
