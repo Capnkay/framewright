@@ -28,10 +28,10 @@ function Composer({ mode, setMode, form, setForm, accent, setAccent, generate, r
   const set = key => value => setForm(f => ({ ...f, [key]: value }));
   return (
     <section className="composer panel" data-testid="composer-panel">
-      <div className="panel-title"><div><Label>INPUT ACQUISITION</Label><h2>Compose a section</h2></div><span className="kbd">&#8984; K</span></div>
+      <div className="panel-title"><div><Label>INPUT ACQUISITION</Label><h2>Compose a section</h2></div></div>
       <Modes mode={mode} setMode={setMode} />
       <AnimatePresence mode="wait">
-        <motion.div className="mode-content" key={mode} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
+        <motion.div className="mode-content" key={mode} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           {mode === "Wireframe" && (
             <div className="upload-zone" onClick={() => file.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const dropped = e.dataTransfer.files[0]; set("file")(dropped?.name || "wireframe.png"); set("fileObj")(dropped); }} data-testid="wireframe-upload-zone">
               <input ref={file} type="file" hidden onChange={e => { const picked = e.target.files[0]; set("file")(picked?.name || "wireframe.png"); set("fileObj")(picked); }} data-testid="wireframe-file-input" />

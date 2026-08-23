@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { HexColorPicker } from "react-colorful";
 
 const PRESETS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ec4899"];
 
@@ -14,10 +15,10 @@ export function AccentColorField({ value, onChange }) {
       <AnimatePresence initial={false}>
         {open && (
           <motion.div className="accent-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: .2 }}>
+            <div style={{ marginBottom: "12px", width: "100%" }}>
+              <HexColorPicker color={value || "#3b82f6"} onChange={onChange} style={{ width: "100%", height: "120px" }} />
+            </div>
             <div className="accent-swatch-row">
-              <label className="accent-swatch" style={{ "--swatch": value || "#3b82f6" }}>
-                <input type="color" value={value || "#3b82f6"} onChange={e => onChange(e.target.value)} data-testid="accent-colour-input" />
-              </label>
               <span className="accent-value">{value ? value.toUpperCase() : "Default blue \u00b7 #3B82F6"}</span>
               {value && <button type="button" className="accent-reset" onClick={() => onChange("")} data-testid="accent-colour-reset">Reset</button>}
             </div>

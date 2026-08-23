@@ -6,7 +6,11 @@ import { ArrowRight, Menu } from "lucide-react";
 export const fade = { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0, transition: { duration: .32 } } };
 
 export function Logo() {
-  return <div className="logo" data-testid="framewright-logo"><span className="logo-mark"><span /></span><span>framewright</span></div>;
+  return (
+    <div className="logo" data-testid="framewright-logo">
+      <img src="/logo.png" alt="Framewright Logo" style={{ height: "32px", width: "auto" }} />
+    </div>
+  );
 }
 
 export function Badge({ children, tone = "blue" }) {
@@ -30,7 +34,7 @@ function Nav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const session = localStorage.getItem("framewright.session");
-  const links = [["/", "Home"], ["/generate", "Studio"], ["/preview", "Preview"]];
+  const links = [["/", "Home"], ["/generate", "Studio"]];
   const go = to => { setOpen(false); navigate(to); };
   return (
     <header className="top-nav" data-testid="main-navigation">

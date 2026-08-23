@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Download, Eye, Code } from "lucide-react";
+import { Download, Eye, Code, Maximize } from "lucide-react";
+import { Link } from "react-router-dom";
 import { DesignCanvas } from "./DesignTab";
 import { downloadCode } from "../../data/mock";
 
@@ -24,8 +25,16 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
         </div>
 
         {/* Right side: Toggle */}
-        <div style={{ display: 'flex', background: 'var(--bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
-          <button 
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Link 
+            to="/preview" 
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
+            title="Full Screen Preview"
+          >
+            <Maximize size={14} />
+          </Link>
+          <div style={{ display: 'flex', background: 'var(--bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+            <button 
             onClick={() => setViewMode("preview")}
             style={{ padding: '4px 10px', fontSize: '12px', border: 'none', background: viewMode === "preview" ? 'var(--surface)' : 'transparent', color: viewMode === "preview" ? 'var(--text)' : 'var(--text-muted)', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
@@ -37,6 +46,7 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
           >
             <Code size={14} /> Code
           </button>
+          </div>
         </div>
       </div>
 
