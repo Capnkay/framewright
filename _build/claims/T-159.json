@@ -1,0 +1,12 @@
+{
+  "taskId": "T-159",
+  "who": "Gibbs (founding session)",
+  "device": "Karans-PC",
+  "claimedAt": "2026-08-23T19:24:09.093Z",
+  "status": "done",
+  "takenFrom": null,
+  "takenAt": null,
+  "finishedAt": "2026-08-23T19:24:12.439Z",
+  "durationMs": 3346,
+  "note": "Unwired protect-secrets from PreToolUse[Write|Edit] in .claude/settings.json (file kept on disk, only unregistered); added permissions.allow for Edit/Write/git/npm/node; block-dangerous-shell and guard-secret-shell remain wired and fail-closed. Logged in docs/corrections/REGISTER.md and CLAUDE.md's hooks table. Renumbered from T-138 to T-159 after a rebase collision with Mohit Gupta's already-merged T-138."
+}

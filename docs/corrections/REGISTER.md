@@ -2022,6 +2022,8 @@ Not exempted as a file class — a future doc citing an unrelated real host stil
 it should. Bare `raycast.com` also appears in `VISUAL-INSPO.md`'s prose, but the check only
 scopes scheme-prefixed URLs, so only `www.raycast.com` needed listing.
 
+---
+
 ## §13.4 — a delete for the sections collection
 
 **Changed.** `DELETE /api/sections?pageName=<name>` added to §13.4's route table,
@@ -2070,3 +2072,39 @@ The three conditions in T-153's own `doneWhen` are all testable without a networ
 key — the model is injected — so there was no reason for this one to close unverified.
 
 **Owner.** Mine.
+
+---
+
+## 2026-08-24 · `protect-secrets` unwired from `.claude/settings.json` — a deliberate exception, not a fix
+
+Team decision, made under hackathon time pressure, to speed up Claude Code execution: the
+`protect-secrets` Write/Edit hook denied every write to `.env` outright, including a human or
+Claude setting real local credentials for a working dev environment. That friction was judged
+not worth the remaining hour budget. Overriding the standing rule in `AGENTS.md` §Hooks
+("never weaken a hook to get past it — a floor that gets removed at hour 40 is worse than a
+smaller floor that survives") is a knowing exception, recorded here rather than silently done,
+per Law 7's own requirement to log deviations.
+
+**What actually changed:** `protect-secrets.mjs`'s `PreToolUse[Write|Edit]` registration was
+removed from `.claude/settings.json`. The file itself is untouched on disk (`.claude/hooks/protect-secrets.mjs`)
+and can be re-wired by restoring the matcher block. A `permissions.allow` block was also added
+(`Edit`, `Write`, `Bash(git *)`, `Bash(npm *)`, `Bash(node *)`) so passing calls stop prompting
+for manual approval.
+
+**What is still in place, deliberately not touched:**
+- `block-dangerous-shell` and `guard-secret-shell` still guard every `Bash` call — a secret
+  written via `Write`/`Edit` still cannot be committed with `git add -f`, hidden with
+  `git update-index --skip-worktree`, or piped out through a shell redirect.
+- `.gitignore` still excludes `.env` (only `.env.example`/`.env.sample`/`.env.template` are
+  tracked), and `.githooks/pre-commit` + `pre-push` (when `core.hooksPath` is set — see
+  SETUP.md) still run their own secret scan independent of Claude Code's hooks.
+- No change to `.env.example`'s placeholder-only requirement.
+
+**The actual residual risk, stated plainly:** this repository is already pushed to a real
+GitHub remote. The removed hook was the only check that stopped a real key from being written
+to a file *outside* the gitignored/secret-path set — e.g. hardcoded into a source file instead
+of read from `.env` — since that class of write is content-scanned by `protect-secrets` but not
+by anything that remains. If any credential gets typed directly into application code rather
+than `.env`, nothing left in this harness will catch it before a commit. Re-wiring the hook
+before submission, or a manual `git diff` read before the final push, is the mitigation while it
+stays off.

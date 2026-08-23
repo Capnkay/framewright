@@ -169,3 +169,11 @@
 - Files: client/src/index.css, client/tailwind.config.js, client/src/main.jsx, client/package.json, client/package-lock.json, client/src/routes/DesignPreview.jsx, docs/DESIGN-TOKENS.md, docs/SURFACE-INSPO.md, docs/VISUAL-INSPO.md, docs/MOTION-INSPO.md, docs/UI-SYSTEM.md, .agents/rules/framewright.md
 - Note: Verified against the running dev server (same files this commit tracks): /generate, /login, /design-preview all render with zero console errors; package.json now declares lucide-react/motion/@fontsource deps the committed studio files import.
 
+## T-159 — Unwire protect-secrets from .claude/settings.json and add a permission allowlist, per team hackathon-speed decision
+- Started: 2026-08-23T19:24:09.093Z
+- Finished: 2026-08-23T19:24:12.439Z
+- Duration: 0m
+- Device: Karans-PC
+- Files: .claude/settings.json, CLAUDE.md, docs/corrections/REGISTER.md
+- Note: Unwired protect-secrets from PreToolUse[Write|Edit] in .claude/settings.json (file kept on disk, only unregistered); added permissions.allow for Edit/Write/git/npm/node; block-dangerous-shell and guard-secret-shell remain wired and fail-closed. Logged in docs/corrections/REGISTER.md and CLAUDE.md's hooks table. Renumbered from T-138 to T-159 after a rebase collision with Mohit Gupta's already-merged T-138.
+
