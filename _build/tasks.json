@@ -3251,6 +3251,88 @@
       ],
       "verify": null,
       "doneWhen": "MANUAL TASK, same class as T-095/T-159 — a harness/process change with no code to verify, logged per AGENTS.md's own rule against silently weakening a hook. A teammate was fully blocked from committing by Claude Code's built-in auto-mode classifier (not one of this repo's custom hooks) with the deadline hours away. Fixed disableAutoMode: \"disable\" in .claude/settings.json (the actual fix for the classifier block), and also unregistered block-dangerous-shell and guard-secret-shell from PreToolUse per explicit instruction to remove all hooks. .claude/settings.json now has no hooks key at all. CLAUDE.md and docs/corrections/REGISTER.md (2026-08-24 entry) record what changed, why, the misdiagnosis on the first pass, and what's left (.githooks/pre-commit and pre-push, commit/push-time only)."
+    },
+    {
+      "id": "T-156",
+      "phase": 6,
+      "track": "generation",
+      "size": "30m",
+      "title": "Multi-provider model registry — Gemini, Grok and Qwen behind the one §16.2 call site",
+      "contract": [
+        "16.2"
+      ],
+      "deps": [
+        "T-085"
+      ],
+      "files": [
+        "server/src/models/providers.js",
+        "server/src/models/orchestrator.js",
+        "tests/model-orchestrator.test.mjs"
+      ],
+      "verify": "npm test -- model-orchestrator",
+      "doneWhen": "Provider profiles carry the per-vendor deltas (endpoint shape, structured-output rung, vision support); orchestrator.js remains the only module reading the credentials and the only one opening a socket; §16.2 trace record keeps exactly its five keys."
+    },
+    {
+      "id": "T-157",
+      "phase": 6,
+      "track": "generation",
+      "size": "20m",
+      "title": "Rewrite the visual critic through callModel — it read credentials directly and could not link",
+      "contract": [
+        "16.2",
+        "18"
+      ],
+      "deps": [
+        "T-156"
+      ],
+      "files": [
+        "server/src/quality/critic.js",
+        "tests/model-orchestrator.test.mjs"
+      ],
+      "verify": "npm test -- model-orchestrator",
+      "doneWhen": "critic.js imports callModel, reads no credential variable, preserves every fieldId per §6, and returns the input IR unchanged on any failure."
+    },
+    {
+      "id": "T-158",
+      "phase": 6,
+      "track": "generation",
+      "size": "30m",
+      "title": "Render a generated component to a screenshot without a dev server",
+      "contract": [
+        "18",
+        "18.1"
+      ],
+      "deps": [
+        "T-157"
+      ],
+      "files": [
+        "server/src/quality/render.js",
+        "server/src/quality/browser.js",
+        "tests/stage6-quality-gate.test.mjs"
+      ],
+      "verify": "npm test -- stage6-quality-gate",
+      "doneWhen": "renderComponent bundles the emitted JSX, server-renders it and screenshots it via setContent; every dependency resolves lazily so a missing client toolchain or Chromium degrades the gate to null rather than breaking generation."
+    },
+    {
+      "id": "T-163",
+      "phase": 6,
+      "track": "generation",
+      "size": "30m",
+      "title": "Wire the self-correcting critic loop into POST /api/generate between stages 5 and 6",
+      "contract": [
+        "18",
+        "9"
+      ],
+      "deps": [
+        "T-158"
+      ],
+      "files": [
+        "server/src/quality/criticLoop.js",
+        "server/src/routes/generate.js",
+        "tests/generate-wireframe-mode.test.mjs"
+      ],
+      "verify": "npm test -- generate-wireframe-mode",
+      "doneWhen": "With CRITIC_LOOP=on and a wireframe, the loop renders, critiques and re-emits under a hard iteration cap, reconciles corrected defaults into the persisted element documents, and records every degradation as a warning. With CRITIC_LOOP unset nothing is rendered, launched or called."
     }
   ]
 }

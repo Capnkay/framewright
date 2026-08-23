@@ -73,19 +73,47 @@ def test_health_reports_the_real_device_not_a_hardcoded_one() -> None:
     device = detect_device()
     assert device == "cpu" or device.startswith("cuda:"), device
 
+    # TORCH IS NO LONGER THE ONLY ORACLE, and that is the point of this test's
+    # current shape. detect_device() asks paddle first, because paddle is the
+    # library that actually does the work and torch and paddlepaddle-gpu cannot
+    # share a process (EC-014) -- whichever loads first wins, and loading torch
+    # first was costing us PaddleOCR entirely.
+    #
+    # So "torch unavailable" no longer implies "cpu": on this repository's GPU
+    # machine torch is unloadable precisely BECAUSE paddle got there first, and
+    # paddle can name the device perfectly well. The rule being asserted is
+    # unchanged -- the answer must come from a library that was actually asked,
+    # never from a hardcoded guess -- but either library may be the one that
+    # answers.
+    oracles = []
+
+    try:
+        import paddle
+
+        if paddle.device.is_compiled_with_cuda():
+            oracles.append(str(paddle.device.get_device()).startswith("gpu:"))
+    except Exception:
+        pass
+
     try:
         import torch
+
+        oracles.append(bool(torch.cuda.is_available()))
     except Exception:
         # Not ImportError: torch raises OSError when its DLLs will not load,
         # which is what happens once paddle has been initialised in the same
-        # process (EC-014). Unloadable torch and absent torch are the same fact
-        # as far as this endpoint is concerned -- neither can report a device.
-        assert device == "cpu", "torch unavailable means cpu, not a guess"
+        # process (EC-014).
+        pass
+
+    if not oracles:
+        assert device == "cpu", "no library could be asked, so cpu is the only honest answer"
         return
 
-    assert (device != "cpu") == torch.cuda.is_available(), (
-        f"detect_device() said {device!r} while torch.cuda.is_available() "
-        f"said {torch.cuda.is_available()}"
+    # A CUDA answer requires at least one library to have actually seen a GPU;
+    # a cpu answer requires that none did. Either way the report is measured.
+    assert (device != "cpu") == any(oracles), (
+        f"detect_device() said {device!r} while the libraries that could be "
+        f"asked reported CUDA availability {oracles}"
     )
 
 

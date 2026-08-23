@@ -12,6 +12,7 @@ import { validateElement } from '../validate/elementValidator.js';
 import { PROJECT_NAME } from '../models/elementDoc.js';
 import createValidateAndRecover from '../generate/validateAndRecover.js';
 import { measureAccessibility } from '../quality/axe.js';
+import { runCriticLoop } from '../quality/criticLoop.js';
 import { resolveConflicts } from '../generate/resolveConflicts.js';
 import { codeToIr, CodeNotUnderstood } from '../generate/codeToIr.js';
 import { applyWireframeSemantics } from '../generate/wireframeSemantics.js';
@@ -193,6 +194,14 @@ export async function postGenerate(ctx = {}) {
     // most often "no API key", which §16.2 makes a supported state rather than a fault.
     let semanticsReason = null;
 
+    // The image the §18 critic loop compares its render against. Stage 2's
+    // NORMALISED raster when there is one, because §6 puts every IR bbox in
+    // normalised space — comparing against the raw upload would measure the
+    // normalisation as if it were a generation error, and a wireframe
+    // photographed at an angle would be marked wrong for having been
+    // straightened. Falls back to the upload when stage 2 degraded.
+    let criticWireframe = null;
+
     if (isWireframe) {
       // Stage 1: the upload, persisted as this stage's artifact. §11.2 keeps artifacts
       // Node-owned, and this is the one place the original bytes exist on this side.
@@ -233,6 +242,7 @@ export async function postGenerate(ctx = {}) {
       // transform, not pixels, because §11.2 makes it a service that never writes
       // files -- so the overlay's <img> was a 404 and the box was drawn over nothing.
       const raster = (remoteStage(2)?.artifact || {}).raster || null;
+      criticWireframe = raster ? Buffer.from(raster.base64, 'base64') : upload.bytes;
       await trace.runStage(job.jobId, {
         stage: 2,
         input: remote.normalisation || { degraded: true },
@@ -453,7 +463,69 @@ export async function postGenerate(ctx = {}) {
     if (s5.status === 'failed' || !s5.output) {
       throw new Error('Stage 5 failed to emit component');
     }
-    
+
+    // ---- the §18 critic loop, between emission and validation ---------------
+    //
+    // WHY IT SITS HERE. It needs emitted source to render (stage 5's output) and
+    // it must finish before stage 6, because stage 6 is what validates and
+    // scores the thing that will actually be written. Running it after would
+    // score the pre-critic component and ship the post-critic one.
+    //
+    // OFF BY DEFAULT, AND THAT IS THE POINT. AGENTS.md rule 5: no change may
+    // make generation REQUIRE a key, a GPU or a network. Unset CRITIC_LOOP and
+    // this block is a boolean check — no browser launched, no bundle built, no
+    // socket opened, and the demo runs exactly the deterministic path it ran
+    // before. The loop is an enhancement available to an operator who has
+    // configured a vision model, never a dependency.
+    let componentSource = s5.output;
+    let currentIr = ir;
+    let criticResult = null;
+
+    if (String(env.CRITIC_LOOP || '').toLowerCase() === 'on' && criticWireframe) {
+      criticResult = await runCriticLoop({
+        wireframe: criticWireframe,
+        ir,
+        source: s5.output,
+        emit: (nextIr) => emitComponent(nextIr),
+        maxIterations: Number(env.CRITIC_MAX_ITERATIONS) || undefined,
+      });
+
+      componentSource = criticResult.source || s5.output;
+      currentIr = criticResult.ir || ir;
+
+      // RECONCILE THE STORE, or the correction is half-applied. The element
+      // documents were persisted from the PRE-critic IR a few lines above, and
+      // the emitted component renders `data?.[id] || "DEFAULT"` — so a critic
+      // that fixed a hallucinated heading fixes only the DEFAULT, while the
+      // store keeps serving the hallucination. §9's hydration then puts the
+      // wrong text back on screen, and the loop would look broken while working
+      // perfectly. fieldIds are stable across the critic by construction
+      // (critic.js preserveFieldIds), which is what makes this a lookup rather
+      // than a diff.
+      if (currentIr !== ir) {
+        const before = new Map(ir.elements.map((e) => [e.fieldId, e]));
+        for (const el of currentIr.elements || []) {
+          const prior = before.get(el.fieldId);
+          if (!prior) continue;
+          const patch = {};
+          if (el.contentType !== 'Cards' && el.default !== prior.default) patch.content = el.default;
+          if (el.contentType === 'Cards' && currentIr.cards) patch.loop = currentIr.cards.items;
+          if (Object.keys(patch).length) {
+            try {
+              await store.updateElement(el.fieldId, patch);
+            } catch (err) {
+              // §18: a gate never fails a generation. A store that would not
+              // take the correction leaves the pre-critic content in place,
+              // which is the result we would have had without the loop.
+              writeWarnings.push(`critic correction for ${el.fieldId} was not persisted: ${err.message}`);
+            }
+          }
+        }
+      }
+
+      for (const warning of criticResult.warnings) writeWarnings.push(warning);
+    }
+
     // ---- stage 6: validation-qa -------------------------------------------
     //
     // WHY THIS EXISTS. runStage was called for 1, 2, 3, 4, 5 and 7 and never for 6, so
@@ -479,14 +551,14 @@ export async function postGenerate(ctx = {}) {
       // validation had nothing whatsoever to say, and failed on every run that produced
       // a warning — the inverse of what it was written to do. T-152.
       run: async (_input, ctxStage) => {
-        const result = await check(s5.output);
+        const result = await check(componentSource);
         for (const warning of result.warnings || []) ctxStage.addWarning(warning);
         if (!result.ok) {
           ctxStage.addWarning(`§18.2 ${result.kind}: ${result.error}`);
         }
         // The shape computeJobScore already reads. The visual metrics need a rendered
         // page and a browser; it is not measured here and keeps its documented fallback.
-        const axeViolations = await measureAccessibility(s5.output);
+        const axeViolations = await measureAccessibility(componentSource);
         if (axeViolations !== null && axeViolations > 0) {
           ctxStage.addWarning(`axe-core: ${axeViolations} serious/critical accessibility violation(s) found.`);
         }
@@ -524,7 +596,7 @@ export async function postGenerate(ctx = {}) {
           sectionName: ir.sectionName,
           sectionId: ir.sectionId,
           variation: '1',
-          source: s5.output
+          source: componentSource
         });
         if (typeof written === 'string' && written.trim()) {
           await jobStore.setComponentFile(job.jobId, written);

@@ -8,7 +8,15 @@
 // This file is that one call site. It is the ONLY place in the repository
 // permitted to read LLM_API_KEY / LLM_BASE_URL or to open a socket to a model
 // provider, and tests/model-orchestrator.test.mjs greps the tree to keep it
-// that way. The reason is not tidiness: a direct provider call bypasses the
+// that way.
+//
+// ONE CALL SITE IS NOT ONE PROVIDER. §16.2 constrains how many modules may open
+// a socket, not how many vendors may be on the other end of it. The per-vendor
+// differences — endpoint shape, structured-output support, vision support —
+// live in ./providers.js as a registry of profiles. That module holds no
+// credentials and opens no sockets, so the grep above still finds exactly one
+// offender-free tree, and adding a fourth provider is a data edit rather than
+// another `includes()` branch in the transport below. The reason is not tidiness: a direct provider call bypasses the
 // single-retry budget, the schema check, and the stage-5 trace, all three of
 // which are contract requirements rather than conveniences.
 //
@@ -39,6 +47,15 @@
 // agnostic on purpose.
 
 import { validateAgainstSchema } from '../validate/irValidator.js';
+import {
+  resolveProvider,
+  endpointFor,
+  responseFormatFor,
+  schemaPromptSupplementFor,
+  acceptsImages,
+  extractContent,
+  parseJsonReply,
+} from './providers.js';
 
 // §16.2 — default 30 s, hard ceiling 60 s, inherited from NFR-02.
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -129,8 +146,46 @@ async function withTimeout(fn, timeoutMs) {
  * orchestrator's logic without a network, and so that swapping providers is a
  * change to one function rather than to every call site.
  */
-async function defaultTransport({ baseUrl, apiKey, model, input, schema, system, signal, fetchImpl }) {
-  const url = `${String(baseUrl).replace(/\/+$/, '')}/model/${model}/invoke`;
+async function defaultTransport({ baseUrl, apiKey, model, provider, input, schema, system, signal, fetchImpl }) {
+  // The vendor deltas live in providers.js; this function stays the shape of a
+  // single OpenAI-compatible call. The Bedrock branch that used to sit inline
+  // here is now `pathStyle` on that profile, and the base-URL sniff that
+  // selected it is preserved there so B-005's measured configuration keeps
+  // working with nothing but a base URL set.
+  const { profile, baseUrl: resolvedBase } = resolveProvider({ provider, baseUrl });
+  const url = endpointFor(profile, resolvedBase, model);
+
+  // §16.2 does not model images, because at the time it was written nothing in
+  // the pipeline sent one. A caller that hands an array of content parts is
+  // sending a multimodal message; if the profile cannot take images we fail
+  // BEFORE the socket rather than posting a body the provider will 4xx on —
+  // and a 4xx is the one class §16.2 forbids retrying, so a wasted one is a
+  // permanent failure rather than a slow success.
+  const isMultimodal = Array.isArray(input) && input.some((part) => part && part.type === 'image_url');
+  if (isMultimodal && !acceptsImages(profile)) {
+    const err = new Error(`provider ${profile.id} does not accept image input`);
+    err.status = 400;
+    throw err;
+  }
+
+  // A system message when the caller supplies one. It was not optional in
+  // practice: with only the bare user prompt and a JSON schema, the model returned
+  // IR that validated and was unusable — dangling region children, a cards.of
+  // naming no element, and a Text default of "true" (B-012). The schema constrains
+  // shape; only an instruction constrains meaning.
+  //
+  // The supplement appended to it is empty on providers that accept a real
+  // schema, and a rendering of that schema on the ones that do not — see
+  // schemaPromptSupplementFor for why blind attempts are worse than verbose ones.
+  const supplement = schemaPromptSupplementFor(profile, schema);
+  const systemText = system ? `${String(system)}${supplement}` : supplement.trim();
+  const userContent = Array.isArray(input) ? input : String(input);
+  const messages = systemText
+    ? [{ role: 'system', content: systemText }, { role: 'user', content: userContent }]
+    : [{ role: 'user', content: userContent }];
+
+  const responseFormat = responseFormatFor(profile, schema);
+
   const response = await fetchImpl(url, {
     method: 'POST',
     signal,
@@ -139,20 +194,9 @@ async function defaultTransport({ baseUrl, apiKey, model, input, schema, system,
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      // A system message when the caller supplies one. It was not optional in
-      // practice: with only the bare user prompt and a JSON schema, the model returned
-      // IR that validated and was unusable — dangling region children, a cards.of
-      // naming no element, and a Text default of "true" (B-012). The schema constrains
-      // shape; only an instruction constrains meaning.
-      messages: system
-        ? [{ role: 'system', content: String(system) }, { role: 'user', content: String(input) }]
-        : [{ role: 'user', content: String(input) }],
-      ...(schema && {
-        response_format: {
-          type: 'json_schema',
-          json_schema: { name: 'structured_output', strict: true, schema },
-        }
-      })
+      model,
+      messages,
+      ...(responseFormat && { response_format: responseFormat }),
     }),
   });
 
@@ -163,11 +207,11 @@ async function defaultTransport({ baseUrl, apiKey, model, input, schema, system,
   }
 
   const payload = await response.json();
-  const content = payload?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string') {
+  const content = extractContent(payload);
+  if (typeof content !== 'string' || !content.trim()) {
     throw new Error('model response carried no message content');
   }
-  return JSON.parse(content);
+  return parseJsonReply(content);
 }
 
 function classify(err) {
@@ -183,7 +227,10 @@ function classify(err) {
  * createOrchestrator(deps) -> { callModel }
  *
  * deps (all optional, all injectable so tests never touch a network):
- *   env         — defaults to process.env. LLM_API_KEY, LLM_BASE_URL, LLM_MODEL.
+ *   env         — defaults to process.env. LLM_API_KEY, LLM_BASE_URL, LLM_MODEL,
+ *                 plus LLM_PROVIDER (which profile in providers.js) and
+ *                 LLM_VISION_MODEL (the checkpoint used when the input carries
+ *                 images). This module reads all five and nothing else does.
  *   fetchImpl   — defaults to global fetch.
  *   transport   — defaults to the OpenAI-compatible call above.
  *   appendTrace — ({ purpose, model, ms, attempts, ok }) => void. Defaults to a
@@ -211,9 +258,31 @@ export function createOrchestrator(deps = {}) {
    */
   async function callModel({ purpose, input, schema, system, timeoutMs } = {}) {
     const started = now();
-    const model = env.LLM_MODEL || DEFAULT_MODEL;
+
+    // WHY A SECOND MODEL VARIABLE. A wireframe critic needs a vision model; the
+    // prompt-to-IR path wants the best text model available, and on every
+    // provider in the registry those are different checkpoints with different
+    // prices. Selecting on the shape of the INPUT rather than on a caller-passed
+    // model name keeps §16.2's rule intact — the credential variables, and now
+    // the model names too, are read in exactly one module. A caller that could
+    // name its own model would be configuring the provider from outside the one
+    // call site, which is the arrangement §16.2 exists to prevent.
+    //
+    // Falls back to the text model when no vision model is configured, so an
+    // operator with one multimodal endpoint sets one variable and is done.
+    const isMultimodal = Array.isArray(input) && input.some((part) => part && part.type === 'image_url');
+    const model =
+      (isMultimodal ? env.LLM_VISION_MODEL || env.LLM_MODEL : env.LLM_MODEL) || DEFAULT_MODEL;
+    const provider = env.LLM_PROVIDER || '';
 
     const finish = (result, attempts) => {
+      // EXACTLY §16.2's five keys, and no more. The provider is deliberately
+      // NOT recorded here: §16.2 fixes this record as
+      // { purpose, model, ms, attempts, ok }, tests/model-orchestrator.test.mjs
+      // asserts the key set is exactly that, and adding a sixth field to a
+      // frozen shape is a contract change, not an improvement. The provider is
+      // already recoverable — it is configuration, and `model` names the
+      // checkpoint that answered.
       const meta = { purpose, model, ms: now() - started, attempts, ok: result.ok };
       // The trace must never be able to fail the call it is describing.
       try {
@@ -242,7 +311,7 @@ export function createOrchestrator(deps = {}) {
       let value;
       try {
         value = await withTimeout(
-          (signal) => transport({ baseUrl, apiKey, model, input, schema, system, signal, fetchImpl, purpose }),
+          (signal) => transport({ baseUrl, apiKey, model, provider, input, schema, system, signal, fetchImpl, purpose }),
           budget,
         );
       } catch (err) {

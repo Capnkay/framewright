@@ -72,6 +72,41 @@ def detect_device() -> str:
     "GET /health returns cuda:0", and it is only meaningful if this function can
     also return 'cpu'.
     """
+    # PADDLE IS ASKED FIRST, AND WHICH ONE ASKS FIRST IS THE WHOLE FIX.
+    #
+    # EC-014 (below) records that torch and paddlepaddle-gpu cannot share a
+    # process. What it did not record is that the ORDER decides which one
+    # survives, and that /health was choosing the wrong winner: this function ran
+    # before detect_models(), so torch loaded first and paddle then died with
+    #
+    #     ImportError: generic_type: type "_gpuDeviceProperties" is already registered!
+    #
+    # leaving detect_models() reporting ['opencv-contours'] on a machine with a
+    # working PaddleOCR install. Stage 3 therefore ran with NO TEXT EXTRACTION AT
+    # ALL, and the pipeline invented the copy it could not read — the exact
+    # failure §18's critic exists to catch, caused here rather than by any model.
+    #
+    # Paddle wins because paddle does the work. torch is used nowhere in the
+    # serving path; it appears in this function and nowhere else in this module,
+    # purely to name a device. Trading OCR for a device string is a bad trade,
+    # and it was being made silently.
+    #
+    # Normalised to §12's `cuda:N`, not paddle's own `gpu:0`. Roadmap gate 0.7 is
+    # "GET /health returns cuda:0" and that is the string it must return; the
+    # device is the same piece of hardware whichever library names it.
+    try:
+        import paddle  # noqa: PLC0415 - optional, exactly as torch is below
+
+        if paddle.device.is_compiled_with_cuda():
+            place = str(paddle.device.get_device())  # 'gpu:0' | 'cpu' | 'xpu:0'
+            if place.startswith("gpu:"):
+                return f"cuda:{place.split(':', 1)[1]}"
+    except Exception:
+        # Same reasoning as the torch branch: an unloadable paddle is a state, and
+        # health reports state rather than failing. Falls through to torch, which
+        # is the correct answer on a machine that has torch and no paddle.
+        pass
+
     try:
         import torch  # noqa: PLC0415 - optional, and absence is a supported state
     except Exception:
