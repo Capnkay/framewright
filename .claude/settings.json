@@ -1,5 +1,6 @@
 {
-  "_note": "2026-08-24: protect-secrets (Write/Edit guard) unwired per hackathon team decision — real credentials may now be written directly, including to .env. See docs/corrections/REGISTER.md for the log entry required by AGENTS.md Law 7. block-dangerous-shell and guard-secret-shell still guard Bash calls: block-dangerous-shell denies destructive commands and pipe-to-shell patterns; guard-secret-shell denies shell redirects/heredocs/tee writing into a secret-by-convention path, credential-shaped literals typed directly into a command, and git plumbing (add -f, update-index --skip-worktree/--assume-unchanged) used to smuggle a secret past .gitignore — so a secret typed into .env by Write/Edit still cannot be committed or piped out through Bash. Any internal error inside either remaining hook denies the call rather than allowing it. Setup: after cloning, run `git config core.hooksPath .githooks` once so this repository's own pre-commit and pre-push checks (secret scan, LAW-MANIFEST.sha256 verification, full-history pre-submit gate) are active — see SETUP.md.",
+  "_note": "2026-08-24: ALL three custom PreToolUse hooks (protect-secrets, block-dangerous-shell, guard-secret-shell) are unwired per hackathon team decision — a teammate was fully blocked from committing a few hours before deadline. The hook files themselves are untouched on disk under .claude/hooks/ and can be re-registered by restoring the matcher blocks (see git history for the prior version of this file). disableAutoMode is also set below: the blocker in the reported screenshot (sha256sum/npm test denied with 'Blocked by classifier') was Claude Code's own built-in auto-mode classifier, NOT one of these three custom hooks — none of the three would have denied those commands. Turning off auto mode is the actual fix for that; removing the custom hooks alone would not have been. See docs/corrections/REGISTER.md for the full log entry required by AGENTS.md Law 7, including residual risk now that nothing in this harness stops a secret from being written or committed, or a force-push to main, or a destructive shell command. .githooks/pre-commit and .githooks/pre-push (once `git config core.hooksPath .githooks` is set, see SETUP.md) are the only remaining safety net, and they only run at commit/push time, not on every tool call.",
+  "disableAutoMode": "disable",
   "permissions": {
     "allow": [
       "Edit",
@@ -7,17 +8,6 @@
       "Bash(git *)",
       "Bash(npm *)",
       "Bash(node *)"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-shell.mjs\"" },
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-secret-shell.mjs\"" }
-        ]
-      }
     ]
   }
 }

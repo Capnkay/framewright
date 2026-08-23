@@ -3233,6 +3233,24 @@
       ],
       "verify": null,
       "doneWhen": "MANUAL TASK, same class as T-095 — a harness/process change with no code to verify, logged per AGENTS.md's own rule against silently weakening a hook. Originally claimed as T-138, which collided with Mohit Gupta's already-merged T-138 (a real code task) on rebase — renumbered here per the T-092-to-T-095 collision precedent in this register. .claude/settings.json no longer wires protect-secrets.mjs to PreToolUse[Write|Edit] (the hook file itself is untouched on disk and can be re-registered); block-dangerous-shell and guard-secret-shell remain wired and fail-closed on every Bash call. A permissions.allow block (Edit, Write, Bash(git *), Bash(npm *), Bash(node *)) was added so calls that pass the remaining hooks stop prompting for manual approval. CLAUDE.md's hooks table and docs/corrections/REGISTER.md (2026-08-24 entry) both record what changed, why, and what is still covered vs. not."
+    },
+    {
+      "id": "T-160",
+      "phase": 0,
+      "title": "Unwire block-dangerous-shell and guard-secret-shell, and disable Claude Code auto-mode, to unblock a teammate's commits before deadline",
+      "track": "any",
+      "size": "10m",
+      "contract": [],
+      "deps": [
+        "T-159"
+      ],
+      "files": [
+        ".claude/settings.json",
+        "CLAUDE.md",
+        "docs/corrections/REGISTER.md"
+      ],
+      "verify": null,
+      "doneWhen": "MANUAL TASK, same class as T-095/T-159 — a harness/process change with no code to verify, logged per AGENTS.md's own rule against silently weakening a hook. A teammate was fully blocked from committing by Claude Code's built-in auto-mode classifier (not one of this repo's custom hooks) with the deadline hours away. Fixed disableAutoMode: \"disable\" in .claude/settings.json (the actual fix for the classifier block), and also unregistered block-dangerous-shell and guard-secret-shell from PreToolUse per explicit instruction to remove all hooks. .claude/settings.json now has no hooks key at all. CLAUDE.md and docs/corrections/REGISTER.md (2026-08-24 entry) record what changed, why, the misdiagnosis on the first pass, and what's left (.githooks/pre-commit and pre-push, commit/push-time only)."
     }
   ]
 }
