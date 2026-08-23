@@ -23,13 +23,12 @@ import { downloadCode } from "../../data/mock";
 // generated section.
 
 export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, pageName = "Home", previewKey = 0 }) {
-  const [viewMode, setViewMode] = useState("preview");
+  const [viewMode, setViewMode] = useState("design");
   const [reloadNonce, setReloadNonce] = useState(0);
 
   const previewSrc = `/preview/${encodeURIComponent(pageName || "Home")}`;
 
   const TABS = [
-    { id: "preview", label: "Preview", Icon: Eye },
     { id: "design", label: "Design", Icon: LayoutGrid },
     { id: "code", label: "Code", Icon: Code },
   ];
@@ -44,10 +43,6 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
           {viewMode === "code" ? (
             <button className="text-btn" type="button" onClick={() => downloadCode(code)} data-testid="download-code-button">
               <Download size={13} /> Download .jsx
-            </button>
-          ) : viewMode === "preview" ? (
-            <button className="text-btn" type="button" onClick={() => setReloadNonce(n => n + 1)} data-testid="reload-preview-button">
-              <RotateCw size={13} /> Reload preview
             </button>
           ) : (
             <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '1px' }}>LAYOUT EDITOR</span>
@@ -79,20 +74,7 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
       </div>
 
       {/* Main Content Area */}
-      {viewMode === "preview" ? (
-        <iframe
-          // The key remounts the frame when a generation finishes (previewKey)
-          // or the operator asks for a reload. A generated section is a NEW
-          // module on disk, and neither changing src nor calling reload() on a
-          // same-origin frame reliably picks that up before Vite has served the
-          // updated glob — a remount does.
-          key={`${previewKey}-${reloadNonce}-${pageName}`}
-          src={previewSrc}
-          title="Generated section preview"
-          data-testid="composer-live-preview-iframe"
-          style={{ flex: 1, width: '100%', border: 'none', background: '#fff', borderRadius: '0 0 8px 8px', minHeight: 0 }}
-        />
-      ) : viewMode === "design" ? (
+      {viewMode === "design" ? (
         <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} scope="composer" />
       ) : (
         <pre className="section-editor-code-preview" data-testid="composer-code-preview" style={{ flex: 1, margin: 0, padding: '16px', borderTop: 'none', borderRadius: '0 0 8px 8px' }}>
@@ -103,3 +85,4 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
     </div>
   );
 }
+
