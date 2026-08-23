@@ -1334,3 +1334,224 @@ Instead of wrestling with Windows CUDA limits, we patched perception/stages/read
 - **Speed:** Instant cloud inference without local hardware locking.
 
 This validates our hybrid architecture: deterministic local OpenCV for geometry, and state-of-the-art cloud VLM for semantic understanding.
+
+## B-015 — codeToIr left the reference scaffold's `cards.of` in place for a section with no card loop — T-154
+
+**Date:** 2026-08-24 · **Status:** VERIFIED (run on our hardware) · **Node only, no network, no key.**
+
+### What was actually broken
+
+The reported title was "mode=code scaffolds from the prompt template, so pasted React yields
+the reference section". T-124 and T-140 had already closed the obvious reading of that —
+the elements themselves ARE read from the pasted code (`sourceOf: "code"`, real defaults),
+confirmed again here, unchanged.
+
+The remaining gap is exactly the one flagged in `server/src/generate/wireframeSemantics.js`
+while T-153 wired the equivalent floor into the wireframe path: *"codeToIr leaves the
+template's 'statBadges' in place […] (codeToIr is T-154's file, not this one's.)"*.
+`codeToIr.js`'s "no loop in the source" branch built `cards` as
+`{ ...scaffold.cards, count: 0, items: [] }` — every field of the reference scaffold's
+`cards` object except `count` and `items`, so `of` stayed `"statBadges"` even when nothing
+in the pasted section is a Cards element at all. `emitComponent` computes
+`hasCards = Boolean(cards && cards.of)`, so a plain two-field testimonial with no card loop
+was told it had one and emitted `getStatItems`, `DEFAULT_STAT_CARDS`, and a
+`data[ids.statBadges]` lookup — reading a key that does not exist in that same component's
+own `ids` map three lines above it.
+
+### Measured — before
+
+A hand-written two-field testimonial (no `.map`, no cards) through `codeToIr` directly:
+
+```
+--- cards ---
+{ "of": "statBadges", "count": 0, "gridColumns": 3, "layoutMode": "grid",
+  "fieldsPerItem": 2, "items": [] }
+
+--- emitted component (cards-related lines) ---
+export const DEFAULT_STAT_CARDS = [
+  export function getStatItems(data) {
+  const value = data && data[ids.statBadges];
+  return Array.isArray(value) && value.length > 0 ? value : DEFAULT_STAT_CARDS;
+  const cardFieldIds = DEFAULT_STAT_CARDS.flatMap((item) => [item.fieldId1, item.fieldId2]);
+  const items = getStatItems(data); // R9 — never a fixed-length guard
+```
+
+`ids.statBadges` is `undefined` in that emitted file's own `ids` map. `items` is declared and
+never read by any region (no Cards element exists to render it) — dead code wearing the
+reference section's name, in a file that has nothing to do with fitness stats.
+
+### The fix
+
+`repairModelIr.js`'s own header already claimed three callers — "every path which lets a
+model write IR gets the same floor: prompt, wireframe semantics and code" — while only the
+first two actually called it. `codeToIr.js` now imports `repairElementNames` and
+`repairReferences` and runs both on its assembled IR before returning, the same floor T-153
+wired into the wireframe path, with the same after-the-fact repair: `repairReferences`
+deletes `ir.cards` outright when nothing owns the loop (the ordinary case here), and an
+emptied `{ of: '', count: 0, gridColumns: 0, items: [] }` is restored in its place — §6's
+`cards` stays required and present, and `of` can no longer be mistaken for a live reference.
+
+`repairReferences`'s viability floor (`MIN_PLACED_ELEMENTS = 3`, calibrated in B-012 against
+a model instructed to write 5 to 9 elements) is deliberately **not** enforced as a refusal
+here — T-140's own two-element "sibling module" fixture would fail that floor, and nothing
+in §13 asks code mode to meet it. `viable` is recorded as a warning only.
+
+### Measured — after
+
+```
+--- cards ---
+{ "of": "", "count": 0, "gridColumns": 0, "layoutMode": "grid",
+  "fieldsPerItem": 2, "items": [] }
+
+--- emitted component (cards-related lines) ---
+// Hard-coded default fallbacks for every non-Cards element (R6 / §9).
+  const data = useSelector((state) => state.cms.allSections[pageName] || {});
+  const cssData = useSelector((state) => state.cms.allSectionsCss[pageName] || {});
+```
+
+No `statBadges`, `getStatItems`, or `DEFAULT_STAT_CARDS` in the emitted file. The section's
+own two elements (`quoteText`, `authorName`) are unaffected — still read from the code, still
+`sourceOf: "code"`. A pasted section whose own loop names its own element (e.g.
+`teamMembers`) keeps `cards.of === 'teamMembers'` after the repair pass, unchanged — the fix
+only fires when nothing owns the loop.
+
+### Tests
+
+`tests/generate-code-mode.test.mjs` — 3 new tests, all failing against the pre-fix file and
+passing after:
+
+| Test | Before | After |
+|---|---|---|
+| a pasted section with no card loop does not keep the reference scaffold's cards.of | ✗ | ✔ |
+| a section with no card loop emits no dead card-loop code for an element it does not have | ✗ | ✔ |
+| a pasted section whose card loop names its own element keeps pointing at it, not statBadges | ✔ (unaffected) | ✔ |
+
+**Suites after the change:** 765 Node tests, 764 passing, 1 skipped (pre-existing, unrelated
+to this fix), 0 failing — same skip as before this change.
+
+---
+
+## B-016 · The synthetic wireframe generator, and what its own numbers say before any GPU is involved — T-150
+
+**Date:** 2026-08-24 · **Status:** the generator is built and measured; no model has been
+trained · **VERIFIED** (run on our hardware, CPU only, no GPU on this machine)
+
+T-150's own `doneWhen` puts training out of scope by default and requires the objection on
+record before attempting it anyway: three learned models already scored 0 of 7 on this
+project's actual input (B-001, B-002, B-006), and PS7 §5.2 puts training out of scope. This
+machine has no GPU, so this entry covers only what T-150 makes a precondition for training
+at all — synthetic data with exact ground truth — and stops there. Nothing has been trained.
+The ship rule stays exactly as T-150 states it: a trained detector replaces
+`detect_regions` only if it scores 7 of 7 on B-003's targets **and** does not reduce B-004's
+7 of 7 geometry or 4 of 4 text. Nothing here evaluates that, because nothing here is a
+trained detector.
+
+### What was built
+
+`perception/synthetic/generate_wireframe.py` — a pure function of a seed,
+`generate(seed) -> (image, regions)`, plus a CLI
+(`python -m perception.synthetic.generate_wireframe --count N --seed-start S`) that writes
+PNG + ground-truth JSON pairs and a manifest into `perception/synthetic/dataset/`
+(gitignored — regenerated on demand, never committed). Ground truth is emitted in
+`detect_regions.Region.to_dict()`'s exact shape (`bbox`/`kind`/`confidence`/`evidence`/
+`depth`/`members`, `confidence` always `1.0` since this file placed the ink rather than
+measured it) plus one addition, `elementName`, so the shape is a direct superset of
+`contours_wireframe.py`'s `TARGETS` dict and both existing benchmark scripts can score
+against a generated image with no change to either file.
+
+Composition is randomised per seed — hero side (left/right), hero/badge/headline/
+subheadline/CTA sizes and positions, body paragraph line count (3-5), stat badge count
+(2-4) — over the same seven-element vocabulary `fuse.py`'s `SLOT_KEYWORDS` already names.
+Noise is sampled per seed too, deliberately reproducing what B-009's "Change 3" one-off
+flagged as missing from a naive synthetic image: hand-wobble on every line and box edge,
+an illumination gradient (the same slow-varying signal `ink_mask`'s median-blur background
+correction exists to remove), paper-texture noise, an incomplete edge on about one box in
+five (T-133/T-134's own finding, not an artefact to avoid), and a mirrored, faint
+bleed-through ghost on 20-55% of images.
+
+Tests: `perception/tests/test_generate_wireframe.py`, 20 tests — determinism (same seed,
+byte-identical image and identical ground truth, across 5 seeds, and stable against a
+polluted/consumed global `numpy.random` state between calls), ground-truth well-formedness
+(positive width/height, inside the canvas, no degenerate or duplicate boxes), shape
+compatibility with `Region.to_dict()`, layout variety (hero side, line count, stat count
+all vary over 20 seeds), and a real integration check — `detect_regions.ink_mask()` finds
+non-trivial ink and `detect_regions()` itself returns at least 5 regions on a generated
+image, unmodified. Full suite: **255 passed, 3 skipped, 0 failing** (up from 214 passed
+before this task; nothing pre-existing broke).
+
+### Throughput
+
+Pure generation, no disk I/O, this machine (CPU only): **200 images in 40.76 s — 4.91
+images/sec, 203.8 ms/image.** Writing PNG + JSON to disk adds negligible overhead at small
+batch sizes. A dataset of 5,000 images — a plausible first training set — is about 17
+minutes of CPU time on this machine, entirely before the GPU teammate needs to do anything.
+
+### What the existing OpenCV detector itself measures against this dataset
+
+Not a training result — `detect_regions()` is the same, already-shipped stage 3a, run
+unmodified against 100 generated images (seeds 0-99) to sanity-check that the ground truth
+and the ink it describes actually agree with each other, and to have a number to compare a
+future trained detector's transfer performance against.
+
+| Element (kind) | Mean IoU vs. ground truth | Located (IoU ≥ 0.5) / 100 |
+|---|---|---|
+| `heroImage` (rect) | 0.955 | 97 |
+| `ctaButton` (rect) | 0.835 | 100 |
+| `statBadges` (group) | 0.791 | 73 |
+| `description` (group) | 0.726 | 79 |
+| `brandBadge` (mark) | 0.337 | 0 |
+| `headlineMain` (mark) | 0.095 | 0 |
+| `headlineSub` (mark) | 0.143 | 0 |
+
+Mean 20.3 regions returned per image (35 on the real reference photograph, B-003 — the
+synthetic images are simpler drawings with fewer incidental strokes).
+
+**The three single-line text marks scoring near zero is not a defect in this dataset, and
+turning the number up by drawing bigger ink would misrepresent it.** It is the same pattern
+B-004 already measured on the real photograph and named precisely: stage 3a's raw mark is a
+tight cluster around the handwriting itself — `HEADLINE` came back as a 233×45 box against
+an annotated 800×110 row, IoU 0.291 — and `fuse.py`'s box-promotion step (T-153, B-009
+change 2: "the word claims the slot, the box drawn around it supplies the geometry")
+corrects it one stage later, recovering IoU 0.727 without moving a pixel of the underlying
+detection. This dataset's `headlineMain` mark is checked, by hand, to be a real single
+coherent cluster sitting inside its taller nominal slot — the same relationship, reproduced
+on purpose rather than smoothed away. **Scoring a trained detector's raw stage-3a output
+against these three elements needs the same caveat B-004 needed against the real image**:
+either evaluate through the promotion step, or expect these three to undershoot by design.
+
+### Two generator defects found and fixed while measuring this, both about compounding
+
+Neither of these touches `detect_regions.py` — both were bugs in the new generator code,
+found by running the real detector against synthetic output rather than by inspection.
+
+1. **A headline sometimes fragmented into 3-4 separate marks.** An earlier version drew a
+   tall text box as 1-2 stacked rows; `TEXT_CLUSTER_KERNEL`'s ~9px vertical reach doesn't
+   bridge a 45px row gap, so two rows of one "headline" surfaced as unrelated detections.
+   Fixed by always drawing a single row, with vertical jitter capped at an **absolute**
+   pixel budget (`min(6px, 15% of box height)`) rather than a fraction of the box's own
+   height — the box is sized for a large font's line box, not for how tall one line of
+   handwriting inside it actually is.
+2. **A stat badge occasionally vanished from its group of three.** Gap probability was
+   evaluated independently per side (four rolls per box); at the sampled range that gives
+   roughly a 1-in-5 chance two sides gap on the same small box, which can split its contour
+   into two disconnected, differently-sized pieces. `_is_sibling`'s `SIBLING_SIZE_RATIO`
+   (0.6) then correctly rejects the mismatched pair, and the group drops below
+   `MIN_GROUP_MEMBERS` and never forms — measured directly: `statBadges` returned no
+   `group` region at all on several seeds before the fix. Fixed by picking **at most one**
+   side per box to gap, matching B-009's own hero-panel finding (one weak side measured,
+   not several) rather than four independent coin flips.
+
+Both are recorded because the failure mode is the same shape as `detect_regions.py`'s own
+`GROUP_REGULARITY_FLOOR` reasoning: a group that partially breaks doesn't merely score
+lower, it disappears from the output entirely, and that is worse for a training set than a
+consistently-present, lower-confidence one.
+
+### What this does not establish
+
+No detector has been trained on this data, because this machine has no GPU — that is the
+GPU teammate's next step, and it is unblocked as of this entry. The 7-of-7-or-nothing ship
+rule in T-150's `doneWhen` applies to that step, not to this one. Whether a detector trained
+on this synthetic distribution transfers to the real photograph is exactly the question
+B-009 already showed a synthetic image cannot answer by looking clean — noise here is
+sampled per seed for that reason, and the transfer question stays open until a trained model
+is actually scored against B-003's real targets.

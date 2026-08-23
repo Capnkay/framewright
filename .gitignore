@@ -71,3 +71,8 @@ tools/_store_scratch.json
 # repository's own drive rather than wherever the OS put the system temp.
 .scratch/
 .cache/
+
+# T-150: generated training images + ground-truth JSON for the synthetic
+# detector. Regenerated on demand by perception/synthetic/generate_wireframe.py
+# -- unlimited, deterministic from a seed, and never a committed deliverable.
+perception/synthetic/dataset/
