@@ -3,12 +3,22 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Plus, Sparkles, Upload } from "lucide-react";
 import { Badge, Field, Label } from "../components/Shell";
 import { AccentColorField } from "../components/studio/AccentColor";
-import { LivePreviewPanel } from "../components/studio/LivePreviewPanel";
 import { PipelinePanel } from "../components/studio/PipelinePanel";
 import { SectionEditor } from "../components/studio/SectionEditor";
 import { defaultElements, generateCode, getStageStatuses, jobs, NEEDS_INPUT_QUESTION, FAILED_MESSAGE, parseCodeToElements } from "../data/mock";
 import { DesignLayers, DesignInspector } from "../components/studio/DesignTab";
 import "../studio.css";
+
+// A page name reaches two places that disagree about what a name may contain:
+// the API's §2 pageName, and the URL of /preview/:pageName that the Studio now
+// frames. Sanitising once, at module scope, is what keeps them the same string
+// -- when this lived inside generate() the iframe was pointed at the raw typed
+// value ("Marketing site") while the section was stored under "Marketing-site".
+export function sanitizeName(str) {
+  let clean = String(str || '').replace(/[^A-Za-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!/^[A-Za-z]/.test(clean)) clean = 'Component-' + clean;
+  return clean || 'Component';
+}
 
 function Modes({ mode, setMode }) {
   return (
@@ -65,7 +75,7 @@ function Composer({ mode, setMode, form, setForm, accent, setAccent, generate, r
       >
         <Sparkles size={16} />{running ? "Generating\u2026" : "Generate section"} <ArrowRight size={16} />
       </button>
-      <div className="mock-note"><span className="live-dot" />Mock generation &middot; pipeline telemetry included</div>
+      <div className="mock-note"><span className="live-dot" />Live generation &middot; POST /api/generate, seven traced stages</div>
     </section>
   );
 }
@@ -76,7 +86,6 @@ export default function Studio() {
   const [mode, setMode] = useState("Wireframe");
   const [form, setForm] = useState({ page: "Marketing site", section: "Hero section", file: "", code: "", prompt: "" });
   const [accent, setAccent] = useState("");
-  const [breakpoint, setBreakpoint] = useState("Desktop");
   const [jobState, setJobState] = useState("idle");
   const [runningIndex, setRunningIndex] = useState(-1);
   const [selectedStage, setSelectedStage] = useState(null);
@@ -87,6 +96,17 @@ export default function Studio() {
   const [codeText, setCodeText] = useState(() => generateCode(elements, accent));
 
   const [realTrace, setRealTrace] = useState(null);
+  // What the preview iframe points at, and what remounts it. Both are set only
+  // after a generation SUCCEEDS, so a failed run leaves the last good section
+  // on screen instead of blanking it.
+  const [previewPage, setPreviewPage] = useState("Home");
+  const [previewKey, setPreviewKey] = useState(0);
+  // §12 degradation, run-level. POST /api/generate answers with a `warnings`
+  // array beside `job` -- it is where "Hosted model not used: <reason>" lands,
+  // and it is the only place the Studio can learn that a section came back as
+  // the reference template rather than from the model. The stage trace does not
+  // carry it (those warnings are per-stage), so it gets its own strip.
+  const [runWarnings, setRunWarnings] = useState([]);
 
   const timerRef = useRef(null);
   useEffect(() => () => clearInterval(timerRef.current), []);
@@ -127,6 +147,7 @@ export default function Studio() {
     setTab("Stages");
     setRunningIndex(0);
     setRealTrace(null);
+    setRunWarnings([]);
 
     // Mock progress visual effect while waiting
     const progressTimer = setInterval(() => {
@@ -137,13 +158,8 @@ export default function Studio() {
       const formData = new FormData();
       formData.append("mode", mode.toLowerCase());
       
-      const sanitizeName = (str) => {
-        let clean = str.replace(/[^A-Za-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        if (!/^[A-Za-z]/.test(clean)) clean = 'Component-' + clean;
-        return clean || 'Component';
-      };
-      
-      formData.append("pageName", sanitizeName(form.page));
+      const pageName = sanitizeName(form.page);
+      formData.append("pageName", pageName);
       formData.append("sectionName", sanitizeName(form.section));
       
       if (form.code) formData.append("code", form.code);
@@ -184,7 +200,14 @@ export default function Studio() {
             setSelectedField(mappedElements[0]?.id || null);
           }
         }
-        setRealTrace(data.job.trace);
+        // The job record spells its stage trace `stages` (§11), not `trace`.
+        // Reading the wrong key gave `undefined`, and the `realTrace ? … : …`
+        // below then fell through to getStageStatuses() -- the MOCK timeline
+        // from data/mock.js. So the Glass Box showed invented stage names and
+        // durations for a run that had really happened, on every generation.
+        // Verified against a live POST /api/generate: the response carries
+        // job.stages and no job.trace.
+        setRealTrace(data.job.stages || data.job.trace || null);
         
         // Fetch the real generated React component code
         const codeRes = await fetch(`/api/jobs/${data.job.jobId}/component`);
@@ -194,6 +217,14 @@ export default function Studio() {
         }
       }
       
+      // The emitter has written client/src/sections/generated/<...>.jsx by the
+      // time /api/generate resolves, so remounting the frame here is what makes
+      // the new section appear. Vite's glob in Preview.jsx picks the new module
+      // up on its own HMR pass; the remount is what forces the route to re-run.
+      setRunWarnings(Array.isArray(data.warnings) ? data.warnings : []);
+      setPreviewPage(pageName);
+      setPreviewKey(k => k + 1);
+
       clearInterval(progressTimer);
       setJobState("done");
       setRunningIndex(-1);
@@ -240,6 +271,16 @@ export default function Studio() {
         <div><Label>GENERATOR STUDIO</Label><h1>Build a section.</h1><p>Give Framewright a signal. Watch every decision happen.</p></div>
         <div className="studio-actions"><button className="icon-btn" data-testid="new-job-button"><Plus size={16} /></button><span className="job-count"><span className="live-dot" />3 jobs</span></div>
       </div>
+      {runWarnings.length > 0 && (
+        <div className="studio-run-warnings" data-testid="run-warnings" style={{ margin: '0 0 12px', padding: '10px 14px', border: '1px solid var(--border)', borderLeft: '3px solid #d97706', borderRadius: '6px', background: 'var(--surface)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+            HOW THIS RUN DEGRADED
+          </div>
+          <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {runWarnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        </div>
+      )}
       <div className="studio-layout">
         <div className="studio-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '13px', overflowY: 'auto', height: '100%' }}>
           <Composer
@@ -263,7 +304,7 @@ export default function Studio() {
           </section>
         </div>
         <div className="studio-right-column">
-          <SectionEditor elements={elements} accent={accent} code={codeText} selectedField={selectedField} setSelectedField={setSelectedField} onUpdate={onElementUpdate} />
+          <SectionEditor elements={elements} accent={accent} code={codeText} selectedField={selectedField} setSelectedField={setSelectedField} onUpdate={onElementUpdate} pageName={previewPage} previewKey={previewKey} />
           <PipelinePanel
             jobState={jobState} setJobState={handleDevState}
             stages={stages} selectedStage={selectedStage} setSelectedStage={setSelectedStage}

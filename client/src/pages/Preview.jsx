@@ -9,6 +9,40 @@ import { fetchElementsByIds } from "../redux/fetchElementsByIds.js";
 
 const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
 
+// WHICH FILE A SECTION RENDERS FROM.
+//
+// This used to read `section.componentFile`. No section record has ever carried
+// that field -- §2's document shape does not define it, and the emitter reports
+// the written path on the JOB record, not the section. So the lookup key was
+// the string "undefined" for every section on every page, `generatedModules`
+// missed, and this route rendered "Failed to load component undefined" instead
+// of the product. Verified against the live store: 21 sections, 0 with a
+// `componentFile`.
+//
+// The filename is derivable, and derivation is the right answer rather than
+// backfilling the field, because §7 already fixes the name:
+//   <SectionName>-<sectionId>-v<variation>.jsx
+// with SectionName stripped of everything outside [a-zA-Z0-9_]. That rule lives
+// in server/src/generate/writeComponentFile.js#buildComponentFilename and the
+// two must agree; if §7's naming ever changes, both change together.
+//
+// `section.componentFile` is still honoured when present, so a store that does
+// start carrying it keeps working without a second edit here.
+//
+// NOTE ON `variations` vs `variation`. §2 spells the COUNT `variations`; the
+// index of the one to render is `variation`. Reading the count as an index is
+// how a section declaring two variations asks for "-v2" and gets a miss, so
+// only `variation` is consulted and it defaults to 1.
+function componentKeyFor(section) {
+  if (section.componentFile) {
+    const basename = String(section.componentFile).split(/[\\/]/).pop();
+    return `../sections/generated/${basename}`;
+  }
+  const safeName = String(section.sectionName || 'Section').replace(/[^a-zA-Z0-9_]/g, '');
+  const variation = section.variation || 1;
+  return `../sections/generated/${safeName}-${section.sectionId}-v${variation}.jsx`;
+}
+
 function SectionWrapper({ section, Component, pageName }) {
   return (
     <div className="relative group mb-8">
@@ -84,14 +118,14 @@ export default function Preview() {
               <div style={{padding: '2rem', color: '#666', textAlign: 'center'}}>No sections generated for {pageName} yet. Head to the Studio to create one.</div>
             ) : (
               sectionDocs.map((section) => {
-                const modKey = `../sections/generated/${section.componentFile}`;
+                const modKey = componentKeyFor(section);
                 const mod = generatedModules[modKey];
                 const Component = mod ? mod.default : null;
 
                 if (!Component) {
                   return (
                     <div key={section.sectionId} style={{padding: '2rem', color: 'red'}}>
-                      Failed to load component {section.componentFile}
+                      Failed to load component {modKey.split('/').pop()} &mdash; the section record exists but no generated file matches §7&rsquo;s name.
                     </div>
                   );
                 }

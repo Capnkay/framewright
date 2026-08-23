@@ -304,9 +304,27 @@ export async function postGenerate(ctx = {}) {
             semanticsReason = named.reason;
           }
         }
-        const promptIr = usesPrompt
-          ? await promptToIrHosted(body.prompt, { pageName, sectionName })
-          : null;
+        // WHY THE WARNINGS ARE DRAINED HERE. promptToIrHosted records a hosted
+        // fallback by appending "Hosted model not used: <reason>" to the IR's
+        // own `warnings`, on the stated principle that the note then survives
+        // into the job trace without the caller having to copy it. It did not:
+        // nothing in this route ever read promptIr.warnings, and the trace is
+        // built from writeWarnings. So a prompt run that called the model,
+        // timed out, and silently emitted the reference template recorded stage
+        // 4 as a clean `ok` with no warnings at all -- indistinguishable from a
+        // hosted run that worked. Measured: two identical prompts, one returned
+        // sectionType "pricing", the other "split-hero" with Pulse Fit copy, and
+        // both traces were identical.
+        //
+        // That is the §12 Glass Box criterion, not a nicety. Draining it into
+        // writeWarnings is exactly what the code path below already does for
+        // codeIr, so this makes prompt mode consistent rather than special.
+        let promptIr = null;
+        if (usesPrompt) {
+          promptIr = await promptToIrHosted(body.prompt, { pageName, sectionName });
+          for (const warning of promptIr.warnings || []) writeWarnings.push(warning);
+          delete promptIr.warnings;
+        }
 
         // §14 and AGENTS.md: the pasted component is PARSED, never executed. codeToIr
         // reads an AST and nothing in this path can reach `eval`, `new Function` or
