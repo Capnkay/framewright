@@ -1661,3 +1661,81 @@ this session (B-011's MEDIA_MIN_AREA arithmetic aside). A media placeholder draw
 silent to a casual glance: the section still renders, still validates, and still reports a
 plausible-looking (if generic) confidence — nothing crashes, and nothing but the missing
 image and the one warning above says the drawing had a media panel at all.
+
+---
+
+## B-018 · Re-testing B-013's fixed vocabulary against three new archetypes, under a rate-limited key
+
+**Date:** 2026-08-24 · **Status:** CONFIRMS B-013's ceiling on new inputs; the rate-limit
+half is REPORTED, not a structural finding · **VERIFIED** (run on our hardware) / **REPORTED**
+(hosted-model behaviour when it is not rate-limited)
+
+### What was tested
+
+Five wireframes through the real Studio UI (`/generate` → upload → `/preview/:pageName`),
+with `CRITIC_LOOP=on` actually running this time (the missing-`puppeteer` fix earlier tonight
+means this is the first session where it does): `pricing-three-tier.png` (three independent
+price cards — title, price, a 3-item bullet list, a button, each), `signin-panel.png` (B-017's
+file — headline, subline, two labelled inputs, a checkbox, a button), `testimonials-carousel.png`
+(three cards — a quote, an avatar, a name, a title, each), `wireframe-sketch-09.jpg` (a
+hand-drawn multi-block category/post listing page — several unrelated card grids, not a
+single hero shape at all), and `demo_wf1.png` (the reference-shaped fitness wireframe).
+
+### What actually happened: every run hit the rate limit named in this session's brief
+
+All five generations returned `ok: true` (perception itself always succeeded — 9 to 139
+regions detected per image) but every one carries `"critic did not run at iteration 1: model
+provider returned 429"` and, for four of the five, `"semanticsReason": "model provider
+returned 429"` too. The hosted VLM region-reader (`perception/stages/read_regions.py`) is the
+**only** text-reading path available on this machine — `paddleocr` is not installed here
+(deliberately, per this project's constraints) — so a 429 on that call is not a degraded
+read, it is no read at all: "The hosted reader could not read 3 of 3 region(s)." With no text
+read and no model available to rename regions, `wireframeSemantics.js` has nothing to promote,
+and every one of these five generations came back as **byte-identical reference-template
+copy** — "PULSE FIT", "CHALLENGE YOUR LIMITS", the fitness stat cards — regardless of which
+wireframe was uploaded. Diffing the five emitted `.jsx` files against each other confirms
+this: only the field IDs and the source-IR comment differ.
+
+**This is §12's documented degradation contract working correctly, not a new defect.**
+AGENTS.md rule 5 requires the deterministic path to always work with no key/GPU/network
+available; a rate-limited key is the same "hosted model unusable" case the contract already
+names, and the pipeline did exactly what §12 prescribes — degrade, warn, continue — rather
+than failing the job. Treating this session's fallback-to-template result as a measurement of
+the hosted path's real behaviour would be the mistake this task's own brief warned against.
+
+### What this session COULD confirm about B-013's ceiling
+
+Independent of the rate limit: none of the three new archetypes' distinguishing content has
+**any** slot in the fixed 7-element vocabulary (`heroImage, brandBadge, headlineMain,
+headlineSub, description, statBadges, ctaButton`) B-013 named. A pricing tier's own price and
+bullet list, a form's labelled inputs and checkbox, and a testimonial's quote/avatar/name are
+all shapes `wireframeSemantics.js` can at best rename an existing slot *into* (per B-013's own
+measured example: a login wireframe renamed to `brandArtwork, formTitle, welcomeHeadline,
+emailField`) — it cannot invent a second or third instance of a slot, and nothing in the IR
+schema (§6) has a place for "checkbox" or "bullet list item" at all. A three-tier pricing
+table has three independent prices and three independent lists; the reference IR has room for
+one `description` and one `statBadges` loop. Even a perfect hosted read of
+`pricing-three-tier.png` could rename at most one tier's worth of content into the existing
+slots — the other two tiers have nowhere in the schema to go. **This is the same structural
+ceiling B-013 already named, now confirmed against three archetypes further from the
+reference shape than the one B-013 measured**, not a new mechanism.
+
+### Not established this session
+
+Whether `wireframeSemantics.js`'s renaming, given a working hosted call, would produce a
+*reasonable single-tier* pricing card, a *reasonable* sign-in form (mapping the two inputs
+and checkbox into `description`/`statBadges` some approximate way), or would instead decline
+and fall back cleanly (as B-013's own suite tests for "a slot perception never detected is
+ignored, not appended"). The rate limit prevented every attempt this session; this is a real
+open question for whoever re-runs this once the key is not rate-limited, not something this
+session's numbers can answer either way.
+
+### The honest line for a demo operator
+
+A wireframe whose content is a close relative of the reference split-hero (one hero image,
+one headline/subhead/description, one CTA, optionally a stat row) is the safe, well-covered
+case. A wireframe built around a **fundamentally different repeating structure that needs
+more than one instance of an unaddressed field** — a pricing table's per-tier fields, a
+form's per-field inputs, a testimonial's per-card quote — will not get those fields invented,
+whether or not the hosted model is reachable; that is a scope boundary in the IR schema
+itself (§6), not a bug in the renaming layer sitting in front of it.
