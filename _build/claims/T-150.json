@@ -1,0 +1,11 @@
+{
+  "taskId": "T-150",
+  "who": "Mohit Gupta",
+  "device": "Mohits_Victus",
+  "claimedAt": "2026-08-23T12:14:54.542Z",
+  "status": "dropped",
+  "takenFrom": null,
+  "takenAt": null,
+  "why": "Deprioritised at 16 hours to deadline. OpenCV is already 7/7 on B-003 and 7/7 geometry + 4/4 text on B-004, so training can at best match it; three learned models already scored 0/7 (B-001 Florence-2, B-002 DETR, B-006 hosted VLM) and PS7 §5.2 puts training out of scope. The rubric's weight is elsewhere: Input coverage (20) and CMS contract (25) both live in IR generation, which is where the remaining hours go. Owner decision, recorded.",
+  "droppedAt": "2026-08-23T12:21:38.751Z"
+}

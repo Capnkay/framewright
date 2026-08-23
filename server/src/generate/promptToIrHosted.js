@@ -74,6 +74,14 @@ import { callModel as orchestratorCallModel } from '../models/orchestrator.js';
 // whatever its value looks like.
 const TOKEN_KEY = /^[A-Za-z][A-Za-z0-9]*$/;
 
+// A bare JS identifier — what `const ids` keys and JSX references both require.
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+// Below this a model response is not a section. The instruction asks for 5 to 9; this
+// is that floor with slack, and it is the difference between a bespoke section and a
+// component with nothing in it to edit.
+const MIN_PLACED_ELEMENTS = 3;
+
 /**
  * pinCallerFields(candidate, caller) -> { pinned, warnings }
  *
@@ -151,9 +159,251 @@ function repairDesignTokenKeys(ir) {
   return warnings;
 }
 
+/**
+ * repairElementNames(ir) -> warnings
+ *
+ * Mutates `ir` in place so every `elementName` is a bare camelCase identifier, and
+ * returns one warning per name rewritten.
+ *
+ * Why this is required rather than cosmetic: `elementName` is not just a label. §9's
+ * `const ids` map is emitted as `{ <elementName>: '<fieldId>' }`, so a name the model
+ * wrote as "Card Header" emits `Card Header: '2000000546'` — a syntax error that makes
+ * the whole component unparseable. Measured on a live Bedrock run (B-012): a pricing
+ * prompt produced eleven elements, seven of them multi-word, and stage 6 failed on a
+ * parse error while the elements themselves had already been allocated real IDs and
+ * persisted. The store was fine; the component could not be loaded.
+ *
+ * The rewrite must reach every reference in the same pass. `layout.regions[].children`
+ * and `cards.of` address elements BY NAME, so renaming the element alone would leave the
+ * emitter looking up a child that no longer exists and silently rendering nothing —
+ * which is exactly the failure mode rule 2 exists to catch, since a region that renders
+ * no children still compiles and still looks plausible.
+ *
+ * Collisions are resolved by suffixing rather than dropping. Two distinct elements that
+ * normalise to the same identifier ("Feature Item" and "feature item") are two distinct
+ * fieldIds in the store, and merging them would silently lose one editable field.
+ */
+function repairElementNames(ir) {
+  const warnings = [];
+  if (!Array.isArray(ir.elements)) return warnings;
+
+  const rename = new Map();          // original -> normalised
+  const taken = new Set();
+
+  for (const element of ir.elements) {
+    const original = element && typeof element.elementName === 'string' ? element.elementName : '';
+    if (!original) continue;
+    if (IDENTIFIER.test(original)) {
+      taken.add(original);
+      continue;
+    }
+    let candidate = toIdentifier(original);
+    if (!candidate) candidate = 'field';
+    let unique = candidate;
+    let n = 2;
+    while (taken.has(unique)) unique = `${candidate}${n++}`;
+    taken.add(unique);
+    rename.set(original, unique);
+    element.elementName = unique;
+    warnings.push(
+      `Model named an element ${JSON.stringify(original)}, which is not a valid identifier and would emit an unparseable \`ids\` map (§9); renamed to ${JSON.stringify(unique)}.`,
+    );
+  }
+
+  if (!rename.size) return warnings;
+
+  // Every by-name reference, rewritten in the same pass. See the note above.
+  if (ir.layout && Array.isArray(ir.layout.regions)) {
+    for (const region of ir.layout.regions) {
+      if (!region || !Array.isArray(region.children)) continue;
+      region.children = region.children.map(name => rename.get(name) ?? name);
+    }
+  }
+  if (ir.cards && typeof ir.cards === 'object' && !Array.isArray(ir.cards)) {
+    if (rename.has(ir.cards.of)) ir.cards.of = rename.get(ir.cards.of);
+  }
+
+  return warnings;
+}
+
+/** "Card Header" -> "cardHeader"; "icon-check" -> "iconCheck"; "2 cols" -> "cols". */
+function toIdentifier(raw) {
+  const words = String(raw)
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+|(?<=[a-z0-9])(?=[A-Z])/)
+    .filter(Boolean);
+  if (!words.length) return '';
+  const joined =
+    words[0].toLowerCase() +
+    words.slice(1).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
+  // Trim any leading digits LAST, so that "2 cols" yields "cols" and not "Cols" — the
+  // capitalisation belongs to the second word only while it is still the second word.
+  const trimmed = joined.replace(/^[0-9]+/, '');
+  return /^[A-Za-z_$]/.test(trimmed) ? trimmed.charAt(0).toLowerCase() + trimmed.slice(1) : '';
+}
+
+/**
+ * repairReferences(ir) -> { warnings, viable }
+ *
+ * The IR schema checks SHAPES, not REFERENCES. `layout.regions[].children` and
+ * `cards.of` address elements by name, and nothing in §6's schema requires those names
+ * to exist — so a model can return an IR that validates perfectly and is still
+ * unrenderable. Measured on a live Bedrock pricing run (B-012):
+ *
+ *   elements : starter:Cards, team:Cards, scale:Cards
+ *   regions  : [{children:["heading","subheading"]}, {children:["starter","team","scale"]}]
+ *   cards.of : "responsive"
+ *
+ * Neither "heading" nor "subheading" nor "responsive" was an element. The job reported
+ * seven green stages, the component compiled, and it emitted `id={ids.responsive}` —
+ * undefined — with not one `data?.[ids.x] || "DEFAULT"` binding in it. A section that
+ * compiles and is not bound to the store is precisely the failure AGENTS.md rule 2
+ * exists to catch, and it is the 25-point criterion.
+ *
+ * So references are repaired here, deterministically, rather than hoped for in a prompt.
+ * A better prompt raises the hit rate; only this guarantees the floor.
+ *
+ * `viable: false` means the repair could not leave a single element placed in a region.
+ * The caller treats that as a model failure and falls back to the deterministic path —
+ * a template section that works beats a bespoke one that renders nothing.
+ */
+function repairReferences(ir) {
+  const warnings = [];
+  const byName = new Map(
+    (Array.isArray(ir.elements) ? ir.elements : [])
+      .filter(e => e && typeof e.elementName === 'string')
+      .map(e => [e.elementName, e]),
+  );
+  if (!byName.size) return { warnings, viable: false };
+
+  // 1. cards.of must name a real element, and that element must be the Cards one.
+  if (ir.cards && typeof ir.cards === 'object' && !Array.isArray(ir.cards)) {
+    if (!byName.has(ir.cards.of)) {
+      const cardsElements = [...byName.values()].filter(e => e.contentType === 'Cards');
+      if (cardsElements.length === 1) {
+        warnings.push(
+          `Model set cards.of to ${JSON.stringify(ir.cards.of)}, which is not an element; repointed at the only Cards element, ${JSON.stringify(cardsElements[0].elementName)}.`,
+        );
+        ir.cards.of = cardsElements[0].elementName;
+      } else {
+        // No unambiguous owner. Dropping the loop is the safe move, but the elements
+        // it would have owned must stop claiming to be Cards or the emitter will try
+        // to iterate a collection that no longer exists.
+        warnings.push(
+          `Model set cards.of to ${JSON.stringify(ir.cards.of)}, which is not an element, and ${cardsElements.length} elements claim contentType Cards, so there is no unambiguous owner; the card loop was dropped and those elements were treated as Text.`,
+        );
+        delete ir.cards;
+        for (const element of cardsElements) element.contentType = 'Text';
+      }
+    }
+  }
+
+  // 2. A region child that names no element renders nothing. Drop it, keep the rest.
+  let placed = 0;
+  if (ir.layout && Array.isArray(ir.layout.regions)) {
+    for (const region of ir.layout.regions) {
+      if (!region || !Array.isArray(region.children)) continue;
+      const kept = [];
+      for (const name of region.children) {
+        if (byName.has(name)) kept.push(name);
+        else warnings.push(`Model placed ${JSON.stringify(name)} in a region but declared no such element; the reference was dropped.`);
+      }
+      region.children = kept;
+      placed += kept.length;
+    }
+  }
+
+  // 3. An element declared but placed nowhere is an allocated, paid-for field that no
+  //    one can edit. Append the orphans to the last region rather than lose them.
+  const referenced = new Set(
+    (ir.layout && Array.isArray(ir.layout.regions) ? ir.layout.regions : [])
+      .flatMap(r => (r && Array.isArray(r.children) ? r.children : [])),
+  );
+  const orphans = [...byName.keys()].filter(n => !referenced.has(n));
+  if (orphans.length && ir.layout && Array.isArray(ir.layout.regions) && ir.layout.regions.length) {
+    const last = ir.layout.regions[ir.layout.regions.length - 1];
+    last.children = [...(Array.isArray(last.children) ? last.children : []), ...orphans];
+    placed += orphans.length;
+    warnings.push(
+      `Model declared ${orphans.length} element(s) it placed in no region (${orphans.map(o => JSON.stringify(o)).join(', ')}); appended to the last region so they remain editable.`,
+    );
+  }
+
+  // "At least one element survived" is too weak a floor, and that was measured too: a
+  // testimonial prompt came back as a single Cards element, passed a placed > 0 gate,
+  // and emitted a section with a card loop and NOT ONE editable text binding. It
+  // compiled, it rendered, and there was nothing in it a CMS editor could change —
+  // worth zero of the 25 points and indistinguishable from success in the stage trace.
+  //
+  // So the floor is what the instruction already asks the model for, with slack: enough
+  // elements to be a section, and at least one of them a plain field rather than a
+  // collection, since a lone Cards element binds nothing on its own.
+  const placedNames = new Set(
+    (ir.layout && Array.isArray(ir.layout.regions) ? ir.layout.regions : [])
+      .flatMap(r => (r && Array.isArray(r.children) ? r.children : [])),
+  );
+  const hasPlainField = [...placedNames].some(n => {
+    const element = byName.get(n);
+    return element && element.contentType !== 'Cards';
+  });
+  const viable = placed >= MIN_PLACED_ELEMENTS && hasPlainField;
+  if (!viable) {
+    warnings.push(
+      `Model IR placed ${placed} element(s) with ${hasPlainField ? 'no' : 'only a collection and no'} editable field; below the floor for a usable section.`,
+    );
+  }
+
+  return { warnings, viable };
+}
+
 // §16.2 — default 30 s, hard ceiling 60 s, inherited from NFR-02's budget.
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const MAX_TIMEOUT_MS = 60_000;
+
+/**
+ * The instruction sent with every prompt-to-IR call.
+ *
+ * Every rule below is here because a live Bedrock run broke it (B-012), not because it
+ * seemed like good advice. The schema already constrains the SHAPE of the response; none
+ * of these are shape problems, which is exactly why `strict: true` did not catch them:
+ *
+ *   - "Card Header"          — a name that is not an identifier, emitting an unparseable
+ *                              `const ids` map and taking the whole component with it
+ *   - children: ["heading"]  — a region child naming an element that was never declared
+ *   - cards.of: "responsive" — a card loop over an element that does not exist
+ *   - default: "true"        — a boolean where display copy belongs
+ *   - three elements typed Cards, with no single owner for the loop
+ *
+ * The repair functions in this module fix all five deterministically, so the floor holds
+ * whether or not the model reads this. This raises the ceiling: repaired IR is correct
+ * but lossy — a dropped region child is a layout the user described and did not get.
+ */
+const SYSTEM_PROMPT = [
+  'You convert a description of a web page section into Framewright IR: a JSON object',
+  'describing the section as editable content fields plus a layout that arranges them.',
+  '',
+  'Rules, all of which matter:',
+  '',
+  '1. elementName must be a bare camelCase identifier: headlineMain, tierCards, ctaButton.',
+  '   Never a phrase, never spaces or punctuation. It is emitted as a JavaScript key.',
+  "2. Every element you declare must appear in exactly one region's children array, and",
+  '   every name in a children array must be an element you declared. Names are how',
+  '   regions and elements are connected; a name on one side only renders nothing.',
+  '3. default is the real display copy a visitor would read: "Start free today", not',
+  '   "true", not "text", not a placeholder. This is the content a CMS editor will edit,',
+  '   so write it as if it were shipping.',
+  '4. Use Cards for a repeating group — pricing tiers, feature cards, testimonials. Declare',
+  "   ONE element with contentType Cards, set cards.of to that element's name, set count to",
+  '   the number of repeats, and fill cards.items with one object per repeat carrying real',
+  '   copy. Do not declare one element per repeat.',
+  '5. Produce 5 to 9 elements. Fewer is not a section; more is not a section either.',
+  '6. Never invent an id, fieldId, sectionId or elementId. Those are allocated elsewhere',
+  '   and any you supply will be discarded.',
+  '',
+  'Match the section the user actually asked for. A request for a pricing table must not',
+  'come back as a hero, and the copy must be about their subject, not a generic example.',
+].join('\n');
 
 export const PURPOSE = 'prompt-to-ir';
 
@@ -234,6 +484,7 @@ export async function promptToIrHostedWithMeta(prompt, options = {}) {
     response = await callModel({
       purpose: PURPOSE,
       input: prompt,
+      system: SYSTEM_PROMPT,
       schema: irSchema,
       timeoutMs: clampTimeout(timeoutMs),
     });
@@ -267,7 +518,12 @@ export async function promptToIrHostedWithMeta(prompt, options = {}) {
   // a repair rather than a rejection.
   const { pinned, warnings: pinWarnings } = pinCallerFields(candidate, callerFields);
   const tokenWarnings = repairDesignTokenKeys(pinned);
-  const repairWarnings = [...pinWarnings, ...tokenWarnings];
+  const nameWarnings = repairElementNames(pinned);
+  // Names are normalised BEFORE references are checked, so that a region child written
+  // as "Card Header" is compared against the already-renamed "cardHeader" and not
+  // reported as dangling by the very step that renamed it.
+  const { warnings: refWarnings, viable } = repairReferences(pinned);
+  const repairWarnings = [...pinWarnings, ...tokenWarnings, ...nameWarnings, ...refWarnings];
 
   // §16.2 — output is validated against the schema before it is returned.
   // An invalid response is a failure, not a value. Validated AFTER pinning:
@@ -279,6 +535,19 @@ export async function promptToIrHostedWithMeta(prompt, options = {}) {
     const first = result.errors[0];
     const detail = first ? `${first.path}: ${first.message}` : 'unknown schema error';
     return fallback(keyless(), `model output failed IR validation (${detail})`, meta);
+  }
+
+  // The viability gate sits AFTER schema validation deliberately. A response that is
+  // malformed at the shape level — `elements: "not-an-array"` — must fall back with the
+  // SCHEMA's reason, which names the offending field, and not with this module's much
+  // vaguer "nothing was placed". Same principle as pinning being validated afterwards:
+  // report the underlying failure, not the symptom the last step happened to see.
+  if (!viable) {
+    return fallback(
+      keyless(),
+      'model IR left too few placed elements to form an editable section (§9)',
+      meta,
+    );
   }
 
   if (repairWarnings.length) {

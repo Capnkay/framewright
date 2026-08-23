@@ -1099,3 +1099,98 @@ in the right words, which is the distinction EC-015 exists for.
 on screen that is indistinguishable from the upload having been ignored. Upload a wireframe
 with words written in it, and crop to the one section you want generated.
 
+
+## B-012 — Why every prompt produced the same fitness hero, and what it took to fix
+
+**Question.** Three semantically different prompts were sent to the live API and returned
+**byte-identical output** — a pricing table, a testimonial section and a hero all came back
+as the Pulse Fit split hero with the headline `CHALLENGE YOUR LIMITS`. Why?
+
+**Not the reason it looked like.** The obvious suspect was `promptToIrKeyless`, a keyword
+matcher over one reference template. That is a real limit, but it was not the cause. Two
+measurements ruled it out:
+
+| what was tested | result |
+|---|---|
+| `emitComponent` given a hand-built pricing IR | rendered it — 4,507 chars, custom element names, working `.map()` card loop |
+| `promptToIrHostedWithMeta` called in-process with the key | `usedPath: hosted`, 9.1 s, elements `Card-Header, Tier-Price, Feature-Item, Button, Card-Footer` |
+
+Both halves worked. The emitter is generic and the model produces varied IR. The API did
+not, because **`npm run server` never loaded `.env`** — the process had no key, so every
+hosted path took its documented fallback, silently and correctly. T-151.
+
+Note the shape: this is the same defect as the seven "capability built, call never made"
+gaps recorded elsewhere in this file, one level down. Nothing was unwired; the *credential*
+was.
+
+**What loading the key exposed.** The hosted path had never been exercised end to end over
+HTTP. It produced IR that passed `strict: true` structured output and full §6 schema
+validation and was still unrenderable. From one live Bedrock pricing run:
+
+```
+elements : starter:Cards, team:Cards, scale:Cards
+regions  : [{children:["heading","subheading"]}, {children:["starter","team","scale"]}]
+cards.of : "responsive"
+```
+
+Neither `heading` nor `subheading` nor `responsive` was ever declared as an element. A
+second run named elements `Card Header`, `Pricer Label`, `Icon Check`. Five distinct
+defects, none of them shape defects — which is exactly why the schema caught none:
+
+| defect | consequence |
+|---|---|
+| `elementName` with a space | `const ids` emits `Card Header: '2000000546'` — the component does not parse |
+| region child naming no element | that child renders nothing |
+| `cards.of` naming no element | emits `id={ids.responsive}` — `undefined` |
+| `default: "true"` | a boolean where display copy belongs |
+| three elements typed `Cards` | no unambiguous owner for the loop |
+
+**A sixth defect, found by the fifth.** Stage 6 reported `failed` with the single warning
+`Cannot read properties of null (reading 'addWarning')`. `runStage` invokes
+`run(input, ctx)` — the context is the **second** argument, and stage 6 bound it as the
+first. So the stage threw on its first `addWarning` and therefore **passed only when
+validation had nothing whatsoever to say**, and failed on every run that produced a
+warning. The inverse of its purpose, and invisible while the reference template was the
+only thing ever generated, because that template never produces a warning.
+
+**The fix, in three parts.** Repair deterministically, then instruct.
+
+1. `repairElementNames` — normalise to camelCase identifiers, rewriting
+   `layout.regions[].children` and `cards.of` in the same pass. Collisions get a numeric
+   suffix rather than being merged: two names that normalise alike are two fieldIds, and
+   merging them loses an editable field.
+2. `repairReferences` — drop dangling children, repoint or drop an ownerless `cards.of`,
+   and append orphaned elements to the last region rather than leave an allocated field
+   that nobody can edit.
+3. A **system prompt**, threaded through the orchestrator, whose every rule is one of the
+   failures above. The orchestrator previously sent one bare user message and a JSON
+   schema — no instruction at all.
+
+**The viability floor, and why `placed > 0` was not enough.** With repairs in place a
+testimonial prompt returned a single `Cards` element. It passed a "something survived"
+gate, compiled, rendered a card loop, and contained **not one editable text binding** — a
+section worth zero of the 25 CMS points and indistinguishable from success in the stage
+trace. The floor is now three placed elements including at least one non-`Cards` field;
+below that the job falls back to the deterministic path. A template section that works
+beats a bespoke one that renders nothing.
+
+**Result.** Six prompts over HTTP, all seven stages `ok`:
+
+| prompt | elements emitted | text bindings |
+|---|---|---|
+| pricing, three tiers | `headlineMain, subheadline, tierCard, ctaButton` | 4 + card loop |
+| coffee roastery hero | `headlineMain, subheadline, ctaButton, statsGroup, statCard` | 4 + card loop |
+| testimonial + rating | `testimonialQuote, authorRow, testimonialItem, avatar, authorDetails, starRating` | 4 |
+| FAQ, four questions | `faqHeader, faqCard, faqCard{1..4}{Question,Answer}` | 9 |
+| newsletter signup | *fell back to the reference template* | 7 |
+
+Copy is about the subject asked for — "Handcrafted Coffee, Roasted to Perfection",
+"Simple, transparent pricing that scales with you" — not the template's.
+
+**Latency is the honest caveat.** Measured wall-clock over ten hosted runs: 3.8 s, 5.7 s,
+10.5 s, 10.9 s, 11.2 s, 12.0 s, 12.4 s, 13.3 s, 22.1 s, 38.3 s, with two runs hitting the
+60 s ceiling and falling back. NFR-02's budget is 30 s default and 60 s ceiling, so the
+fallback is behaving as specified — but roughly one run in six does not get its bespoke
+section. Prompt mode without a key remains ~0.3 s.
+
+**Suites after the change:** 739 Node, 0 failing. §9 store-liveness: all five steps.

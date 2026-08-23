@@ -445,7 +445,13 @@ export async function postGenerate(ctx = {}) {
     const { check } = createValidateAndRecover();
     await trace.runStage(job.jobId, {
       stage: 6,
-      run: async (ctxStage) => {
+      // `runStage` invokes `run(input, ctx)` — the context is the SECOND argument.
+      // Binding it as the first bound stage 6's `input` (null on this stage) instead,
+      // so the very first `ctxStage.addWarning(...)` threw and the stage reported
+      // "failed" with the TypeError as its only warning. It therefore passed only when
+      // validation had nothing whatsoever to say, and failed on every run that produced
+      // a warning — the inverse of what it was written to do. T-152.
+      run: async (_input, ctxStage) => {
         const result = await check(s5.output);
         for (const warning of result.warnings || []) ctxStage.addWarning(warning);
         if (!result.ok) {

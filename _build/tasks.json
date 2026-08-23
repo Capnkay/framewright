@@ -3091,6 +3091,66 @@
       ],
       "verify": "node --test tests/generate-code-mode.test.mjs",
       "doneWhen": "buildFormData derived the mode purely from which fields were filled - code and prompt gave combined, code alone gave code, otherwise prompt - so a user who selected Combined and typed only a prompt sent mode=prompt. The selector said one thing and the request said another with nothing telling anyone. FR-G04's rule is that a control which does not apply is HIDDEN rather than present-and-ignored, because a visible input that is silently dropped is worse than no input at all; silently rewriting the mode is that rule broken one level up. Done when the selected mode is sent, when the derivation survives as a fallback for CodePromptInputs which passes none, and when §13's own validation is what refuses a mismatch - it already does so with a message naming all three inputs."
+    },
+    {
+      "id": "T-150",
+      "phase": 6,
+      "track": "perception",
+      "size": "3h",
+      "title": "Train a detector on synthetic wireframes and measure whether it beats OpenCV contours",
+      "contract": [
+        "§10",
+        "§12"
+      ],
+      "deps": [
+        "T-149"
+      ],
+      "files": [
+        "perception/benchmarks/train_detector.py",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": null,
+      "doneWhen": "ATTEMPTED WITH THE OBJECTION ON RECORD. Three learned models have already been measured on this problem and all three scored 0 of 7: Florence-2 (B-001), DETR across four thresholds (B-002), and a hosted VLM over three runs (B-006), against OpenCV contours at 7 of 7. PS7 §5.2 also puts training out of scope. This is attempted anyway at the owner's explicit direction, after that evidence was presented. THE SHIP RULE IS FIXED IN ADVANCE AND IS NOT NEGOTIABLE AFTERWARDS: it replaces detect_regions only if it scores at least 7 of 7 on B-003's targets at IoU 0.5 AND does not reduce B-004's 7 of 7 geometry or 4 of 4 text. Anything else is written up as a measured negative result and nothing ships. Data is SYNTHETIC and generated here - the only labelled set obtainable today without licensing risk, and it gives exact ground truth - so the experiment is explicitly a transfer question: trained on generated wireframes, evaluated on the real photograph every other number in this project comes from. B-009 already measured that synthetic images have different detection characteristics, so a good score on held-out synthetic data proves nothing and must not be reported as if it did."
+    },
+    {
+      "id": "T-151",
+      "phase": 6,
+      "track": "generation",
+      "size": "1h",
+      "title": "The API never loaded .env, so every hosted path silently took the deterministic fallback",
+      "contract": [
+        "§16.2"
+      ],
+      "deps": [],
+      "files": [
+        "server/src/loadEnvFile.js",
+        "server/src/server.js"
+      ],
+      "verify": null,
+      "doneWhen": "npm run server logs the names of the env keys it loaded, and a prompt-mode job with a key present takes the hosted path. AGENTS.md rule 5 unchanged: no key still generates."
+    },
+    {
+      "id": "T-152",
+      "phase": 6,
+      "track": "generation",
+      "size": "3h",
+      "title": "Hosted IR validates against the schema and is still unrenderable: bad names, dangling references, no editable field",
+      "contract": [
+        "§6",
+        "§9",
+        "§18.2"
+      ],
+      "deps": [
+        "T-151"
+      ],
+      "files": [
+        "server/src/generate/promptToIrHosted.js",
+        "server/src/models/orchestrator.js",
+        "server/src/routes/generate.js",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": null,
+      "doneWhen": "Three semantically different prompts produce three different CMS-bound sections over HTTP, each with at least one getTextValue binding and seven ok stages. Model IR that cannot reach that floor falls back to the deterministic path rather than emitting an unbound component."
     }
   ]
 }

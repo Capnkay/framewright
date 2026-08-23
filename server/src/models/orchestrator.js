@@ -129,7 +129,7 @@ async function withTimeout(fn, timeoutMs) {
  * orchestrator's logic without a network, and so that swapping providers is a
  * change to one function rather than to every call site.
  */
-async function defaultTransport({ baseUrl, apiKey, model, input, schema, signal, fetchImpl }) {
+async function defaultTransport({ baseUrl, apiKey, model, input, schema, system, signal, fetchImpl }) {
   const response = await fetchImpl(`${String(baseUrl).replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
     signal,
@@ -139,7 +139,14 @@ async function defaultTransport({ baseUrl, apiKey, model, input, schema, signal,
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: 'user', content: String(input) }],
+      // A system message when the caller supplies one. It was not optional in
+      // practice: with only the bare user prompt and a JSON schema, the model returned
+      // IR that validated and was unusable — dangling region children, a cards.of
+      // naming no element, and a Text default of "true" (B-012). The schema constrains
+      // shape; only an instruction constrains meaning.
+      messages: system
+        ? [{ role: 'system', content: String(system) }, { role: 'user', content: String(input) }]
+        : [{ role: 'user', content: String(input) }],
       response_format: {
         type: 'json_schema',
         json_schema: { name: 'structured_output', strict: true, schema },
@@ -193,14 +200,14 @@ export function createOrchestrator(deps = {}) {
   } = deps;
 
   /**
-   * callModel({ purpose, input, schema, timeoutMs })
+   * callModel({ purpose, input, schema, system, timeoutMs })
    *   -> { ok: true, value, meta } | { ok: false, error, meta }
    *
    * Never throws. §16.2: "On final failure the orchestrator returns
    * { ok: false }. The caller falls back to the deterministic path — it never
    * propagates the failure to the user as a crash."
    */
-  async function callModel({ purpose, input, schema, timeoutMs } = {}) {
+  async function callModel({ purpose, input, schema, system, timeoutMs } = {}) {
     const started = now();
     const model = env.LLM_MODEL || DEFAULT_MODEL;
 
@@ -233,7 +240,7 @@ export function createOrchestrator(deps = {}) {
       let value;
       try {
         value = await withTimeout(
-          (signal) => transport({ baseUrl, apiKey, model, input, schema, signal, fetchImpl, purpose }),
+          (signal) => transport({ baseUrl, apiKey, model, input, schema, system, signal, fetchImpl, purpose }),
           budget,
         );
       } catch (err) {
