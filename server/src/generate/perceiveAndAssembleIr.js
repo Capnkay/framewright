@@ -38,12 +38,26 @@ export const DEFAULT_PERCEIVE_URL = 'http://127.0.0.1:8000';
 
 /**
  * §12 does not name a timeout, but "times out" is listed as a degradation trigger,
- * so one has to exist or that clause is unreachable. 20s is chosen against measured
- * behaviour: stage 3b's OCR worker is a cold subprocess start plus CPU inference,
- * which runs a few seconds on a wireframe (EC-014). Short enough that a dead service
- * does not stall a demo, long enough that a working one is not cut off mid-read.
+ * so one has to exist or that clause is unreachable.
+ *
+ * THIS WAS 20s, TUNED AGAINST A WIREFRAME, and that was too narrow an assumption
+ * about the input. PS7 §5.1 says "wireframe image" without qualification, and the
+ * hand-drawn photograph this was measured on is one example rather than the
+ * definition. A judge may upload a screenshot of a real interface — dense text,
+ * borders and icons everywhere — and measured on one of those, stage 3b's OCR
+ * alone takes 15.2s of a 15.4s run. Through HTTP, with the worker's cold start on
+ * top, that crossed 20s and the whole generation degraded to the deterministic
+ * path: the user uploaded a screenshot and got the reference template back.
+ *
+ * 30s is NOT a fresh guess. It is NFR-02's own default for a model call, already
+ * documented in the contract's own table (30s default, 60s hard ceiling), so this
+ * stops being tighter than the budget the project already states.
+ *
+ * Still short enough that a dead service does not stall a demo — §12's whole point
+ * is that the pipeline continues either way, and T-142's fallback means a hung
+ * reader is not the only thing standing between a user and a result.
  */
-export const DEFAULT_TIMEOUT_MS = 20000;
+export const DEFAULT_TIMEOUT_MS = 30000;
 
 /** The sub-objects §12 says come from the response, and nothing else. */
 const RESPONSE_OWNED = ['layout', 'theme', 'cards', 'elements'];

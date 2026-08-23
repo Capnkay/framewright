@@ -3051,6 +3051,25 @@
       ],
       "verify": null,
       "doneWhen": "A second image was supplied for re-measuring B-003/B-004. It is not a hand-drawn wireframe - it is a stock vector illustration of six browser mockups, flat grey rectangles on blue, with no handwriting and no text anywhere. Scoring it against those benchmarks would measure the annotations rather than the pipeline, because their seven targets name HEADLINE, SUBMIT and LABEL and none of them exist in it. So it was used for the question it CAN answer, which a judge may well ask by accident: what happens when someone uploads something unexpected. Done when that run is written up with what it got right and what it could not do, and when the demo guidance says plainly that an image with no handwriting produces the reference template - correctly, and indistinguishably from a failure unless you read the warnings."
+    },
+    {
+      "id": "T-148",
+      "phase": 6,
+      "track": "api-glassbox",
+      "size": "30m",
+      "title": "The perception timeout was tuned for a hand-drawn wireframe, so a screenshot degrades",
+      "contract": [
+        "§12",
+        "NFR-02"
+      ],
+      "deps": [
+        "T-147"
+      ],
+      "files": [
+        "server/src/generate/perceiveAndAssembleIr.js"
+      ],
+      "verify": "node --test tests/generate-wireframe-mode.test.mjs",
+      "doneWhen": "PS7 section 5.1 says 'wireframe image' with no qualifier. DEFAULT_TIMEOUT_MS was 20000 and its own comment justified it as 'a few seconds on a wireframe' - an assumption about the input, not about the contract, and the comment also states plainly that section 12 does not name a timeout. Measured on a screenshot of a real interface: stage 3b's OCR alone takes 15.2s of a 15.4s in-process run, and through HTTP with the worker's cold start it crossed 20s, so the whole generation degraded and the user got the reference template back from a perfectly good upload. Done when the timeout matches NFR-02's own documented budget of 30s rather than being tighter than the number the contract already states, and when the same screenshot completes without degrading."
     }
   ]
 }

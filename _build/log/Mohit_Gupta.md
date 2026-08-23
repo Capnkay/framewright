@@ -435,3 +435,10 @@
 - Files: docs/BENCHMARK-RESULTS.md
 - Note: Not a hand-drawn wireframe; used for robustness instead of accuracy, and the one-image limitation still stands.
 
+## T-148 — The perception timeout was tuned for a hand-drawn wireframe, so a screenshot degrades
+- Started: 2026-08-23T11:55:36.614Z
+- Finished: 2026-08-23T11:55:56.792Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: server/src/generate/perceiveAndAssembleIr.js
+
