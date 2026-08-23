@@ -39,6 +39,7 @@ import { fileURLToPath } from 'node:url';
 import { fetchSubset, CACHE_DIR } from './fetch.mjs';
 import { scoreSample, aggregate } from './textFidelity.mjs';
 import { loadEnvFile } from '../../server/src/loadEnvFile.js';
+import { callModel, FAILURE } from '../../server/src/models/orchestrator.js';
 import promptToIrKeyless from '../../server/src/generate/promptToIrKeyless.js';
 import { emitComponent } from '../../server/src/generate/emitComponent.js';
 import { runCriticLoop } from '../../server/src/quality/criticLoop.js';
@@ -60,30 +61,40 @@ const BASE_PROMPT = 'a split hero section with 3 stats and a call to action';
 loadEnvFile();
 
 /**
- * The critic arm is worthless without a key, and its failure mode is a
- * plausible number rather than an error. So this refuses to run that arm at all
- * rather than produce one — a benchmark that cannot tell "the critic did
+ * Is the critic actually reachable?
+ *
+ * ASKS THE ORCHESTRATOR RATHER THAN READING THE ENVIRONMENT. §16.2 permits
+ * exactly one module to read the model credentials, and
+ * tests/model-orchestrator.test.mjs greps the tree to keep it that way — an
+ * earlier version of this guard checked the key here directly and failed that
+ * test, correctly. A probe call answers the same question without this file
+ * knowing what a credential is: the orchestrator returns kind NO_KEY, without
+ * opening a socket, when there is nothing configured.
+ *
+ * WHY GUARD AT ALL. The critic arm's failure mode is a plausible number rather
+ * than an error: with no key every call returns NO_KEY instantly and the
+ * harness reports 0% groundedness across every sample. That happened here — a
+ * 50-sample background run inherited no environment and produced a clean-looking
+ * result that measured nothing. A benchmark that cannot tell "the critic did
  * nothing" from "the critic was never called" is worse than no benchmark.
  */
-function assertCriticIsReachable() {
-  if (!process.env.LLM_API_KEY) {
+async function assertCriticIsReachable() {
+  const probe = await callModel({
+    purpose: 'benchmark-preflight',
+    input: 'Reply with {"ok":true}.',
+    schema: { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'] },
+    timeoutMs: 20000,
+  });
+
+  if (probe.ok) return;
+  if (probe.kind === FAILURE.NO_KEY) {
     throw new Error(
-      'LLM_API_KEY is unset, so every critic call would return NO_KEY and the critic arm ' +
-        'would score 0% for a reason that has nothing to do with the critic. Set it in .env ' +
-        'at the repo root, or pass --baseline-only to measure the deterministic arm alone.',
+      'No model credentials are configured, so every critic call would return NO_KEY and the ' +
+        'critic arm would score 0% for a reason that has nothing to do with the critic. ' +
+        'Configure the model in .env at the repo root.',
     );
   }
-}
-
-/**
- * The starting IR both arms share.
- *
- * Built once per sample rather than once per run because criticLoop mutates
- * nothing but the emitter is handed the object — two arms sharing one instance
- * would let arm B's correction leak into arm A's score.
- */
-function baselineIr() {
-  return promptToIrKeyless(BASE_PROMPT);
+  throw new Error(`the model is configured but unreachable (${probe.kind}): ${probe.error}`);
 }
 
 async function runOne({ sample, withCritic, maxIterations }) {
@@ -127,8 +138,8 @@ export async function runBenchmark({
   cacheDir = CACHE_DIR,
   log = () => {},
 } = {}) {
-  assertCriticIsReachable();
-  log(`critic model: ${process.env.LLM_VISION_MODEL || process.env.LLM_MODEL} via ${process.env.LLM_PROVIDER || 'auto-detected provider'}`);
+  await assertCriticIsReachable();
+  log('critic preflight: the orchestrator answered, so the critic arm is live');
 
   const samples = await fetchSubset({ n, seed, cacheDir, log });
 
