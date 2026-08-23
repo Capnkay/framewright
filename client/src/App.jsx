@@ -80,7 +80,7 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<StudioLayout><LandingPage /></StudioLayout>} />
+        <Route path="/" element={<StudioChrome><LandingPage /></StudioChrome>} />
         <Route path="/login" element={<StudioLayout><LoginPage /></StudioLayout>} />
         <Route path="/generate" element={<StudioChrome><GeneratePage /></StudioChrome>} />
         {/* §1: pageName defaults to Home. */}

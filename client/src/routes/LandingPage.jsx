@@ -15,12 +15,12 @@ const EASE_STANDARD = [0.4, 0.0, 0.2, 1];
 
 export default function LandingPage() {
   return (
-    <div className="studio-theme min-h-screen bg-studio-bg-base text-studio-text-primary selection:bg-studio-accent/30 overflow-x-hidden font-sans">
+    <div className="selection:bg-studio-accent/30 overflow-x-hidden font-sans">
       
       {/* 
         HERO SECTION
       */}
-      <section className="relative w-full max-w-7xl mx-auto px-6 pt-12 pb-24 md:pt-20 md:pb-32 grid lg:grid-cols-2 gap-16 items-center">
+      <section className="relative w-full max-w-7xl mx-auto px-6 pt-6 pb-24 md:pt-10 md:pb-32 grid lg:grid-cols-2 gap-16 items-center">
         {/* Background glow */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-studio-accent/20 rounded-full blur-[120px] pointer-events-none" />
         
