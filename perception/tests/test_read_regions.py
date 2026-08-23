@@ -463,3 +463,81 @@ def test_with_no_local_reader_a_dead_hosted_one_still_degrades_rather_than_raisi
     assert result.ocr_available is False
     assert result.regions[0].text is None
     assert result.regions[0].region.bbox == (10, 20, 120, 60)
+
+
+# --- giving up on a dead endpoint ------------------------------------------
+
+
+def test_a_dead_endpoint_is_abandoned_after_a_few_regions():
+    """T-143. T-142 fixed the outcome; this fixes the wait.
+
+    Measured against a dead port: 49.9s before the fallback even started, because
+    all eleven readable regions each burned §16.2's two attempts first. On a
+    venue's wifi that is paid in front of an audience.
+    """
+    attempts = {"n": 0}
+
+    def transport(_png: bytes) -> str:
+        attempts["n"] += 1
+        raise RuntimeError("connect ECONNREFUSED")
+
+    regions = [a_region(x=10 + i * 200, y=10, w=180, h=60) for i in range(10)]
+    result = extract_text(
+        a_canvas(2400, 300),
+        regions,
+        region_reader=RegionReader(model="test-vlm", transport=transport),
+    )
+
+    # Three regions attempted, two attempts each — not ten regions' worth.
+    assert attempts["n"] <= 6, f"kept trying a dead endpoint: {attempts['n']} attempts"
+
+    # Every region still comes back, with its geometry, so the pipeline continues.
+    assert len(result.regions) == len(regions)
+    assert all(r.text is None for r in result.regions)
+    assert result.ocr_available is False
+
+    # And the abandoned ones are REPORTED, not silently skipped.
+    assert any("were not attempted" in w for w in result.warnings), result.warnings
+
+
+def test_one_bad_crop_among_successes_does_not_abandon_the_page():
+    """The distinction the give-up rule turns on.
+
+    One failure is a bad crop — a sliver, an odd aspect ratio. Abandoning a page
+    for it would throw away every region after it, which is a far worse bug than
+    the wait this rule exists to cut.
+    """
+    calls = {"n": 0}
+
+    def transport(_png: bytes) -> str:
+        calls["n"] += 1
+        # Fail only the second region's attempts; everything else answers.
+        if calls["n"] in (3, 4):
+            raise RuntimeError("bad crop")
+        return '{"text":"READ"}'
+
+    regions = [a_region(x=10 + i * 200, y=10, w=180, h=60) for i in range(5)]
+    result = extract_text(
+        a_canvas(1200, 300),
+        regions,
+        region_reader=RegionReader(model="test-vlm", transport=transport),
+    )
+
+    read = [r for r in result.regions if r.text == "READ"]
+    assert len(read) >= 3, f"the page was abandoned after one failure: {[r.text for r in result.regions]}"
+    assert result.ocr_available is True
+    assert not any("were not attempted" in w for w in result.warnings)
+
+
+def test_giving_up_still_falls_back_to_the_local_reader():
+    # The two rules compose: give up early AND still read the page locally.
+    regions = [a_region(x=10 + i * 200, y=10, w=180, h=60) for i in range(8)]
+    result = extract_text(
+        a_canvas(1800, 300),
+        regions,
+        reader=_PaddleStub(text="HEADLINE", box=(10, 10, 180, 60)),
+        region_reader=reader_that_fails(),
+    )
+
+    assert result.ocr_available is True, "the local reader was not reached after giving up"
+    assert "paddleocr" in result.reader_name

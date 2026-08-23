@@ -399,3 +399,10 @@
 - Device: Mohits_Victus
 - Files: client/src/routes/PreviewPage.jsx, tests/preview-page-information-architecture.test.mjs, tools/reset-demo-store.mjs, .gitignore
 
+## T-143 — An unreachable hosted reader costs ~50 seconds before the fallback starts, because every region retries
+- Started: 2026-08-23T08:29:27.245Z
+- Finished: 2026-08-23T08:34:31.886Z
+- Duration: 5m
+- Device: Mohits_Victus
+- Files: perception/stages/read_regions.py, perception/stages/extract_text.py, perception/tests/test_read_regions.py
+

@@ -737,6 +737,7 @@ def _extract_with_region_reader(
     readings: list[RegionText] = []
     failures = 0
     empty = 0
+    read_ok = 0
 
     # WHICH REGIONS ARE WORTH A CALL. Stage 3a returns 35 boxes for a wireframe
     # with seven real elements, and reading all 35 cost 65 seconds and produced
@@ -747,7 +748,31 @@ def _extract_with_region_reader(
     # 35 becomes 11 on that wireframe, and all five handwritten strings survive.
     wanted = set(readable_regions(regions))
 
+    # GIVE UP AFTER THIS MANY CONSECUTIVE FAILURES, and the number is a judgement
+    # about which failure we are looking at rather than a tuning constant.
+    #
+    # ONE failure among successes is a bad crop — a sliver, an odd aspect ratio —
+    # and abandoning a page for it would throw away every region after it. THREE
+    # in a row, with none having succeeded, is the endpoint being down, and every
+    # further attempt is pure waiting.
+    #
+    # T-142 made a dead reader fall back to the local one, which fixed the OUTCOME
+    # and not the WAIT: measured against a dead port, 49.9s before the fallback
+    # even started, because all eleven readable regions each burn §16.2's two
+    # attempts first. On a venue's wifi that is paid in front of an audience.
+    GIVE_UP_AFTER = 3
+    consecutive_failures = 0
+    abandoned = 0
+    giving_up = False
+
     for index, region in enumerate(regions):
+        if giving_up and index in wanted:
+            # Counted, not silently skipped. A region nobody tried and a region
+            # that failed are different facts, and the warning below says which.
+            abandoned += 1
+            readings.append(RegionText(region=region, text=None, confidence=None))
+            continue
+
         if index not in wanted:
             # Skipped, not failed. It keeps its geometry and has no text, which is
             # the same state as a region the reader could not read — so it is not
@@ -765,9 +790,14 @@ def _extract_with_region_reader(
         reading = region_reader.read(png)
         if not reading.ok:
             failures += 1
+            consecutive_failures += 1
+            if consecutive_failures >= GIVE_UP_AFTER and read_ok == 0:
+                giving_up = True
             readings.append(RegionText(region=region, text=None, confidence=None))
             continue
 
+        consecutive_failures = 0
+        read_ok += 1
         text = (reading.text or "").strip()
         if not text:
             empty += 1
@@ -784,7 +814,12 @@ def _extract_with_region_reader(
         )
 
     warnings: list[str] = []
-    read_count = len(wanted) - failures
+    read_count = len(wanted) - failures - abandoned
+    if abandoned:
+        warnings.append(
+            f"The hosted reader failed {GIVE_UP_AFTER} region(s) in a row without reading "
+            f"any, so the remaining {abandoned} were not attempted."
+        )
     if failures:
         warnings.append(
             f"The hosted reader could not read {failures} of {len(wanted)} region(s); "

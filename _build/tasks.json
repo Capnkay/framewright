@@ -2951,6 +2951,27 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_read_regions.py",
       "doneWhen": "MEASURED by pointing LLM_BASE_URL at a dead port and running the real pipeline. extract_text treats its two readers as ALTERNATIVES, not a chain: when region_reader is not None it takes that branch and never touches the PaddleOCR reader, so every call failing yields regions with no text and the reference template downstream. Result: 49.9s, stage 3 degraded, headlineMain 'CHALLENGE YOUR LIMITS' instead of the wireframe's 'HEADLINE', confidence 0.7354. On screen that is indistinguishable from the wireframe having been ignored. Rule 5 says the deterministic path always works, and here a CONFIGURED-BUT-UNREACHABLE hosted reader made it unreachable too. Done when a region-reader run that reads nothing falls through to the PaddleOCR reader where one exists, when the warnings say both what was tried and what answered, and when a test drives it with a transport that always throws."
+    },
+    {
+      "id": "T-143",
+      "phase": 6,
+      "track": "perception",
+      "size": "30m",
+      "title": "An unreachable hosted reader costs ~50 seconds before the fallback starts, because every region retries",
+      "contract": [
+        "§12",
+        "§16.2"
+      ],
+      "deps": [
+        "T-142"
+      ],
+      "files": [
+        "perception/stages/read_regions.py",
+        "perception/stages/extract_text.py",
+        "perception/tests/test_read_regions.py"
+      ],
+      "verify": "node tools/pytest.mjs perception/tests/test_read_regions.py",
+      "doneWhen": "T-142 made a dead hosted reader fall back to the local one, which fixed the OUTCOME and not the WAIT. Measured against a dead port: 49.9s before the fallback, 53.7s in total, because all eleven readable regions each burn section 16.2's two attempts before anything gives up. A demo on a venue's wifi pays that in front of a judge. Done when a run that has failed its first few regions outright stops trying and falls back, when the give-up rule is stated as a number with the reason for it, when the abandoned regions are still reported rather than silently skipped, and when a SINGLE failure among successes does not trigger it - one region failing is a bad crop, several in a row is a dead endpoint, and only the second is worth abandoning a page for."
     }
   ]
 }
