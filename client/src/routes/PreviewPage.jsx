@@ -58,32 +58,32 @@ function SectionWrapper({ section, Component, pageName }) {
   };
 
   return (
-    <div className="relative group border rounded mb-8 p-4">
+    <div className="relative group border border-studio-border rounded-studio-lg mb-8 p-4 bg-studio-bg-raised">
       <form 
         onSubmit={handleRegenerate}
-        className="absolute top-2 right-2 bg-background shadow rounded px-3 py-2 z-10 flex flex-col gap-2 border text-sm"
+        className="absolute top-2 right-2 bg-studio-bg-overlay border border-studio-border shadow-studio-md rounded-studio-md px-3 py-2 z-10 flex flex-col gap-2 text-studio-sm"
       >
-        <div className="font-semibold text-muted-foreground">Regenerate Section</div>
+        <div className="font-semibold text-studio-text-secondary">Regenerate Section</div>
         {regenerateError ? (
-          <p className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">{regenerateError}</p>
+          <p className="rounded-studio-sm bg-studio-destructive/10 border border-studio-destructive/30 px-2 py-1 text-studio-xs text-studio-destructive">{regenerateError}</p>
         ) : null}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center justify-between text-studio-text-primary">
           <label>Prompt:</label>
           <input 
             type="text"
             placeholder="e.g. four stats, green accent"
             value={regeneratePrompt}
             onChange={(e) => setRegeneratePrompt(e.target.value)}
-            className="border p-1 rounded text-xs w-48"
+            className="bg-studio-bg-base border border-studio-border p-1 rounded-studio-sm text-studio-xs w-48 text-studio-text-primary focus:outline-none focus:border-studio-accent"
           />
         </div>
-        <div className="flex gap-2 items-center justify-between">
+        <div className="flex gap-2 items-center justify-between text-studio-text-primary">
           <div>
             <label className="mr-2">Variation:</label>
             <select 
               value={regenerateVariation} 
               onChange={(e) => setRegenerateVariation(e.target.value)}
-              className="border p-1 rounded text-xs"
+              className="bg-studio-bg-base border border-studio-border p-1 rounded-studio-sm text-studio-xs text-studio-text-primary focus:outline-none focus:border-studio-accent"
             >
               <option value="1">1</option>
               <option value="2">2</option>
@@ -93,7 +93,7 @@ function SectionWrapper({ section, Component, pageName }) {
           <button 
             type="submit" 
             disabled={regenerating}
-            className="bg-accent text-white px-2 py-1 rounded text-xs disabled:opacity-50"
+            className="bg-studio-accent hover:bg-studio-accent-hover text-studio-accent-foreground px-2 py-1 rounded-studio-sm text-studio-xs font-medium disabled:opacity-50"
           >
             {regenerating ? 'Wait...' : 'Go'}
           </button>
@@ -172,7 +172,7 @@ export default function PreviewPage() {
   });
 
   return (
-    <main className="min-h-screen bg-background p-6">
+    <main className="min-h-[calc(100vh-5rem)] bg-studio-bg-base p-6 text-studio-text-primary">
       {/* THE SECTIONS COME FIRST. This page is what a judge is shown, and what
           it is FOR is the rendered result — the diagnostics below exist to make
           §9 observable, not to be the headline. They were above the content,
@@ -181,8 +181,8 @@ export default function PreviewPage() {
       <div className="flex flex-col gap-8">{renderedSections}</div>
 
       {sectionDocs.length === 0 ? (
-        <p className="max-w-prose rounded-md border border-dashed border-border p-6 text-sm text-muted-foreground">
-          No sections on <span className="font-medium text-foreground">{pageName}</span> yet.
+        <p className="max-w-prose rounded-studio-lg border border-dashed border-studio-border p-6 text-studio-sm text-studio-text-secondary">
+          No sections on <span className="font-medium text-studio-text-primary">{pageName}</span> yet.
           Generate one in the Studio and it will appear here.
         </p>
       ) : null}
@@ -193,10 +193,10 @@ export default function PreviewPage() {
           apart. Deleting them to tidy the page would remove the one instrument
           that catches the failure the whole assertion exists for — which is
           exactly what T-127 turned out to be. Closed by default, one click away. */}
-      <details className="mt-12 max-w-md rounded-lg border border-border bg-card p-4 text-sm">
-        <summary className="cursor-pointer font-medium text-foreground">
+      <details className="mt-12 max-w-md rounded-studio-lg border border-studio-border bg-studio-bg-raised p-4 text-studio-sm">
+        <summary className="cursor-pointer font-medium text-studio-text-primary">
           Content status
-          <span className="ml-2 font-normal text-muted-foreground">
+          <span className="ml-2 font-normal text-studio-text-secondary">
             {status === 'succeeded' && missingCount === 0
               ? `${keyCount} field${keyCount === 1 ? '' : 's'} loaded`
               : status === 'loading'
@@ -206,21 +206,21 @@ export default function PreviewPage() {
         </summary>
 
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
-          <dt className="text-muted-foreground">Hydration status</dt>
-          <dd className="font-mono text-foreground">{status}</dd>
+          <dt className="text-studio-text-secondary">Hydration status</dt>
+          <dd className="font-studio-mono text-studio-text-primary">{status}</dd>
 
-          <dt className="text-muted-foreground">Keys in allSections</dt>
-          <dd className="font-mono text-foreground">{keyCount}</dd>
+          <dt className="text-studio-text-secondary">Keys in allSections</dt>
+          <dd className="font-studio-mono text-studio-text-primary">{keyCount}</dd>
 
-          <dt className="text-muted-foreground">Missing IDs</dt>
-          <dd className="font-mono text-foreground">{missingCount}</dd>
+          <dt className="text-studio-text-secondary">Missing IDs</dt>
+          <dd className="font-studio-mono text-studio-text-primary">{missingCount}</dd>
 
-          <dt className="text-muted-foreground">Not built here</dt>
-          <dd className="font-mono text-foreground">{unbuilt.length}</dd>
+          <dt className="text-studio-text-secondary">Not built here</dt>
+          <dd className="font-studio-mono text-studio-text-primary">{unbuilt.length}</dd>
         </dl>
 
         {unbuilt.length > 0 ? (
-          <p className="mt-3 text-muted-foreground">
+          <p className="mt-3 text-studio-text-secondary">
             {unbuilt.length} section{unbuilt.length === 1 ? '' : 's'} on this page {unbuilt.length === 1 ? 'has' : 'have'} content
             saved but no component file on this machine, so {unbuilt.length === 1 ? 'it is' : 'they are'} not shown. Generate
             {unbuilt.length === 1 ? ' it' : ' them'} again from the Studio to see {unbuilt.length === 1 ? 'it' : 'them'} render.
@@ -228,11 +228,11 @@ export default function PreviewPage() {
         ) : null}
 
         {error ? (
-          <p className="mt-3 rounded-md bg-destructive/10 p-3 text-destructive">{error}</p>
+          <p className="mt-3 rounded-studio-sm bg-studio-destructive/10 border border-studio-destructive/30 p-3 text-studio-destructive">{error}</p>
         ) : null}
 
         {keyCount === 0 ? (
-          <p className="mt-3 rounded-md bg-warn/10 p-3 text-foreground">
+          <p className="mt-3 rounded-studio-sm bg-studio-warn/10 border border-studio-warn/30 p-3 text-studio-warn">
             No content loaded for <span className="font-medium">{pageName}</span>. The sections
             below are showing their built-in defaults, so the page looks finished while nothing is
             actually coming from the store — check that the API is running.

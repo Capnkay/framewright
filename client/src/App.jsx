@@ -84,11 +84,11 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<StudioChrome><LandingPage /></StudioChrome>} />
-        <Route path="/login" element={<StudioLayout><LoginPage /></StudioLayout>} />
+        <Route path="/login" element={<StudioChrome><LoginPage /></StudioChrome>} />
         <Route path="/generate" element={<StudioChrome><GeneratePage /></StudioChrome>} />
         {/* §1: pageName defaults to Home. */}
         <Route path="/preview" element={<Navigate to="/preview/Home" replace />} />
-        <Route path="/preview/:pageName" element={<StudioLayout><PreviewPage /></StudioLayout>} />
+        <Route path="/preview/:pageName" element={<StudioChrome><PreviewPage /></StudioChrome>} />
         {/* Dev-only, unreachable from Nav — see routes/DesignPreview.jsx. */}
         <Route path="/design-preview" element={<DesignPreview />} />
         <Route

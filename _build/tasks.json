@@ -3196,6 +3196,26 @@
       ],
       "verify": null,
       "doneWhen": "A pasted React component produces an IR whose elements correspond to that component’s own text nodes and structure. No pasted code is ever executed; the AST remains the only reader. Model failure falls back to today’s scaffold."
+    },
+    {
+      "id": "T-155",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "10m",
+      "title": "Unified dark theme visual styling across Landing, Login, and Preview pages",
+      "contract": [],
+      "deps": [
+        "T-146"
+      ],
+      "files": [
+        "client/src/App.jsx",
+        "client/src/routes/LandingPage.jsx",
+        "client/src/routes/LoginPage.jsx",
+        "client/src/routes/PreviewPage.jsx",
+        "tests/app-shell.test.mjs"
+      ],
+      "verify": "npm test -- app-shell",
+      "doneWhen": "The landing, login, and preview pages are styled under studio-theme and tests pass."
     }
   ]
 }

@@ -44,7 +44,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="studio-theme relative flex min-h-screen items-center justify-center overflow-hidden">
+    <div className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden">
       {/* Ambient glow — Vercel's "low-amplitude, continuous" reference (VISUAL-INSPO §2),
           not a moving spotlight. Fixed, very low opacity, no animation of its own; it
           exists so the page isn't flat black behind the card, not to draw the eye. */}
