@@ -41,7 +41,7 @@ export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
       {error && <p className="text-red-500 text-sm p-4">{error}</p>}
       
       {sourceCode ? (
-        <div className="rounded-xl overflow-hidden border border-studio-border/50 shadow-2xl studio-glass-raised flex flex-col max-h-[600px]">
+        <div className="rounded-xl overflow-hidden border border-studio-border/50 shadow-2xl studio-glass-raised flex flex-col h-[75vh] min-h-[600px]">
           {/* IDE Header (Mac style) */}
           <div className="flex items-center justify-between px-4 py-3 bg-[#1e1e1e] border-b border-[#2d2d2d] shrink-0">
             <div className="flex gap-2 items-center">
