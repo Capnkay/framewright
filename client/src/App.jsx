@@ -25,10 +25,35 @@ import DesignPreview from './routes/DesignPreview.jsx';
 import LoginPage from './routes/LoginPage.jsx';
 import StudioNav from './studio/StudioNav.jsx';
 
+/**
+ * True when this document is being displayed inside a frame.
+ *
+ * The Studio frames `/preview/:pageName` in an iframe (§7 R11 — a narrowed
+ * container cannot trigger a `md:` breakpoint, so only a real viewport shows the
+ * responsive stacking). That framed document is the same route a person can open
+ * directly, so it renders the same chrome — and the result was the app's own
+ * navigation appearing a second time INSIDE the preview pane.
+ *
+ * Wrapped because a cross-origin parent makes `window.top` throw, and because
+ * this runs during render in an environment that may have no `window` at all —
+ * the tests render these routes with `renderToString`.
+ */
+function isFramed() {
+  try {
+    return typeof window !== 'undefined' && window.self !== window.top;
+  } catch {
+    return true; // access denied means there IS a parent, and a foreign one.
+  }
+}
+
 function StudioLayout({ children }) {
+  // Standalone keeps the nav; framed does not. One route, two contexts, and the
+  // chrome belongs to only one of them.
+  const framed = isFramed();
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <StudioNav />
+      {framed ? null : <StudioNav />}
       <div className="flex-1">
         {children}
       </div>

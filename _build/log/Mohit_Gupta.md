@@ -413,3 +413,10 @@
 - Device: Mohits_Victus
 - Files: perception/stages/extract_text.py, perception/tests/test_extract_text.py, .gitignore
 
+## T-145 — The app's navigation renders a second time inside the preview iframe
+- Started: 2026-08-23T11:14:11.236Z
+- Finished: 2026-08-23T11:14:11.695Z
+- Duration: 0m
+- Device: Mohits_Victus
+- Files: client/src/App.jsx, tests/preview-chrome-is-not-doubled.test.mjs
+

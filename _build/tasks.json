@@ -2992,6 +2992,25 @@
       ],
       "verify": "node tools/pytest.mjs perception/tests/test_extract_text.py",
       "doneWhen": "MEASURED IN A LIVE REHEARSAL, hours before a deadline. C: fell to 253 MB, `_run_once` could not write the page, and a wireframe run returned the reference template - 'CHALLENGE YOUR LIMITS' instead of the wireframe's own 'HEADLINE' - while every stage reported ok and HTTP returned 200. T-131's free-space guard is what made it legible instead of an access violation, and it did its job. But the guard buys a good error message, not a working demo. The repository lives on a drive with 65 GB free while the worker writes to the system temp on a drive that went 4.67 GB -> 253 MB -> 2.17 GB in one day. Done when the scratch directory defaults to a location on the repository's own drive, when an env var can still override it for a machine that wants it elsewhere, when the directory is gitignored, and when T-131's guard remains as the backstop rather than being removed because the new default makes it unlikely."
+    },
+    {
+      "id": "T-145",
+      "phase": 6,
+      "track": "studio-preview",
+      "size": "20m",
+      "title": "The app's navigation renders a second time inside the preview iframe",
+      "contract": [
+        "§7"
+      ],
+      "deps": [
+        "T-144"
+      ],
+      "files": [
+        "client/src/App.jsx",
+        "tests/preview-chrome-is-not-doubled.test.mjs"
+      ],
+      "verify": "node --test tests/preview-chrome-is-not-doubled.test.mjs",
+      "doneWhen": "Seen in a browser, not in a test. /preview/:pageName was wrapped in StudioLayout, which renders StudioNav, and the Studio frames that same route in an iframe - deliberately, because R11's stacking comes from a `md:` media query and only a real viewport triggers one. So 'Framewright / Home / Studio / Preview / Sign in' appeared a SECOND time inside the preview pane, nested in the Studio already showing it. Done when the layout drops its chrome while framed and keeps it when the route is opened directly, and when the frame check cannot itself throw - window.top raises on a cross-origin parent and these routes are also rendered by renderToString where there is no window at all."
     }
   ]
 }
