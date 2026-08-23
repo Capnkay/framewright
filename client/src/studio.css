@@ -150,3 +150,65 @@
 }
 
 .design-canvas.empty { background: transparent; border: 1px dashed var(--line); }
+
+/* ─── Component Toolkit ──────────────────────────────────────── */
+.component-toolkit{border:1px solid var(--line);border-radius:10px;background:rgba(21,21,23,.72);overflow:hidden}
+.tk-tabs{display:flex;border-bottom:1px solid var(--line)}
+.tk-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border:none;background:transparent;color:var(--dim);font-size:10px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:color .15s,background .15s}
+.tk-tabs button.selected{color:var(--text);background:rgba(59,130,246,.06)}
+.tk-tabs button:hover{color:var(--text)}
+
+.tk-library,.tk-inspector{padding:14px}
+
+.tk-library-title,.tk-inspector-title{display:flex;align-items:center;gap:7px;font:600 9px var(--mono);letter-spacing:.08em;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
+
+.tk-cat-pills{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px}
+.tk-cat-pills button{border:1px solid var(--line);background:transparent;color:var(--dim);font-size:9px;padding:4px 9px;border-radius:999px;cursor:pointer;transition:all .15s}
+.tk-cat-pills button.selected{background:#27272a;color:var(--text);border-color:transparent}
+.tk-cat-pills button:hover{color:var(--text)}
+
+.tk-comp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px}
+.tk-comp-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;border:1px solid var(--line);background:#101012;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:9px}
+.tk-comp-card:hover{border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.05);color:var(--text);transform:translateY(-1px)}
+.tk-comp-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:8px;background:rgba(59,130,246,.08);color:var(--blue2)}
+
+/* inspector sections */
+.tk-section{border-top:1px solid rgba(255,255,255,.06);padding:12px 0 4px}
+.tk-section-label{display:flex;align-items:center;gap:6px;font:600 9px var(--mono);letter-spacing:.06em;color:var(--dim);text-transform:uppercase;margin-bottom:10px}
+
+/* slider rows */
+.tk-slider-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tk-slider-row label{font-size:10px;color:var(--dim);min-width:80px}
+.tk-slider-ctrl{display:flex;align-items:center;gap:8px;flex:1}
+.tk-slider-ctrl input[type="range"]{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:#29292d;border-radius:2px;outline:none}
+.tk-slider-ctrl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--blue);cursor:pointer;border:2px solid var(--bg)}
+.tk-slider-val{font:9px var(--mono);color:var(--muted);min-width:36px;text-align:right}
+
+/* color rows */
+.tk-color-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tk-color-row label{font-size:10px;color:var(--dim);min-width:80px}
+.tk-color-ctrl{display:flex;align-items:center;gap:8px}
+.tk-color-ctrl input[type="color"]{width:22px;height:22px;border:1px solid var(--line);border-radius:5px;padding:1px;cursor:pointer;background:transparent}
+.tk-color-hex{font:9px var(--mono);color:var(--muted)}
+
+/* select rows */
+.tk-select-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tk-select-row label{font-size:10px;color:var(--dim);min-width:80px}
+.tk-select-row select{flex:1;max-width:140px;background:#101012;border:1px solid var(--line);border-radius:5px;padding:5px 8px;color:var(--text);font-size:10px}
+
+/* text input */
+.tk-text-input{flex:1;max-width:140px;background:#101012;border:1px solid var(--line);border-radius:5px;padding:5px 8px;color:var(--text);font-size:10px;outline:none}
+.tk-text-input:focus{border-color:rgba(59,130,246,.6)}
+
+/* pill group (shadow presets etc) */
+.tk-pill-group{display:flex;gap:3px;flex-wrap:wrap}
+.tk-pill-group button{border:1px solid var(--line);background:transparent;color:var(--dim);font-size:8px;padding:3px 7px;border-radius:999px;cursor:pointer;transition:all .15s}
+.tk-pill-group button.selected{background:#27272a;color:var(--text);border-color:transparent}
+.tk-pill-group button:hover{color:var(--text)}
+
+/* num field grid */
+.tk-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.tk-num-field{display:flex;flex-direction:column;gap:4px}
+.tk-num-field label{font-size:9px;color:var(--dim)}
+.tk-num-field input{width:100%;background:#101012;border:1px solid var(--line);border-radius:5px;padding:6px 8px;color:var(--text);font-size:10px;outline:none}
+.tk-num-field input:focus{border-color:rgba(59,130,246,.6)}

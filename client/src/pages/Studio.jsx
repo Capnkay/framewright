@@ -5,6 +5,7 @@ import { Badge, Field, Label } from "../components/Shell";
 import { AccentColorField } from "../components/studio/AccentColor";
 import { PipelinePanel } from "../components/studio/PipelinePanel";
 import { SectionEditor } from "../components/studio/SectionEditor";
+import ComponentToolkit from "../components/studio/ComponentToolkit";
 import { defaultElements, generateCode, getStageStatuses, jobs, NEEDS_INPUT_QUESTION, FAILED_MESSAGE, parseCodeToElements } from "../data/mock";
 import { DesignLayers, DesignInspector } from "../components/studio/DesignTab";
 import "../studio.css";
@@ -320,6 +321,19 @@ export default function Studio() {
         </div>
         <div className="studio-right-column">
           <SectionEditor elements={elements} accent={accent} code={codeText} selectedField={selectedField} setSelectedField={setSelectedField} onUpdate={onElementUpdate} pageName={previewPage} previewKey={previewKey} />
+          <ComponentToolkit
+            elements={elements}
+            selectedField={selectedField}
+            onElementUpdate={onElementUpdate}
+            onAdd={(newEl) => {
+              setElements(prev => {
+                const next = [...prev, newEl];
+                setCodeText(generateCode(next, accent));
+                setSelectedField(newEl.id);
+                return next;
+              });
+            }}
+          />
           <PipelinePanel
             jobState={jobState} setJobState={handleDevState}
             stages={stages} selectedStage={selectedStage} setSelectedStage={setSelectedStage}
