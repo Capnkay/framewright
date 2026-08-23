@@ -138,12 +138,12 @@ export const routes = [
   { method: 'GET', path: '/api/health', kind: 'action', contract: '§13.4', handler: getHealth },
   { method: 'GET', path: '/api/metrics', kind: 'raw', contract: '§17.2', handler: getMetrics },
 
-  { method: 'POST', path: '/api/generate', kind: 'action', contract: 'A 13.1', handler: postGenerate },
-  { method: 'GET', path: '/api/sections', kind: 'collection', contract: 'A 13.4', handler: getSections },
-  { method: 'GET', path: '/api/sections/:sectionId', kind: 'document', contract: 'A 13.4', handler: getSection },
-  { method: 'DELETE', path: '/api/sections', kind: 'action', contract: 'Custom', handler: deleteSectionsRoute },
-  { method: 'POST', path: '/api/sections/:sectionId/regenerate', kind: 'action', contract: 'A 13.3', handler: postRegenerate },
-  { method: 'GET', path: '/api/sections/:sectionId/export', kind: 'raw', contract: 'A 7', handler: getExportZip },
+  { method: 'POST', path: '/api/generate', kind: 'action', contract: '§13.1', handler: postGenerate },
+  { method: 'GET', path: '/api/sections', kind: 'collection', contract: '§13.4', handler: getSections },
+  { method: 'GET', path: '/api/sections/:sectionId', kind: 'document', contract: '§13.4', handler: getSection },
+  { method: 'DELETE', path: '/api/sections', kind: 'action', contract: '§13.4', handler: deleteSectionsRoute },
+  { method: 'POST', path: '/api/sections/:sectionId/regenerate', kind: 'action', contract: '§13.3', handler: postRegenerate },
+  { method: 'GET', path: '/api/sections/:sectionId/export', kind: 'raw', contract: '§7', handler: getExportZip },
 
   { method: 'GET', path: '/api/elements', kind: 'collection', contract: '§13.4', handler: getElements },
   { method: 'PATCH', path: '/api/elements/:fieldId', kind: 'action', contract: '§13.2', handler: patchElement },

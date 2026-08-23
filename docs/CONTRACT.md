@@ -960,6 +960,7 @@ GET /api/elements?pageName=Home        -> ElementDoc[]        (bare array)
 GET /api/elements?sectionId=1000000001 -> ElementDoc[]        (bare array)
 GET /api/elements?fieldIds=2000000003,2000000004 -> ElementDoc[]
 GET /api/jobs/job-0000000001           -> JobDoc              (bare doc, 404 if absent)
+DELETE /api/sections?pageName=Home     -> { "deletedCount": n } (pageName required)
 GET /api/health -> { "ok": true, "store": "mongo", "perception": "up" | "down" }
 ```
 

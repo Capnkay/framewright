@@ -2021,3 +2021,35 @@ LAW-MANIFEST.sha256` before committing.
 Not exempted as a file class — a future doc citing an unrelated real host still fails, as
 it should. Bare `raycast.com` also appears in `VISUAL-INSPO.md`'s prose, but the check only
 scopes scheme-prefixed URLs, so only `www.raycast.com` needed listing.
+
+## §13.4 — a delete for the sections collection
+
+**Changed.** `DELETE /api/sections?pageName=<name>` added to §13.4's route table,
+answering `{ "deletedCount": n }`. `pageName` is required; a request without it is a 400.
+
+**Why.** The Studio generates into a page, and without a way to clear one, every run
+stacked another section onto the same preview. After a handful of runs the preview was a
+column of near-identical sections and the one just generated was not obviously the one to
+look at. Antigravity added a Clear Canvas button and a clear-before-generate call for
+exactly that reason, which is a good reason.
+
+The endpoint was added ahead of the contract, with `contract: 'Custom'` in the route
+table — which the §13.4 envelope test correctly rejected, since "Custom" is not a section
+anyone can look up. AGENTS.md forbids inventing endpoints precisely so that this
+conversation happens rather than not happening. The capability is legitimate, so the
+contract moves to meet it rather than the route pretending to be something else.
+
+**Two defects fixed at the same time, both found by reading what it deleted.**
+
+`deleteSections` removed sections and left their elements behind. Every element record on
+the page was orphaned — still returned by `GET /api/elements?pageName=Home`, still
+counted, pointing at a sectionId that no longer existed. Measured at 555 element rows on
+`Home` after a morning of runs. Because the Studio now calls this before EVERY
+generation, that grows without bound. Elements are now deleted with their sections.
+
+The seeded reference section, `1000000001`, is now spared. It is what `/preview/Home`
+renders and what the demo opens on; wiping it on the first generation leaves a judge
+looking at an empty page with nothing in the UI to explain why.
+
+**Owner.** Antigravity wrote the feature. The contract amendment, the cascade and the
+seed exclusion are mine, at the owner's direction.

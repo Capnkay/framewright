@@ -3151,6 +3151,51 @@
       ],
       "verify": null,
       "doneWhen": "Three semantically different prompts produce three different CMS-bound sections over HTTP, each with at least one getTextValue binding and seven ok stages. Model IR that cannot reach that floor falls back to the deterministic path rather than emitting an unbound component."
+    },
+    {
+      "id": "T-153",
+      "phase": 6,
+      "track": "generation",
+      "size": "2h",
+      "title": "A wireframe of anything comes back as the reference section’s seven slots",
+      "contract": [
+        "§6",
+        "§6.1",
+        "§12"
+      ],
+      "deps": [
+        "T-152"
+      ],
+      "files": [
+        "server/src/generate/repairModelIr.js",
+        "server/src/generate/wireframeSemantics.js",
+        "server/src/generate/perceiveAndAssembleIr.js",
+        "server/src/routes/generate.js",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": null,
+      "doneWhen": "OpenCV still owns every bbox and B-003/B-004 do not regress. A wireframe whose regions do not match the reference section produces semantically named elements rather than heroImage/brandBadge/headlineMain. Any model failure returns exactly today’s deterministic perception IR."
+    },
+    {
+      "id": "T-154",
+      "phase": 6,
+      "track": "generation",
+      "size": "2h",
+      "title": "mode=code scaffolds from the prompt template, so pasted React yields the reference section",
+      "contract": [
+        "§6",
+        "§6.1"
+      ],
+      "deps": [
+        "T-153"
+      ],
+      "files": [
+        "server/src/generate/codeToIr.js",
+        "server/src/generate/repairModelIr.js",
+        "docs/BENCHMARK-RESULTS.md"
+      ],
+      "verify": null,
+      "doneWhen": "A pasted React component produces an IR whose elements correspond to that component’s own text nodes and structure. No pasted code is ever executed; the AST remains the only reader. Model failure falls back to today’s scaffold."
     }
   ]
 }

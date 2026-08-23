@@ -1,5 +1,8 @@
 import { MongoClient } from 'mongodb';
 
+// The seeded reference section, spared by deleteSections — see jsonStore.js.
+const SEEDED_SECTION_ID = '1000000001';
+
 export function createMongoStore(uri = 'mongodb://localhost:27017/framewright') {
   const client = new MongoClient(uri);
   const dbPromise = client.connect().then(c => c.db());
@@ -21,10 +24,21 @@ export function createMongoStore(uri = 'mongodb://localhost:27017/framewright') 
       return col.findOne({ sectionId: String(sectionId) });
     },
     
+    // §13.4's delete. Kept deliberately in step with jsonStore's: same cascade, same
+    // seed exclusion, same refusal to act without a pageName. An empty filter here
+    // meant "delete every section in the database", which is one missing query
+    // parameter away from erasing the store.
     deleteSections: async ({ pageName } = {}) => {
-      const col = await getCollection('sections');
-      const query = pageName ? { pageName } : {};
-      const res = await col.deleteMany(query);
+      if (!pageName) return 0;
+      const sections = await getCollection('sections');
+      const elements = await getCollection('elements');
+      const doomed = await sections
+        .find({ pageName, sectionId: { $ne: SEEDED_SECTION_ID } })
+        .toArray();
+      if (!doomed.length) return 0;
+      const doomedIds = doomed.map(s => String(s.sectionId));
+      await elements.deleteMany({ sectionId: { $in: doomedIds } });
+      const res = await sections.deleteMany({ sectionId: { $in: doomedIds } });
       return res.deletedCount;
     },
 

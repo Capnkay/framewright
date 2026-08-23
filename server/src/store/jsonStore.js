@@ -1,5 +1,9 @@
 import fs from 'node:fs/promises';
 
+// The seeded reference section, spared by deleteSections. Sourced from
+// data/seed/sections.json, which contains exactly this one row.
+const SEEDED_SECTION_ID = '1000000001';
+
 export function createJsonStore(filePath = './server/data/store.json') {
   // Single-writer queue
   let queue = Promise.resolve();
@@ -42,16 +46,34 @@ export function createJsonStore(filePath = './server/data/store.json') {
         const data = await readData();
         return data.sections.find(s => String(s.sectionId) === String(sectionId)) || null;
       },
-      deleteSections: async ({ pageName } = {}) => {
-        return enqueue(async () => {
-          const data = await readData();
-          const before = data.sections.length;
-          data.sections = data.sections.filter(s => pageName ? s.pageName !== pageName : false);
-          await writeData(data);
-          return before - data.sections.length;
-        });
-      const data = await readData();
-      return (data.sections || []).find(s => s.sectionId === String(sectionId)) || null;
+    // §13.4 — clear a page so a new generation replaces rather than stacks. Logged as
+    // an extension in docs/corrections/REGISTER.md; the contract did not define a
+    // delete, and inventing one silently is exactly what AGENTS.md forbids.
+    //
+    // Two things this must do that the first version did not.
+    //
+    // ELEMENTS GO WITH THEIR SECTIONS. Deleting the section alone orphaned every
+    // element record on that page: the rows stayed, `GET /api/elements?pageName=Home`
+    // kept returning them, and after a few runs it answered with 555 elements
+    // belonging to sections that no longer existed. Since this is now called before
+    // EVERY generation, that grows without bound.
+    //
+    // THE SEED SURVIVES. The reference section is what the preview renders and what
+    // the demo opens on. Wiping it on the first generation leaves a judge looking at an
+    // empty page, and nothing in the UI would explain why.
+    deleteSections: async ({ pageName } = {}) => {
+      return enqueue(async () => {
+        const data = await readData();
+        if (!pageName) return 0;
+        const doomed = (data.sections || []).filter(
+          s => s.pageName === pageName && String(s.sectionId) !== SEEDED_SECTION_ID,
+        );
+        const doomedIds = new Set(doomed.map(s => String(s.sectionId)));
+        data.sections = (data.sections || []).filter(s => !doomedIds.has(String(s.sectionId)));
+        data.elements = (data.elements || []).filter(e => !doomedIds.has(String(e.sectionId)));
+        await writeData(data);
+        return doomed.length;
+      });
     },
     
     insertSection: (doc) => {
