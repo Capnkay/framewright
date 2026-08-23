@@ -168,8 +168,14 @@ export function createApp({ env = process.env } = {}) {
         // calls a model. Destructuring the returned Promise gave `status` and `body`
         // of undefined, so express answered the demo's main endpoint with an empty
         // 200. `await` is correct for both kinds, so the table can hold either.
-        const { status, body } = await route.handler(toContext(req, env));
-        res.status(status).json(body);
+        const { status, body, raw, contentType } = await route.handler(toContext(req, env));
+        
+        if (raw) {
+          if (contentType) res.set('Content-Type', contentType);
+          res.status(status).send(body);
+        } else {
+          res.status(status).json(body);
+        }
       } catch (err) {
         next(err);
       }
