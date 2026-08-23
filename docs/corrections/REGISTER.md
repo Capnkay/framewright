@@ -2312,3 +2312,45 @@ recording is itself being switched off is exactly backwards — this is the entr
 reads first if something goes wrong in the next few hours and they're trying to work out
 what stopped catching it. Restoring any of the three: `git log -p -- .githooks/pre-commit`
 (or `commit-msg`, `pre-push`) and reapply the pre-2026-08-24 version.
+
+---
+
+## 2026-08-24 · `baselineIr` deleted by its neighbour's rewrite — the benchmark could not run at all (T-164)
+
+**What.** `tools/design2code/bench.mjs` lost `function baselineIr()`. Restored, immediately
+above `runOne`, from `f1360e5`'s version of the file.
+
+**How it happened.** `6d5d39c` did one thing: replace the old `assertCriticIsReachable`,
+which read `LLM_API_KEY` directly and so violated §16.2, with a probe that asks the
+orchestrator instead. Correct change. But `baselineIr` sat directly beneath it, and the
+replacement took both functions out. The commit's own message describes only the preflight,
+so nothing in the record hinted the second function was gone.
+
+**What it cost.** Every sample threw `ReferenceError: baselineIr is not defined` on its
+first line, for both arms. The run completed, wrote a results file, and printed a clean
+report of `n/a` across every metric.
+
+**Why nothing caught it.** The harness catches a throwing sample, records it with its error
+and continues — deliberately, and the header says why: "fifty samples must not be lost to
+one bad page." That is right for one bad page and blind to a harness that cannot run at
+all. The design has no notion of "every sample failed identically, so stop." A run in which
+100% of samples threw the *same* error is not a measurement; it should refuse to report.
+Recorded as a known gap, not fixed here.
+
+**The number this invalidates.** `f1360e5`'s message and the T-163 handoff both quote
+"early signal on 3 samples: 0% grounded baseline, 52.8% with the critic." That figure
+cannot have come from the code as committed at `6d5d39c`, because that code cannot produce
+a score. It was measured before the regression, from an uncommitted working tree. It is
+**unverified** until a run on restored code replaces it, and it must not reach
+`docs/BENCHMARK-RESULTS.md` or any slide until then.
+
+**Second defect, same run, not mine.** With `baselineIr` restored the samples scored, but
+the critic arm reported `iterations: 0` on all three, warning `render failed: Failed to
+launch the browser process ... Invalid file descriptor to ICU data received`. That one WAS
+mine and is environmental: I had moved Puppeteer's Chrome cache off a full `C:` to
+`D:\SIH\model-cache\puppeteer` and set `PUPPETEER_CACHE_DIR`, but the running shell still
+carried the pre-move environment. Chrome launches from the new location once the variable
+is present. Noted because a `render failed` warning silently collapses the critic arm onto
+the baseline — the arms then agree, and the agreement looks like a finding.
+
+**Owner.** Mine.

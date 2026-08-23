@@ -87,6 +87,25 @@ async function assertCriticIsReachable() {
   });
 
   if (probe.ok) return;
+
+  // A 429 here is the free tier's 20/min ceiling, not a broken configuration --
+  // and it is self-clearing. Failing the whole run on it would mean the harness
+  // refuses to start precisely when it is about to pace itself around the limit.
+  if (probe.kind === FAILURE.CLIENT_ERROR && RATE_LIMIT_RE.test(String(probe.error))) {
+    await sleep(32000);
+    const second = await callModel({
+      purpose: 'benchmark-preflight',
+      input: 'Reply with {"ok":true}.',
+      schema: { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'] },
+      timeoutMs: 20000,
+    });
+    if (second.ok) return;
+    throw new Error(
+      `the model is rate-limited and stayed rate-limited across a 32s wait (${second.kind}): ` +
+        `${second.error}. Raise --pace or use a key without the free tier's 20/min cap.`,
+    );
+  }
+
   if (probe.kind === FAILURE.NO_KEY) {
     throw new Error(
       'No model credentials are configured, so every critic call would return NO_KEY and the ' +
@@ -96,6 +115,51 @@ async function assertCriticIsReachable() {
   }
   throw new Error(`the model is configured but unreachable (${probe.kind}): ${probe.error}`);
 }
+
+// --- the free tier's 20 requests/minute, and why the pacing lives HERE --------
+//
+// Gemini's free tier caps generate_content at 20 requests/minute and answers a
+// breach with a 429. A 429 is a 4xx, and §16.2 forbids the orchestrator from
+// retrying a 4xx -- deliberately: in production the fallback is the instant
+// keyless path, so spending another timeout window to maybe avoid it is a bad
+// trade against NFR-02's 60-second budget. That policy is correct in production
+// and useless here.
+//
+// The consequence if this file ignores it: a rate-limited critic call comes back
+// as client-error, criticLoop keeps the UNCORRECTED IR, and the sample scores at
+// baseline. Fifty of those average to "the critic barely helps" -- a clean-looking
+// number that measures Google's rate limiter, not the critic. That is the same
+// silent zero this harness was already burned by once, in different clothes.
+//
+// So the pacing lives in the harness and §16.2 does not move. A benchmark may
+// wait; a user-facing generation may not.
+
+const RATE_LIMIT_RE = /429|rate.?limit|resource_exhausted|quota/i;
+
+/** Did the critic fail to run because it was throttled, rather than disagree? */
+export function wasRateLimited(row) {
+  return (row.warnings || []).some((w) => RATE_LIMIT_RE.test(String(w)));
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The starting IR both arms share.
+ *
+ * Built once per sample rather than once per run because criticLoop mutates
+ * nothing but the emitter is handed the object — two arms sharing one instance
+ * would let arm B's correction leak into arm A's score.
+ *
+ * Restored at T-164: 6d5d39c replaced the old key-reading preflight with the
+ * orchestrator probe and deleted this adjacent function with it, so every sample
+ * died on "baselineIr is not defined" and the run reported n/a across the board.
+ * Nothing caught it because the harness records a throwing sample and continues —
+ * correct for one bad page, silent for a harness that cannot run at all.
+ */
+function baselineIr() {
+  return promptToIrKeyless(BASE_PROMPT);
+}
+
 
 async function runOne({ sample, withCritic, maxIterations }) {
   const html = await fs.readFile(sample.html, 'utf8');
@@ -135,6 +199,12 @@ export async function runBenchmark({
   n = 50,
   seed = 1,
   maxIterations = 2,
+  // One critic sample spends up to `maxIterations` vision calls. Pacing at 6s
+  // between critic samples keeps a 2-iteration run under the 20/min ceiling with
+  // headroom for the preflight. --pace 0 disables it for a paid key.
+  paceMs = 6000,
+  // The provider's own 429 says "retry in ~30s"; take it at its word.
+  retryDelayMs = 32000,
   cacheDir = CACHE_DIR,
   log = () => {},
 } = {}) {
@@ -144,13 +214,26 @@ export async function runBenchmark({
   const samples = await fetchSubset({ n, seed, cacheDir, log });
 
   const rows = [];
+  let rateLimited = 0;
   let i = 0;
   for (const sample of samples) {
     i += 1;
     for (const withCritic of [false, true]) {
       try {
-        const row = await runOne({ sample, withCritic, maxIterations });
+        let row = await runOne({ sample, withCritic, maxIterations });
+
+        // Exactly one paced retry, and only for a throttled critic. A critic
+        // that ran and found nothing to fix is a RESULT and must never be
+        // retried away; a critic that never ran is a hole in the measurement.
+        if (withCritic && wasRateLimited(row)) {
+          log(`  [${i}/${samples.length}] rate-limited; waiting ${Math.round(retryDelayMs / 1000)}s and retrying once`);
+          await sleep(retryDelayMs);
+          row = await runOne({ sample, withCritic, maxIterations });
+        }
+        if (withCritic && wasRateLimited(row)) rateLimited += 1;
+
         rows.push(row);
+        if (withCritic && paceMs > 0) await sleep(paceMs);
       } catch (err) {
         rows.push({
           id: sample.id,
@@ -191,7 +274,7 @@ export async function runBenchmark({
         : null,
   };
 
-  return { config: { n, seed, maxIterations }, baseline, critic, delta, rows };
+  return { config: { n, seed, maxIterations, paceMs }, rateLimited, baseline, critic, delta, rows };
 }
 
 function pct(v) {
@@ -219,6 +302,20 @@ function report(result) {
     '— it measures coverage, not generation quality. Never average the two.',
     '',
   ];
+
+  // Say it loudly, at the bottom, where the number is. A run whose critic was
+  // throttled on any sample is not a measurement of the critic, and the report
+  // must not be quotable as one.
+  if (result.rateLimited > 0) {
+    lines.push(
+      `!! NOT A VALID RESULT: the critic was rate-limited on ${result.rateLimited} of ${critic.samples} samples`,
+      '   even after a paced retry. Those samples scored at baseline because the',
+      '   critic never ran, not because it had nothing to fix. Raise --pace, or use',
+      '   a key without the 20/min free-tier cap, and re-run before quoting this.',
+      '',
+    );
+  }
+
   return lines.join('\n');
 }
 
@@ -230,7 +327,7 @@ if (process.argv[1]?.endsWith('bench.mjs')) {
     return i === -1 ? fallback : Number(process.argv[i + 1]);
   };
 
-  const opts = { n: arg('n', 50), seed: arg('seed', 1), maxIterations: arg('iters', 2) };
+  const opts = { n: arg('n', 50), seed: arg('seed', 1), maxIterations: arg('iters', 2), paceMs: arg('pace', 6000) };
 
   runBenchmark({ ...opts, log: (m) => console.log(m) })
     .then(async (result) => {

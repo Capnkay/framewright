@@ -202,6 +202,13 @@ truth if this table and the code ever disagree.
 | PyTorch, TorchVision | BSD-3-Clause | `perception/constraints.txt` |
 | DETR (`facebook/detr-resnet-50`) | Apache-2.0 | benchmark B-002 only |
 | Florence-2 | MIT | benchmark B-001 only |
+| Design2Code (dataset) | ODC-BY 1.0 | benchmark B-015 only; fetched by `tools/design2code/fetch.mjs`, never redistributed |
+
+The Design2Code dataset is used under the Open Data Commons Attribution Licence
+(ODC-BY 1.0), which requires attribution: *Design2Code: How Far Are We From
+Automating Front-End Engineering?* (Si et al., 2024). The harness downloads a
+seeded subset into `.cache/` at benchmark time; no dataset file is committed to
+this repository or redistributed with it.
 
 **Undeclared but imported — a defect, not an approval:**
 
