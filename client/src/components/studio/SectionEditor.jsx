@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Eye, Code, Maximize, LayoutGrid, RotateCw } from "lucide-react";
+import { Download, Eye, Code, Maximize, LayoutGrid, RotateCw, Monitor, Smartphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DesignCanvas } from "./DesignTab";
 import { downloadCode } from "../../data/mock";
@@ -25,6 +25,7 @@ import { downloadCode } from "../../data/mock";
 export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, pageName = "Home", previewKey = 0 }) {
   const [viewMode, setViewMode] = useState("design");
   const [reloadNonce, setReloadNonce] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(true);
 
   const previewSrc = `/preview/${encodeURIComponent(pageName || "Home")}`;
 
@@ -51,6 +52,14 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
 
         {/* Right side: Toggle */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIsDesktop(!isDesktop)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
+            title={isDesktop ? "Switch to Mobile View" : "Switch to Desktop View"}
+          >
+            {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
+          </button>
           <Link
             to={previewSrc}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
@@ -74,14 +83,17 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
       </div>
 
       {/* Main Content Area */}
-      {viewMode === "design" ? (
-        <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} scope="composer" />
-      ) : (
-        <pre className="section-editor-code-preview" data-testid="composer-code-preview" style={{ flex: 1, margin: 0, padding: '16px', borderTop: 'none', borderRadius: '0 0 8px 8px' }}>
-          {code}
-        </pre>
-      )}
-
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: isDesktop ? 'transparent' : '#1a1a1c', overflow: 'hidden', transition: 'background 0.2s', borderRadius: '0 0 8px 8px' }}>
+        <div style={{ width: isDesktop ? '100%' : 360, flexShrink: 0, transition: 'width 0.2s', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+          {viewMode === "design" ? (
+            <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} scope="composer" />
+          ) : (
+            <pre className="section-editor-code-preview" data-testid="composer-code-preview" style={{ flex: 1, margin: 0, padding: '16px', borderTop: 'none', borderRadius: isDesktop ? '0 0 8px 8px' : '0' }}>
+              {code}
+            </pre>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
