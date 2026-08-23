@@ -99,10 +99,15 @@ when `.env.example` is tracked and placeholder-only.
 npm test
 ```
 
-**This works right now, on a fresh clone, with no `npm install`.** The checks are
-zero-dependency on purpose. Expect **13 passing, 0 failing** — including the two that
-matter most: that every nested card field gets its own store key, and that patching a
-nested card field actually changes what renders.
+**Run `npm install` first — the root one is enough for this check.** The §9 assertion
+itself is zero-dependency on purpose, and the store, envelope, schemas and sanitiser still
+are; but `npm test` as a whole now needs the API's dependencies too, because T-124 wired an
+AST parser into `mode=code`. Section 6 below installs them, and until it has, every suite
+fails with `ERR_MODULE_NOT_FOUND`.
+
+Expect **13 passing, 0 failing** — including the two that matter most: that every nested
+card field gets its own store key, and that patching a nested card field actually changes
+what renders.
 
 If this fails on a clean clone, stop and say so before building anything on top of it.
 

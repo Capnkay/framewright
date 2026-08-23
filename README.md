@@ -36,9 +36,26 @@ mount does, and its tests run today.
 
 ## Run commands
 
-`npm test` works **right now**, on a fresh clone, with no `npm install` — the store, the
-envelope, the schemas, the sanitiser and the quality gates are all zero-dependency by
-design, and `tools/test.mjs` runs them on the system Node.
+**A fresh clone needs three installs, in this order**, and `npm test` needs the second one:
+
+```bash
+npm install                    # the harness and the §9 gate
+npm install --prefix server    # the API — @babel/parser, express, multer
+npm install --prefix client    # the Studio — React, Vite, motion, lucide-react
+```
+
+This used to say `npm test` worked on a fresh clone with **no** install, and that was true
+and deliberate: the store, the envelope, the schemas and the sanitiser are zero-dependency
+by design, and `envelope.js` still says so in its own header. **T-124 ended it.** `mode=code`
+parses pasted React to an AST, that needs `@babel/parser`, and §14 forbids the alternative —
+so the parser is not optional and the claim is what had to change. Verified by cloning this
+repository and running it: without `npm install --prefix server`, every suite fails with
+`ERR_MODULE_NOT_FOUND`.
+
+The client installs and builds cleanly on a fresh clone. If `lucide-react` or `motion` turn
+up missing on a machine that has had the repo for a while, that is a **stale
+`node_modules`** — `npm install` will report "up to date" while both are absent, and they
+have to be installed by name.
 
 **Every command below was run as written against this repository before being listed.**
 Where a command needs a prefix or a different interpreter to work, that is shown, because
