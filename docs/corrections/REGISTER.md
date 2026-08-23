@@ -2354,3 +2354,24 @@ is present. Noted because a `render failed` warning silently collapses the criti
 the baseline — the arms then agree, and the agreement looks like a finding.
 
 **Owner.** Mine.
+
+## 2026-08-24 · Design2Code renumbered B-015 -> B-017 on the same rebase that renumbered its tasks (T-166)
+
+**What.** The README licence table's Design2Code row now points at **B-017**. It was written
+as B-015 an hour earlier, when B-014 was the highest entry in `docs/BENCHMARK-RESULTS.md`.
+
+**Why.** Two entries landed on `main` in between, from a teammate working concurrently:
+B-015 (`codeToIr` leaking `cards.of`, T-154) and B-016 (the synthetic wireframe generator,
+T-150). Both are merged; the Design2Code write-up is not written yet, so under the
+precedent already recorded here for board IDs — the already-merged id wins, the unmerged
+one renumbers — Design2Code moves.
+
+**Worth noting for whoever hits this next.** This is the third ID collision of the day, and
+the second class of ID it has happened to: T-159 -> T-163 and T-160/161/162 -> T-164/165/166
+for tasks, now B-015 -> B-017 for benchmarks. The common cause is the same in every case —
+two people allocating the next free number from their own copy of a file, with no
+allocator. `_build/tasks.json` has one for field IDs (§13's 1000.../2000.../3000... ranges,
+enforced by a hook) and benchmark and task IDs have none. Recorded as a structural gap, not
+fixed under deadline.
+
+**Owner.** Mine.
