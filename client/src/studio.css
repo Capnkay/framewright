@@ -112,7 +112,16 @@
 .design-align-row button.selected{background:#27272a;color:var(--text)}
 .design-bg-reset{display:block}
 
-.custom-preview-frame{padding:24px;background:#101012;min-height:680px;display:flex;justify-content:center;align-items:flex-start}
+/* display:block, not flex: this used to center a single <iframe> (see the
+   dead .custom-preview-frame iframe rule below), but Preview.jsx now renders
+   real section components directly as children here — display:flex's default
+   row direction put multiple full-width sections side by side instead of
+   stacked, flex-shrinking each one down to a fraction of the page width and
+   squeezing their own content tightly enough to visually overlap. Verified
+   against a real two-section page: grid-cols-3 stat-card columns went from
+   36px wide (flex row, shared among 3 sections) to their correct ~229px
+   (block, full width per section) on a 1440px viewport. */
+.custom-preview-frame{padding:24px;background:#101012;min-height:680px}
 .custom-preview-frame iframe{width:100%;height:640px;border:0;border-radius:8px;background:#f7f7f5;box-shadow:0 18px 40px rgba(0,0,0,.35)}
 
 .pipeline-code-actions{position:absolute;top:5px;right:5px;display:flex;gap:6px;z-index:1}
