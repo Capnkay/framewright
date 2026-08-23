@@ -73,7 +73,7 @@ export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
           </div>
           
           {/* Editor Body */}
-          <div className="flex-1 overflow-auto bg-[#1e1e1e]">
+          <div className="flex-1 overflow-hidden bg-[#1e1e1e]">
             <SyntaxHighlighter 
               language="jsx" 
               style={vscDarkPlus} 
@@ -82,7 +82,9 @@ export default function GeneratedSourceView({ jobId, pageName = 'Home' }) {
                 margin: 0, 
                 padding: '1.25rem',
                 backgroundColor: 'transparent',
-                fontSize: '0.85rem'
+                fontSize: '0.85rem',
+                height: '100%',
+                overflow: 'auto'
               }}
               lineNumberStyle={{
                 minWidth: '2.5em',
