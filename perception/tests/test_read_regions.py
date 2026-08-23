@@ -13,6 +13,8 @@ precisely the kind of change that quietly alters the first one's behaviour.
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pytest
 
@@ -323,6 +325,135 @@ def test_a_fragment_inside_a_word_does_not_make_that_word_a_container():
     kept = readable_regions([word, piece])
 
     assert kept == [0], "the word was dropped in favour of a piece of itself"
+
+
+# --- which URL a provider actually gets called on ---------------------------
+#
+# QA FINDING, recorded here rather than just fixed silently. `_openai_transport`
+# used to build `/model/{model}/invoke` unconditionally -- correct for Bedrock
+# (B-005, B-014) and a 404 for every other OpenAI-compatible provider the Node
+# side (`server/src/models/providers.js`) already resolves: Gemini, xAI,
+# DashScope, a local server. Measured live with `LLM_PROVIDER=gemini` configured:
+# every one of `/perceive`'s region reads failed, and the failure was silent --
+# `RegionReader.read`'s bare `except Exception` reports only `ok: False`, so the
+# Glass Box showed "the hosted reader failed" with no hint that the endpoint
+# itself was wrong for the configured provider. These tests pin the endpoint
+# `_openai_transport` actually calls, not just whether it raises.
+
+
+class _FakeResponse:
+    def __init__(self, body: bytes):
+        self._body = body
+
+    def read(self):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _capture_request(monkeypatch, reply_text="OK"):
+    """Patches urllib so a transport call is observed rather than sent, and
+    returns the list `Request` objects land in."""
+    import json as _json
+
+    from perception.stages import read_regions as rr
+
+    captured: list = []
+    body = _json.dumps({"choices": [{"message": {"content": reply_text}}]}).encode()
+
+    def fake_urlopen(request, timeout=None):  # noqa: ARG001
+        captured.append(request)
+        return _FakeResponse(body)
+
+    monkeypatch.setattr(rr.urllib.request, "urlopen", fake_urlopen)
+    return captured
+
+
+def test_the_default_path_is_plain_chat_completions_not_bedrocks_invoke_route(monkeypatch):
+    from perception.stages.read_regions import _openai_transport
+
+    transport = _openai_transport(
+        "https://generativelanguage.googleapis.com/v1beta/openai", "k", "gemini-3.6-flash", 5.0
+    )
+    captured = _capture_request(monkeypatch)
+    transport(b"png-bytes")
+
+    assert captured[0].full_url == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+
+
+def test_bedrock_true_selects_the_model_in_path_invoke_route(monkeypatch):
+    from perception.stages.read_regions import _openai_transport
+
+    transport = _openai_transport(
+        "https://bedrock-runtime.us-east-1.amazonaws.com", "k", "qwen.qwen3-vl-235b-a22b", 5.0, bedrock=True
+    )
+    captured = _capture_request(monkeypatch)
+    transport(b"png-bytes")
+
+    assert captured[0].full_url == (
+        "https://bedrock-runtime.us-east-1.amazonaws.com/model/qwen.qwen3-vl-235b-a22b/invoke"
+    )
+
+
+def test_is_bedrock_prefers_an_explicit_provider_over_the_url_sniff():
+    from perception.stages.read_regions import _is_bedrock
+
+    # An explicit non-bedrock provider wins even against a bedrock-shaped URL --
+    # matches resolveProvider's own stated order: name first, sniff second.
+    assert _is_bedrock("https://bedrock-runtime.us-east-1.amazonaws.com", "gemini") is False
+    assert _is_bedrock("https://bedrock-runtime.us-east-1.amazonaws.com", "") is True
+    assert _is_bedrock("https://bedrock-runtime.us-east-1.amazonaws.com", "aws") is True
+    assert _is_bedrock("https://generativelanguage.googleapis.com/v1beta/openai", "") is False
+    assert _is_bedrock("https://generativelanguage.googleapis.com/v1beta/openai", "bedrock") is True
+
+
+def test_load_region_reader_resolves_bedrock_from_llm_provider_alone(monkeypatch):
+    """The regression as it was actually configured on this machine: a Gemini
+    base URL, no `bedrock-runtime` substring anywhere, and `LLM_PROVIDER` is the
+    only signal available -- so `load_region_reader` must read it. Before this
+    fix `LLM_PROVIDER` was not read by this function at all.
+    """
+    from perception.stages.read_regions import load_region_reader
+
+    reader = load_region_reader(
+        {
+            "LLM_API_KEY": "k",
+            "LLM_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "VLM_MODEL": "gemini-3.6-flash",
+            "LLM_PROVIDER": "gemini",
+        }
+    )
+    assert reader is not None
+
+    captured = _capture_request(monkeypatch)
+    reader.transport(b"png-bytes")
+
+    assert captured[0].full_url == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+
+
+def test_the_reply_budget_leaves_room_for_a_reasoning_models_hidden_tokens(monkeypatch):
+    """QA finding: measured live against `gemini-3.6-flash`, a 100-token budget
+    came back `finish_reason: "length"` with the visible reply cut to `{"text`
+    (two completion tokens; ~96 of the 100 were spent on the model's own hidden
+    reasoning before it started the answer) -- and `_parse_text` cannot tell a
+    truncated reply apart from an odd one, so the fence fragment landed in
+    `default` looking like a confident read. This pins the fix at the one place
+    that can silently regress: the request body actually sent.
+    """
+    from perception.stages.read_regions import MAX_REPLY_TOKENS, _openai_transport
+
+    assert MAX_REPLY_TOKENS >= 400, "measured live: 100 truncated, 400 completed cleanly"
+
+    transport = _openai_transport("https://example.test/v1", "k", "m", 5.0)
+    captured = _capture_request(monkeypatch)
+    transport(b"png-bytes")
+
+    sent = json.loads(captured[0].data)
+    assert sent["max_tokens"] == MAX_REPLY_TOKENS
 
 
 def test_the_filter_keeps_every_region_that_carries_reference_text():

@@ -46,6 +46,23 @@ import numpy as np
 DEFAULT_TIMEOUT_S = 30.0
 MAX_ATTEMPTS = 2
 
+# MEASURED, not guessed, against the region actually configured on this machine
+# (`gemini-3.6-flash`, the crop reading "Pulse Fit"). At 100 the reply came back
+# `finish_reason: "length"` with two ({"text) visible completion tokens against a
+# reported 96-token spend on that call — a reasoning model's hidden "thinking"
+# tokens are billed against the same `max_tokens` budget as the visible reply, so
+# a limit sized for a short transcription on a non-reasoning model (this
+# constant's original value, tuned against qwen3-vl-235b on Bedrock, B-006/B-007)
+# starves the visible answer to almost nothing on a model that reasons first.
+# `_parse_text` has no way to tell "truncated mid-JSON" apart from "the model
+# said something odd" — both are a string with no closing brace — so the
+# truncated fence text (`` ```json\n{" ``) reached `default` looking like a
+# successful, confident read. At 400 the same crop returned the transcription
+# cleanly (`finish_reason: "stop"`, 10 completion tokens). 500 keeps that margin
+# for a longer line (a full sentence, not one word) without paying for a reply
+# nobody asked for.
+MAX_REPLY_TOKENS = 500
+
 # Breathing room around a crop so a stroke on the boundary is not clipped. The
 # detector's boxes hug the ink; a letter's descender often sits on the edge.
 CROP_PAD = 12
@@ -261,15 +278,49 @@ def crop_png(image: np.ndarray, bbox: tuple[int, int, int, int], pad: int = CROP
     return buffer.getvalue()
 
 
-def _openai_transport(base_url: str, api_key: str, model: str, timeout_s: float) -> Callable[[bytes], str]:
+def _is_bedrock(base_url: str, provider: str) -> bool:
+    """Mirrors `server/src/models/providers.js`'s `providerFromBaseUrl` — the one
+    fact this module needs from that registry, kept in step by hand rather than
+    imported, because this is Python and that is Node.
+
+    WHY THIS EXISTS. This function used to not exist at all: the endpoint below
+    was hardcoded to Bedrock's `/model/{model}/invoke` path unconditionally,
+    which is right for Bedrock (B-005, B-014) and a 404 for every other
+    OpenAI-compatible provider the Node side already supports — Gemini, xAI,
+    DashScope, a local server. Measured on this machine with `LLM_PROVIDER=gemini`
+    configured: `/perceive` reported "the hosted reader failed 3 region(s) in a
+    row" on every wireframe, because every call was a POST to a path Gemini's
+    compatibility layer does not serve. An explicit `LLM_PROVIDER` wins, exactly
+    as `resolveProvider`'s own resolution order states; failing that, a base URL
+    containing `bedrock-runtime` is the same convenience sniff `providerFromBaseUrl`
+    applies, preserved here for a config that sets a host and no provider name.
+    """
+    if provider in ("bedrock", "aws"):
+        return True
+    if provider:
+        return False
+    return "bedrock-runtime" in base_url.lower()
+
+
+def _openai_transport(
+    base_url: str, api_key: str, model: str, timeout_s: float, *, bedrock: bool = False
+) -> Callable[[bytes], str]:
     """The only function here that opens a socket.
 
     OpenAI-compatible, which is what the Node orchestrator already speaks and what
-    Bedrock serves at /openai/v1 — so the same three environment variables
-    configure both halves of this system.
+    Bedrock serves at /openai/v1 — so the same environment variables configure
+    both halves of this system. `bedrock` selects the one path Bedrock's route
+    disagrees with every other provider on (`endpointFor` in providers.js is the
+    Node side of the same fact): the model in the path rather than in the body.
     """
 
-    endpoint = base_url.rstrip("/") + f"/model/{model}/invoke"
+    base = base_url.rstrip("/")
+    if bedrock:
+        from urllib.parse import quote
+
+        endpoint = f"{base}/model/{quote(model, safe='')}/invoke"
+    else:
+        endpoint = f"{base}/chat/completions"
 
     def transport(png: bytes) -> str:
         body = {
@@ -288,7 +339,7 @@ def _openai_transport(base_url: str, api_key: str, model: str, timeout_s: float)
                     ],
                 }
             ],
-            "max_tokens": 100,
+            "max_tokens": MAX_REPLY_TOKENS,
             "temperature": 0,
         }
         request = urllib.request.Request(
@@ -319,11 +370,14 @@ def load_region_reader(env: dict[str, str] | None = None) -> RegionReader | None
     api_key = (source.get("LLM_API_KEY") or "").strip()
     base_url = (source.get("LLM_BASE_URL") or "").strip()
     model = (source.get("VLM_MODEL") or source.get("LLM_VISION_MODEL") or "").strip()
+    provider = (source.get("LLM_PROVIDER") or "").strip().lower()
 
     if not (api_key and base_url and model):
         return None
 
     return RegionReader(
         model=model,
-        transport=_openai_transport(base_url, api_key, model, DEFAULT_TIMEOUT_S),
+        transport=_openai_transport(
+            base_url, api_key, model, DEFAULT_TIMEOUT_S, bedrock=_is_bedrock(base_url, provider)
+        ),
     )
