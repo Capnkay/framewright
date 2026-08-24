@@ -2,7 +2,7 @@ services:
   - type: web
     name: framewright-api
     runtime: node
-    buildCommand: cd server && npm install
+    buildCommand: cd client && npm install --legacy-peer-deps && cd ../server && npm install
     startCommand: node server/src/server.js
     envVars:
       - key: PORT
