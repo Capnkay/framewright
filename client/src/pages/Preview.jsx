@@ -4,6 +4,7 @@ import { ArrowLeft, RotateCw, Monitor, Smartphone, Tablet, ExternalLink, Code, L
 import SideEditor from "../studio/SideEditor";
 import { useDispatch } from "react-redux";
 import { fetchElementsByIds } from "../redux/fetchElementsByIds.js";
+import { apiUrl, apiBaseUrl } from "../utils/apiBase.js";
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
@@ -42,7 +43,7 @@ export default function Preview() {
   const [viewMode, setViewMode] = useState('design'); // 'design' | 'code'
   const [displayFilter, setDisplayFilter] = useState('latest'); // 'latest' | 'all'
   const [codeText, setCodeText] = useState('');
-  
+
   const [editingFieldId, setEditingFieldId] = useState(null);
   const [editorPos, setEditorPos] = useState({ top: 0, left: 0 });
 
@@ -50,7 +51,7 @@ export default function Preview() {
 
   useEffect(() => {
     let active = true;
-    fetch('/api/sections')
+    fetch(apiUrl('/sections'))
       .then((r) => r.json())
       .then((sections) => {
         if (!active) return;
@@ -61,7 +62,7 @@ export default function Preview() {
         if (docs.length > 0) {
           const latestDoc = docs[docs.length - 1];
           if (latestDoc?.jobId) {
-            fetch(`/api/jobs/${latestDoc.jobId}/component`)
+            fetch(apiUrl(`/jobs/${latestDoc.jobId}/component`))
               .then(r => r.ok ? r.text() : '')
               .then(code => { if (active && code) setCodeText(code); })
               .catch(() => {});
@@ -78,7 +79,7 @@ export default function Preview() {
   const handleDocumentClick = (e) => {
     const ignoreClicks = e.target.closest('.side-editor-ignore');
     if (ignoreClicks) return;
-    
+
     const editable = e.target.closest('[data-field-id]');
     if (editable) {
       e.preventDefault();
@@ -102,8 +103,8 @@ export default function Preview() {
   };
 
   // Display only the latest section by default to avoid stacking old test sections
-  const filteredDocs = displayFilter === 'latest' && sectionDocs.length > 0 
-    ? [sectionDocs[sectionDocs.length - 1]] 
+  const filteredDocs = displayFilter === 'latest' && sectionDocs.length > 0
+    ? [sectionDocs[sectionDocs.length - 1]]
     : sectionDocs;
 
   return (
@@ -113,7 +114,10 @@ export default function Preview() {
         {/* Left: Back + Title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <button
-            onClick={() => navigate('/generate')}
+            onClick={() => {
+              if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+              navigate('/generate');
+            }}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
             title="Back to Studio"
             data-testid="preview-back-button"
@@ -153,7 +157,7 @@ export default function Preview() {
 
           {/* Section Filter: Latest vs All Stacked */}
           <div style={{ display: 'flex', background: 'var(--bg)', padding: '3px', borderRadius: '8px', border: '1px solid var(--line)' }}>
-            <button 
+            <button
               onClick={() => setDisplayFilter('latest')}
               style={{
                 padding: '6px 10px', fontSize: '10px', border: 'none',
@@ -164,7 +168,7 @@ export default function Preview() {
             >
               Latest Section
             </button>
-            <button 
+            <button
               onClick={() => setDisplayFilter('all')}
               style={{
                 padding: '6px 10px', fontSize: '10px', border: 'none',
@@ -182,7 +186,7 @@ export default function Preview() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Design / Code Toggle */}
           <div style={{ display: 'flex', background: 'var(--bg)', padding: '3px', borderRadius: '8px', border: '1px solid var(--line)', marginRight: '6px' }}>
-            <button 
+            <button
               onClick={() => setViewMode('design')}
               style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
@@ -194,7 +198,7 @@ export default function Preview() {
             >
               <LayoutGrid size={13} /> Design
             </button>
-            <button 
+            <button
               onClick={() => setViewMode('code')}
               style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
@@ -217,21 +221,27 @@ export default function Preview() {
             <RotateCw size={14} />
           </button>
           <button
-            onClick={() => window.open(`/preview/${pageName}`, '_blank')}
+            onClick={() => {
+              if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+              } else if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+              }
+            }}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
-            title="Open in New Tab"
+            title="Toggle Fullscreen"
             data-testid="preview-newtab-button"
           >
             <ExternalLink size={14} />
           </button>
         </div>
       </div>
-      
+
       {/* ── Main View Area (No dark mode fade bug) ── */}
       <div className="flex-1 overflow-y-auto w-full p-4" style={{ background: '#0b0b0c' }}>
         {viewMode === 'design' ? (
-          <div 
-            className="custom-preview-frame mx-auto" 
+          <div
+            className="custom-preview-frame mx-auto"
             data-testid="custom-preview-frame"
             style={{
               minHeight: '600px',
@@ -264,11 +274,11 @@ export default function Preview() {
                 }
 
                 return (
-                  <SectionWrapper 
-                    key={section.sectionId} 
-                    section={section} 
-                    Component={Component} 
-                    pageName={pageName} 
+                  <SectionWrapper
+                    key={section.sectionId}
+                    section={section}
+                    Component={Component}
+                    pageName={pageName}
                   />
                 );
               })
@@ -286,6 +296,7 @@ export default function Preview() {
               >
                 <SideEditor
                   fieldId={editingFieldId}
+                  apiUrl={apiBaseUrl()}
                   onClose={() => setEditingFieldId(null)}
                 />
               </div>
@@ -298,7 +309,7 @@ export default function Preview() {
               <span style={{ font: '11px/1.4 "JetBrains Mono", monospace', color: 'var(--blue2)', fontWeight: 600 }}>
                 Generated React Component Code (.jsx)
               </span>
-              <button 
+              <button
                 onClick={() => {
                   const blob = new Blob([codeText], { type: 'text/plain' });
                   const url = URL.createObjectURL(blob);

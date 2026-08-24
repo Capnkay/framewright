@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Download, Eye, Code, Maximize, LayoutGrid, RotateCw, Monitor, Smartphone } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DesignCanvas } from "./DesignTab";
 import { downloadCode } from "../../data/mock";
 import Editor from 'react-simple-code-editor';
@@ -30,8 +30,24 @@ import 'prismjs/themes/prism-tomorrow.css'; // dark theme for prism
 export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, onCodeChange, pageName = "Home", previewKey = 0, viewMode, setViewMode }) {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [isDesktop, setIsDesktop] = useState(true);
+  const navigate = useNavigate();
 
   const previewSrc = `/preview/${encodeURIComponent(pageName || "Home")}`;
+
+  // Fullscreen must be requested synchronously inside the click that triggers
+  // it -- browsers only honour requestFullscreen() within the original user
+  // gesture's call stack. A `target="_blank"` new tab, or requesting it after
+  // a route change lands in a useEffect, both fall outside that gesture, so
+  // neither ever actually enters fullscreen no matter what the button is
+  // named. Requesting it here, then navigating client-side (same document,
+  // no reload) is what keeps the fullscreen session alive into /preview.
+  const openFullScreenPreview = () => {
+    const root = document.documentElement;
+    if (root.requestFullscreen) {
+      root.requestFullscreen().catch(() => {});
+    }
+    navigate(previewSrc);
+  };
 
   const TABS = [
     { id: "design", label: "Design", Icon: LayoutGrid },
@@ -70,15 +86,15 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
               >
                 {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
               </button>
-              <Link
-                to={previewSrc}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
+              <button
+                type="button"
+                onClick={openFullScreenPreview}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
                 title="Full Screen Preview"
+                data-testid="fullscreen-preview-button"
               >
                 <Maximize size={14} />
-              </Link>
+              </button>
             </>
           )}
           <div style={{ display: 'flex', background: 'var(--bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>

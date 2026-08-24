@@ -9,6 +9,7 @@ import ComponentToolkit from "../components/studio/ComponentToolkit";
 import { defaultElements, generateCode, getStageStatuses, jobs, NEEDS_INPUT_QUESTION, FAILED_MESSAGE, parseCodeToElements } from "../data/mock";
 import { mockWireframes } from "../data/mockWireframes";
 import { DesignLayers, DesignInspector } from "../components/studio/DesignTab";
+import { apiUrl } from "../utils/apiBase.js";
 import "../studio.css";
 
 // A page name reaches two places that disagree about what a name may contain:
@@ -236,7 +237,7 @@ export default function Studio() {
       const pageNameStr = sanitizeName(form.page);
       
 
-      const res = await fetch("/api/generate", { method: "POST", body: formData });
+      const res = await fetch(apiUrl("/generate"), { method: "POST", body: formData });
       if (!res.ok) {
         const errorBody = await res.json().catch(() => ({}));
         throw new Error(errorBody?.error?.message || "API failed with status " + res.status);
@@ -245,7 +246,7 @@ export default function Studio() {
       
       // Fetch the newly generated elements
       if (data.job && data.job.sectionId) {
-        const elementsRes = await fetch(`/api/elements?sectionId=${data.job.sectionId}`);
+        const elementsRes = await fetch(apiUrl(`/elements?sectionId=${data.job.sectionId}`));
         if (elementsRes.ok) {
           const fetchedElements = await elementsRes.json();
           if (fetchedElements && fetchedElements.length > 0) {
@@ -340,7 +341,7 @@ export default function Studio() {
         setRealTrace(data.job.stages || data.job.trace || null);
         
         // Fetch the real generated React component code
-        const codeRes = await fetch(`/api/jobs/${data.job.jobId}/component`);
+        const codeRes = await fetch(apiUrl(`/jobs/${data.job.jobId}/component`));
         if (codeRes.ok) {
           const fetchedCode = await codeRes.text();
           if (fetchedCode) setCodeText(fetchedCode);
