@@ -98,8 +98,9 @@ export default function Custom({ pageName = 'Home', section = {} }) {
   const items = getStatItems(data); // R9 — never a fixed-length guard
 
   return (
-    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-gradient-to-br from-white to-red-50 ${textContrastClass}`}>
-      <div className="w-full md:w-1/2 bg-gray-50">
+    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-gradient-to-br from-white via-red-50 to-orange-100 ${textContrastClass}`}>
+      <div className="w-full md:w-1/2 bg-gray-50 relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-orange-500 opacity-20 blur-3xl" aria-hidden="true" />
         <img
           id={ids.heroImage}
           className="dynamicStyle2 w-full h-auto object-cover"
@@ -109,7 +110,7 @@ export default function Custom({ pageName = 'Home', section = {} }) {
         />
       </div>
 
-      <div className="w-full md:w-1/2 flex flex-col gap-6 py-10 md:py-20 md:border-l-4 md:border-red-500 md:pl-10">
+      <div className="w-full md:w-1/2 flex flex-col gap-8 py-10 md:py-20 md:border-l-4 md:border-red-500 md:pl-10">
         <span
           id={ids.brandBadge}
           className="dynamicStyle text-sm font-semibold tracking-widest text-red-500 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-50 text-red-500"
@@ -123,7 +124,7 @@ export default function Custom({ pageName = 'Home', section = {} }) {
 
         <h1
           id={ids.headlineMain}
-          className="dynamicStyle text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-gray-800"
+          className="dynamicStyle text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-gray-800 tracking-tight"
           dangerouslySetInnerHTML={{
             __html: getHtml(
               getTextValue(data, ids.headlineMain, DEFAULTS[ids.headlineMain]),
@@ -134,7 +135,7 @@ export default function Custom({ pageName = 'Home', section = {} }) {
 
         <h2
           id={ids.headlineSub}
-          className="dynamicStyle text-xl md:text-2xl font-medium text-gray-600"
+          className="dynamicStyle text-xl md:text-2xl font-medium text-gray-600 tracking-tight"
           dangerouslySetInnerHTML={{
             __html: getHtml(
               getTextValue(data, ids.headlineSub, DEFAULTS[ids.headlineSub]),

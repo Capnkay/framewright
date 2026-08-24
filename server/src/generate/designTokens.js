@@ -39,6 +39,8 @@
 export const DEFAULT_TOKENS = Object.freeze({
   colors: Object.freeze({
     accent: 'red-500',
+    accentAlt: 'orange-500',
+    accentDark: 'gray-900',
     accentContrast: 'white',
     surface: 'white',
     surfaceAlt: 'gray-50',
@@ -50,8 +52,10 @@ export const DEFAULT_TOKENS = Object.freeze({
     bodyFamily: 'font-sans',
     headingWeight: 'font-extrabold',
     bodyWeight: 'font-normal',
+    headingTracking: 'tracking-tight',
+    eyebrowTracking: 'tracking-widest',
     scale: Object.freeze({
-      h1: 'text-4xl md:text-5xl',
+      h1: 'text-5xl md:text-6xl',
       h2: 'text-xl md:text-2xl',
       body: 'text-base',
       eyebrow: 'text-sm',
@@ -61,6 +65,7 @@ export const DEFAULT_TOKENS = Object.freeze({
   spacing: Object.freeze({
     sectionY: 'py-10 md:py-20',
     gap: 'gap-6',
+    heroGap: 'gap-8',
     containerX: 'px-0 md:px-12',
   }),
   shadows: Object.freeze({ card: 'shadow-md', button: 'shadow-sm' }),

@@ -36,7 +36,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelet
 
   return (
     <div className="design-canvas-wrap" style={{ overflowY: 'auto' }} onClick={() => setDeletableId(null)}>
-      <div className={`design-canvas ${elements.length === 0 ? 'empty' : ''}`} style={{ width: CANVAS_W, height: actualHeight }} data-testid={tid("design-canvas")}>
+      <div className={`design-canvas ${elements.length === 0 ? 'empty' : ''}`} style={{ width: CANVAS_W, height: actualHeight, background: `linear-gradient(135deg, #ffffff 0%, ${effectiveColor}15 100%)` }} data-testid={tid("design-canvas")}>
         {elements.length === 0 ? (
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#71717a', fontSize: '13px'}}>
             Awaiting generation...
@@ -90,7 +90,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelet
   );
 }
 
-export function DesignInspector({ elements, selectedId, accent, onUpdate, onContentChange, scope = "pipeline" }) {
+export function DesignInspector({ elements, selectedId, accent, onUpdate, onContentChange, scope = "pipeline", sectionAccent, onAccentChange = () => {} }) {
   const selectedEl = elements.find(e => e.id === selectedId) || elements[0];
   const effectiveColor = /^#[0-9a-fA-F]{3,8}$/.test(accent || "") ? accent : "#3b82f6";
   const p = scope === "composer" ? "composer-" : "";
@@ -101,6 +101,7 @@ export function DesignInspector({ elements, selectedId, accent, onUpdate, onCont
   return (
     <div className="design-inspector" data-testid={tid("design-inspector")}>
       <div className="design-inspector-head">{selectedEl.label || ELEMENT_LABELS[selectedEl.id] || selectedEl.id}</div>
+      <label className="field">Section accent<input type="color" value={sectionAccent || effectiveColor} onChange={e => onAccentChange(e.target.value)} data-testid={tid("design-section-accent-input")} /></label>
       {selectedEl.type !== "image" && (
         <label className="field">Content
           <textarea value={selectedEl.content} onChange={e => onContentChange(selectedEl.id, e.target.value)} data-testid={tid("design-content-input")} />
@@ -135,14 +136,14 @@ export function DesignInspector({ elements, selectedId, accent, onUpdate, onCont
   );
 }
 
-export function DesignTab({ elements, accent, onUpdate, onReorder, onContentChange, scope = "pipeline" }) {
+export function DesignTab({ elements, accent, onUpdate, onReorder, onContentChange, scope = "pipeline", sectionAccent, onAccentChange }) {
   const [selected, setSelected] = useState(elements[0]?.id || null);
 
   return (
     <div className="design-tab" data-testid={scope === "composer" ? "composer-section-editor" : "pipeline-design-tab"}>
       <DesignLayers elements={elements} selectedId={selected} onSelect={setSelected} onReorder={onReorder} scope={scope} />
       <DesignCanvas elements={elements} selectedId={selected} onSelect={setSelected} onUpdate={onUpdate} accent={accent} scope={scope} />
-      <DesignInspector elements={elements} selectedId={selected} accent={accent} onUpdate={onUpdate} onContentChange={onContentChange} scope={scope} />
+      <DesignInspector elements={elements} selectedId={selected} accent={accent} onUpdate={onUpdate} onContentChange={onContentChange} scope={scope} sectionAccent={sectionAccent} onAccentChange={onAccentChange} />
     </div>
   );
 }

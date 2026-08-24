@@ -236,7 +236,7 @@ export default function Studio() {
               
               let x = 20;
               let y = yCursor;
-              let width = CANVAS_WIDTH;
+              let width = el.contentType === "Button" ? Math.min(CANVAS_WIDTH, 200) : CANVAS_WIDTH;
               let height = undefined;
               let fontWeight = el.tag === "h1" || el.tag === "h2" || el.contentType === "Button" ? 700 : 400;
               let color = "#18181b";
