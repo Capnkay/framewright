@@ -69,13 +69,18 @@ export default function Preview() {
 
   useEffect(() => {
     fetch('/api/sections')
-      .then((r) => r.json())
-      .then((sections) => {
-        setSectionDocs(sections.filter(s => s.pageName === pageName));
-      })
-      .catch((err) => console.error(err));
+  const sectionDocs = useSelector(state => state.app.sections.filter(s => s.pageName === pageName));
+  const framed = isFramed();
 
-    // Hydrate Redux with the CMS data for this page
+  const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
+
+  const componentKeyFor = (sectionDoc) => {
+    return `../sections/generated/${sectionDoc.sectionId}.jsx`;
+  };
+
+  useEffect(() => {
+    document.title = `${pageName} - Preview`;
+    if (pageName) dispatch(loadPageSections(pageName));
     dispatch(fetchElementsByIds({ pageName }));
   }, [pageName, dispatch]);
 
@@ -105,84 +110,85 @@ export default function Preview() {
 
   return (
     <div className="live-preview-page h-screen flex flex-col overflow-hidden">
-      {/* ── Floating top bar ── */}
-      <div className="preview-toolbar side-editor-ignore shrink-0" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--line)' }}>
-        {/* Left: Back + Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <button
-            onClick={() => navigate('/studio')}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
-            title="Back to Studio"
-            data-testid="preview-back-button"
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <div>
-            <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '1px', color: 'var(--dim)', textTransform: 'uppercase' }}>LIVE PREVIEW</div>
-            <h1 style={{ fontSize: '18px', letterSpacing: '-.04em', margin: '2px 0 0' }}>{pageName}</h1>
+      {!framed && (
+        <div className="preview-toolbar side-editor-ignore shrink-0" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--line)' }}>
+          {/* Left: Back + Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <button
+              onClick={() => navigate('/studio')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
+              title="Back to Studio"
+              data-testid="preview-back-button"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <div>
+              <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '1px', color: 'var(--dim)', textTransform: 'uppercase' }}>LIVE PREVIEW</div>
+              <h1 style={{ fontSize: '18px', letterSpacing: '-.04em', margin: '2px 0 0' }}>{pageName}</h1>
+            </div>
           </div>
-        </div>
 
-        {/* Center: Viewport toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ display: 'flex', background: 'var(--bg)', padding: '3px', borderRadius: '8px', border: '1px solid var(--line)' }}>
-            {Object.keys(VP_WIDTHS).map(vp => {
-              const Icon = VP_ICONS[vp];
-              return (
-                <button
-                  key={vp}
-                  onClick={() => setViewport(vp)}
-                  data-testid={`preview-vp-${vp.toLowerCase()}`}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    padding: '6px 10px', fontSize: '10px', border: 'none',
-                    background: viewport === vp ? '#2a2a2e' : 'transparent',
-                    color: viewport === vp ? 'var(--text)' : 'var(--dim)',
-                    borderRadius: '6px', cursor: 'pointer',
-                  }}
-                >
-                  <Icon size={13} />{vp}
+          {/* Center: Viewport toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', background: 'var(--bg)', padding: '3px', borderRadius: '8px', border: '1px solid var(--line)' }}>
+              {Object.keys(VP_WIDTHS).map(vp => {
+                const Icon = VP_ICONS[vp];
+                return (
+                  <button
+                    key={vp}
+                    onClick={() => setViewport(vp)}
+                    data-testid={`preview-vp-${vp.toLowerCase()}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '5px',
+                      padding: '6px 10px', fontSize: '10px', border: 'none',
+                      background: viewport === vp ? '#2a2a2e' : 'transparent',
+                      color: viewport === vp ? 'var(--text)' : 'var(--dim)',
+                      borderRadius: '6px', cursor: 'pointer',
+                    }}
+                  >
+                    <Icon size={13} />{vp}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => setReloadKey(k => k + 1)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
+              title="Reload Preview"
+              data-testid="preview-reload-button"
+            >
+              <RotateCw size={14} />
+            </button>
+            <button
+              onClick={() => window.open(`/preview/${pageName}`, '_blank')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
+              title="Open in New Tab"
+              data-testid="preview-newtab-button"
+            >
+              <ExternalLink size={14} />
+            </button>
+            <button
+              onClick={() => navigate('/studio')}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--blue)', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
+              data-testid="preview-edit-button"
+            >
+              <Code size={13} /> Edit in Studio
+            </button>
+            <div className="variation-toggle" data-testid="design-variation-toggle" style={{ marginLeft: 4 }}>
+              <span style={{ fontSize: '10px', color: 'var(--muted)', marginRight: 8 }}>Design preview</span>
+              {variations.map(v => (
+                <button key={v} className={variation === v ? "selected" : ""} onClick={() => setVariation(v)} data-testid={`variation-${v.toLowerCase()}-button`}>
+                  0{v === "A" ? 1 : v === "B" ? 2 : 3}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
-
-        {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={() => setReloadKey(k => k + 1)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
-            title="Reload Preview"
-            data-testid="preview-reload-button"
-          >
-            <RotateCw size={14} />
-          </button>
-          <button
-            onClick={() => window.open(`/preview/${pageName}`, '_blank')}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
-            title="Open in New Tab"
-            data-testid="preview-newtab-button"
-          >
-            <ExternalLink size={14} />
-          </button>
-          <button
-            onClick={() => navigate('/studio')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--blue)', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
-            data-testid="preview-edit-button"
-          >
-            <Code size={13} /> Edit in Studio
-          </button>
-          <div className="variation-toggle" data-testid="design-variation-toggle" style={{ marginLeft: 4 }}>
-            <span style={{ fontSize: '10px', color: 'var(--muted)', marginRight: 8 }}>Design preview</span>
-            {variations.map(v => (
-              <button key={v} className={variation === v ? "selected" : ""} onClick={() => setVariation(v)} data-testid={`variation-${v.toLowerCase()}-button`}>
-                0{v === "A" ? 1 : v === "B" ? 2 : 3}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
       
       <AnimatePresence mode="wait">
         <motion.div key={`${variation}-${reloadKey}`} className={`site-preview variation-${variation.toLowerCase()} flex-1 overflow-y-auto w-full max-w-full`} {...fade} data-testid="live-site-preview"

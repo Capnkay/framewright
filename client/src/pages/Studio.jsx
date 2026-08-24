@@ -142,6 +142,14 @@ export default function Studio() {
   const onElementUpdate = (id, patch) => {
     setElements(els => { const next = els.map(el => (el.id === id ? { ...el, ...patch } : el)); setCodeText(generateCode(next, accent)); return next; });
   };
+  const onElementDelete = (id) => {
+    setElements(els => {
+      const next = els.filter(el => el.id !== id);
+      setCodeText(generateCode(next, accent));
+      if (selectedField === id) setSelectedField(next[0]?.id || null);
+      return next;
+    });
+  };
   const onContentChange = (id, value) => onElementUpdate(id, { content: value });
   const onElementReorder = (id, dir) => {
     setElements(els => {
@@ -405,7 +413,7 @@ export default function Studio() {
           <SectionEditor 
             elements={elements} accent={accent} code={codeText} 
             selectedField={selectedField} setSelectedField={setSelectedField} 
-            onUpdate={onElementUpdate} onCodeChange={onCodeChange}
+            onUpdate={onElementUpdate} onDelete={onElementDelete} onCodeChange={onCodeChange}
             pageName={previewPage} previewKey={previewKey} 
             viewMode={viewMode} setViewMode={setViewMode}
           />

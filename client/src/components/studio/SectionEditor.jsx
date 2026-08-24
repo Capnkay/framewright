@@ -27,7 +27,7 @@ import 'prismjs/themes/prism-tomorrow.css'; // dark theme for prism
 // that is an honest label for it. It is no longer allowed to impersonate the
 // generated section.
 
-export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, onCodeChange, pageName = "Home", previewKey = 0, viewMode, setViewMode }) {
+export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, onDelete, onCodeChange, pageName = "Home", previewKey = 0, viewMode, setViewMode }) {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [isDesktop, setIsDesktop] = useState(true);
 
@@ -108,7 +108,7 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
               />
             </div>
           ) : viewMode === "design" ? (
-            <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} scope="composer" />
+            <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} onDelete={onDelete} scope="composer" />
           ) : (
             <div className="section-editor-code-preview" data-testid="composer-code-preview" style={{ flex: 1, margin: 0, padding: 0, borderTop: 'none', borderRadius: '0 0 8px 8px', maxHeight: 'none', display: 'flex', flexDirection: 'column', overflow: 'auto', background: '#1d1f21' }}>
               <Editor

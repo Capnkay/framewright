@@ -26,7 +26,8 @@ export function DesignLayers({ elements, selectedId, onSelect, onReorder, scope 
   );
 }
 
-export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent, scope = "pipeline" }) {
+export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelete, accent, scope = "pipeline" }) {
+  const [deletableId, setDeletableId] = useState(null);
   const selectedEl = elements.find(e => e.id === selectedId) || elements[0];
   const effectiveColor = /^#[0-9a-fA-F]{3,8}$/.test(accent || "") ? accent : "#3b82f6";
   const p = scope === "composer" ? "composer-" : "";
@@ -34,7 +35,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
   const actualHeight = Math.max(CANVAS_H, elements.reduce((max, el) => Math.max(max, (el.y || 0) + (el.height || 50)), CANVAS_H) + 50);
 
   return (
-    <div className="design-canvas-wrap" style={{ overflowY: 'auto' }}>
+    <div className="design-canvas-wrap" style={{ overflowY: 'auto' }} onClick={() => setDeletableId(null)}>
       <div className={`design-canvas ${elements.length === 0 ? 'empty' : ''}`} style={{ width: CANVAS_W, height: actualHeight }} data-testid={tid("design-canvas")}>
         {elements.length === 0 ? (
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#71717a', fontSize: '13px'}}>
@@ -58,7 +59,8 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
                 }}
                 drag dragMomentum={false}
                 dragConstraints={{ left: 0, top: 0, right: maxX, bottom: maxY }}
-                onPointerDown={() => onSelect(el.id)}
+                onPointerDown={(e) => { e.stopPropagation(); onSelect(el.id); if (deletableId !== el.id) setDeletableId(null); }}
+                onDoubleClick={(e) => { e.stopPropagation(); setDeletableId(el.id); }}
                 onDragEnd={(e, info) => onUpdate(el.id, {
                   x: Math.round(clamp(el.x + info.offset.x, 0, maxX)),
                   y: Math.round(clamp(el.y + info.offset.y, 0, maxY)),
@@ -66,6 +68,19 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
                 data-testid={tid(`design-block-${el.id}`)}
               >
                 {el.type !== "image" ? el.content : null}
+                {deletableId === el.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete?.(el.id); setDeletableId(null); }}
+                    style={{
+                      position: 'absolute', top: -10, right: -10, background: '#ef4444', color: 'white',
+                      border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'grid', placeItems: 'center',
+                      cursor: 'pointer', zIndex: 50, boxShadow: '0 2px 5px rgba(0,0,0,0.2)', fontSize: '14px', lineHeight: 1
+                    }}
+                    title="Delete element"
+                  >
+                    ×
+                  </button>
+                )}
               </motion.div>
             );
           })
