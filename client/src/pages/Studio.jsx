@@ -177,31 +177,6 @@ export default function Studio() {
       
       const pageNameStr = sanitizeName(form.page);
       
-      // MOCK ML WIREFRAME GENERATION
-      if (mode === "Wireframe" && form.fileObj && mockWireframes[form.fileObj.name]) {
-        const mockedElements = mockWireframes[form.fileObj.name];
-        
-        // Wait 12 seconds to simulate processing while progressTimer runs
-        await new Promise(resolve => setTimeout(resolve, 12000));
-        
-        setElements(mockedElements);
-        setSelectedField(mockedElements[0]?.id || null);
-        
-        const generatedCode = generateCode(mockedElements, accent);
-        setCodeText(generatedCode);
-        
-        // Mock a success trace
-        setRealTrace(null); 
-        setRunWarnings([]);
-        setPreviewPage(pageNameStr);
-        setPreviewKey(k => k + 1);
-
-        clearInterval(progressTimer);
-        setJobState("done");
-        setRunningIndex(-1);
-        setSelectedStage(6);
-        return; // Exit early to skip the real fetch
-      }
 
       const res = await fetch("/api/generate", { method: "POST", body: formData });
       if (!res.ok) {

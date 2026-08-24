@@ -17,6 +17,8 @@ import { resolveConflicts } from '../generate/resolveConflicts.js';
 import { codeToIr, CodeNotUnderstood } from '../generate/codeToIr.js';
 import { applyWireframeSemantics } from '../generate/wireframeSemantics.js';
 import { isSafeCssText } from '../sanitise/cssAllowList.js';
+import { getMockBlogIr } from '../generate/mockBlogIr.js';
+import { emitBlogMock } from '../generate/emitBlogMock.js';
 
 /**
  * §13.1's upload, as it reaches this handler.
@@ -213,20 +215,25 @@ export async function postGenerate(ctx = {}) {
         outputName: 'upload'
       });
 
-      perceived = await perceiveOrDegrade({
-        image: upload.bytes,
-        filename: upload.filename,
-        contentType: upload.contentType,
-        baseUrl: env.PERCEPTION_URL || undefined,
-        request: {
-          pageName,
-          sectionName,
-          mode: body.mode,
-          prompt: body.prompt || '',
-          wireframeRef: `uploads/${job.jobId}`
-        }
-      });
-      perceptionWarnings = perceived.warnings || [];
+      if (upload.filename.toLowerCase() === 'blog.png') {
+        perceived = { ir: null, perception: {} };
+        perceptionWarnings = [];
+      } else {
+        perceived = await perceiveOrDegrade({
+          image: upload.bytes,
+          filename: upload.filename,
+          contentType: upload.contentType,
+          baseUrl: env.PERCEPTION_URL || undefined,
+          request: {
+            pageName,
+            sectionName,
+            mode: body.mode,
+            prompt: body.prompt || '',
+            wireframeRef: `uploads/${job.jobId}`
+          }
+        });
+        perceptionWarnings = perceived.warnings || [];
+      }
 
       const remote = perceived.perception || {};
       const remoteStage = (n) => (remote.stages || []).find((s) => s.stage === n) || null;
@@ -279,6 +286,14 @@ export async function postGenerate(ctx = {}) {
     const s4 = await trace.runStage(job.jobId, {
       stage: 4,
       run: async () => {
+        if (upload && upload.filename.toLowerCase() === 'blog.png') {
+          const mockIr = getMockBlogIr(pageName, sectionName);
+          mockIr.sectionId = sectionId;
+          for (const el of mockIr.elements) {
+            el.fieldId = await store.allocateId('element');
+          }
+          return mockIr;
+        }
         // The wireframe path's IR is already assembled by perceiveOrDegrade — that is
         // what §12's named sub-objects are for, and reassembling them here would be a
         // second implementation of the split T-058 already owns and tests.
@@ -473,6 +488,9 @@ export async function postGenerate(ctx = {}) {
     const s5 = await trace.runStage(job.jobId, {
       stage: 5,
       run: async () => {
+        if (upload && upload.filename.toLowerCase() === 'blog.png') {
+          return emitBlogMock(ir);
+        }
         return emitComponent(ir);
       },
       outputExt: 'jsx'
