@@ -392,16 +392,6 @@ export default function Studio() {
               });
             }}
           />
-          <PipelinePanel
-            jobState={jobState} setJobState={handleDevState}
-            stages={stages} selectedStage={selectedStage} setSelectedStage={setSelectedStage}
-            question={NEEDS_INPUT_QUESTION} chosenAnswer={chosenAnswer} onChoose={setChosenAnswer}
-            tab={tab} setTab={setTab} code={codeText} onCodeChange={onCodeChange}
-            elements={elements} accent={accent}
-            selectedField={selectedField} setSelectedField={setSelectedField} onContentChange={onContentChange}
-            onElementUpdate={onElementUpdate} onElementReorder={onElementReorder}
-            errorMessage={FAILED_MESSAGE}
-          />
         </div>
       </div>
     </div>

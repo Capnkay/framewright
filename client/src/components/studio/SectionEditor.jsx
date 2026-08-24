@@ -43,7 +43,7 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
   };
 
   return (
-    <div className="section-editor" data-testid="composer-section-editor-wrap" style={{ display: 'flex', flexDirection: 'column', flex: viewMode === "code" ? '1 1 auto' : 'unset', minHeight: viewMode === "code" ? '400px' : 'auto' }}>
+    <div className="section-editor" data-testid="composer-section-editor-wrap" style={{ display: 'flex', flexDirection: 'column', flex: 'none', minHeight: viewMode === "code" ? '400px' : 'auto' }}>
 
       {/* Header bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
