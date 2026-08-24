@@ -5,7 +5,7 @@ import { CANVAS_H, CANVAS_W, ELEMENT_LABELS } from "../../data/mock";
 const WEIGHTS = [400, 500, 600, 650, 700];
 const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
 
-export function DesignLayers({ elements, selectedId, onSelect, onReorder, scope = "pipeline" }) {
+export function DesignLayers({ elements, selectedId, onSelect, onReorder, onRemove, scope = "pipeline" }) {
   const selectedEl = elements.find(e => e.id === selectedId) || elements[0];
   const p = scope === "composer" ? "composer-" : "";
   const tid = name => `${p}${name}`;
@@ -18,6 +18,7 @@ export function DesignLayers({ elements, selectedId, onSelect, onReorder, scope 
           <div className="design-layer-actions">
             <button type="button" disabled={i === 0} onClick={e => { e.stopPropagation(); onReorder(el.id, -1); }} data-testid={tid(`design-layer-${el.id}-up`)}>&#8593;</button>
             <button type="button" disabled={i === elements.length - 1} onClick={e => { e.stopPropagation(); onReorder(el.id, 1); }} data-testid={tid(`design-layer-${el.id}-down`)}>&#8595;</button>
+            {onRemove && <button type="button" onClick={e => { e.stopPropagation(); onRemove(el.id); }} title="Remove">&#10005;</button>}
           </div>
         </div>
       ))}
@@ -26,7 +27,7 @@ export function DesignLayers({ elements, selectedId, onSelect, onReorder, scope 
   );
 }
 
-export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent, scope = "pipeline" }) {
+export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onRemove, accent, scope = "pipeline" }) {
   const selectedEl = elements.find(e => e.id === selectedId) || elements[0];
   const effectiveColor = /^#[0-9a-fA-F]{3,8}$/.test(accent || "") ? accent : "#3b82f6";
   const p = scope === "composer" ? "composer-" : "";
@@ -59,6 +60,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
                 drag dragMomentum={false}
                 dragConstraints={{ left: 0, top: 0, right: maxX, bottom: maxY }}
                 onPointerDown={() => onSelect(el.id)}
+                onDoubleClick={() => onRemove && onRemove(el.id)}
                 onDragEnd={(e, info) => onUpdate(el.id, {
                   x: Math.round(clamp(el.x + info.offset.x, 0, maxX)),
                   y: Math.round(clamp(el.y + info.offset.y, 0, maxY)),
@@ -125,7 +127,7 @@ export function DesignTab({ elements, accent, onUpdate, onReorder, onContentChan
 
   return (
     <div className="design-tab" data-testid={scope === "composer" ? "composer-section-editor" : "pipeline-design-tab"}>
-      <DesignLayers elements={elements} selectedId={selected} onSelect={setSelected} onReorder={onReorder} scope={scope} />
+      <DesignLayers elements={elements} selectedId={selected} onSelect={setSelected} onReorder={onReorder} onRemove={onUpdate ? null : undefined} scope={scope} />
       <DesignCanvas elements={elements} selectedId={selected} onSelect={setSelected} onUpdate={onUpdate} accent={accent} scope={scope} />
       <DesignInspector elements={elements} selectedId={selected} accent={accent} onUpdate={onUpdate} onContentChange={onContentChange} scope={scope} />
     </div>

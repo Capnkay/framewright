@@ -36,7 +36,7 @@ function Modes({ mode, setMode }) {
   );
 }
 
-function Composer({ mode, setMode, form, setForm, accent, setAccent, generate, running, elements, selectedField, setSelectedField, onElementUpdate, onElementReorder, onContentChange }) {
+function Composer({ mode, setMode, form, setForm, accent, setAccent, generate, running, elements, selectedField, setSelectedField, onElementUpdate, onElementReorder, onElementRemove, onContentChange }) {
   const file = useRef();
   const set = key => value => setForm(f => ({ ...f, [key]: value }));
   return (
@@ -109,7 +109,7 @@ function Composer({ mode, setMode, form, setForm, accent, setAccent, generate, r
       
       <div className="composer-inspector-wrap">
         <div className="disclosure-toggle section-editor-label" style={{marginBottom: 10, marginTop: 10}}><span>&#9662; Edit layout &amp; content</span></div>
-        <DesignLayers elements={elements} selectedId={selectedField} onSelect={setSelectedField} onReorder={onElementReorder} scope="composer" />
+        <DesignLayers elements={elements} selectedId={selectedField} onSelect={setSelectedField} onReorder={onElementReorder} onRemove={onElementRemove} scope="composer" />
         <DesignInspector elements={elements} selectedId={selectedField} accent={accent} onUpdate={onElementUpdate} onContentChange={onContentChange} scope="composer" />
       </div>
 
@@ -178,6 +178,15 @@ export default function Studio() {
 
   const onElementUpdate = (id, patch) => {
     setElements(els => { const next = els.map(el => (el.id === id ? { ...el, ...patch } : el)); setCodeText(generateCode(next, accent)); return next; });
+  };
+  const onElementRemove = (id) => {
+    if (!window.confirm("Remove this element?")) return;
+    setElements(els => {
+      const next = els.filter(el => el.id !== id);
+      setCodeText(generateCode(next, accent));
+      return next;
+    });
+    if (selectedField === id) setSelectedField(null);
   };
   const onContentChange = (id, value) => onElementUpdate(id, { content: value });
   const onElementReorder = (id, dir) => {
@@ -422,7 +431,7 @@ export default function Studio() {
             mode={mode} setMode={setMode} form={form} setForm={setForm} accent={accent} setAccent={setAccent}
             generate={generate} running={jobState === "running"}
             elements={elements} selectedField={selectedField} setSelectedField={setSelectedField}
-            onElementUpdate={onElementUpdate} onElementReorder={onElementReorder} onContentChange={onContentChange}
+            onElementUpdate={onElementUpdate} onElementReorder={onElementReorder} onElementRemove={onElementRemove} onContentChange={onContentChange}
           />
           <section className="history panel" data-testid="job-history">
             <div className="history-head"><div><Label>JOB HISTORY</Label><h2>Recent generations</h2></div><button className="text-btn" data-testid="view-all-jobs-button">View all <ArrowRight size={13} /></button></div>
@@ -442,7 +451,7 @@ export default function Studio() {
           <SectionEditor 
             elements={elements} accent={accent} code={codeText} 
             selectedField={selectedField} setSelectedField={setSelectedField} 
-            onUpdate={onElementUpdate} onCodeChange={onCodeChange}
+            onUpdate={onElementUpdate} onRemove={onElementRemove} onCodeChange={onCodeChange}
             pageName={previewPage} previewKey={previewKey} 
             viewMode={viewMode} setViewMode={setViewMode}
           />
