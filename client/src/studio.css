@@ -160,14 +160,14 @@
 
 .design-canvas.empty { background: transparent; border: 1px dashed var(--line); }
 
-/* ─── Component Toolkit ──────────────────────────────────────── */
-.component-toolkit{border:1px solid var(--line);border-radius:10px;background:rgba(21,21,23,.72);overflow:hidden}
-.tk-tabs{display:flex;border-bottom:1px solid var(--line)}
-.tk-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border:none;background:transparent;color:var(--dim);font-size:10px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:color .15s,background .15s}
-.tk-tabs button.selected{color:var(--text);background:rgba(59,130,246,.06)}
-.tk-tabs button:hover{color:var(--text)}
-
-.tk-library,.tk-inspector{padding:14px}
+  /* ─── Component Toolkit ──────────────────────────────────────── */
+  .component-toolkit{border:1px solid var(--line);border-radius:10px;background:rgba(21,21,23,.72);display:flex;flex-direction:column;max-height:450px;overflow:hidden}
+  .tk-tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0}
+  .tk-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border:none;background:transparent;color:var(--dim);font-size:10px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:color .15s,background .15s}
+  .tk-tabs button.selected{color:var(--text);background:rgba(59,130,246,.06)}
+  .tk-tabs button:hover{color:var(--text)}
+  
+  .tk-library,.tk-inspector{padding:14px;overflow-y:auto;flex:1}
 
 .tk-library-title,.tk-inspector-title{display:flex;align-items:center;gap:7px;font:600 9px var(--mono);letter-spacing:.08em;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
 

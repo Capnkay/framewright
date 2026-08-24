@@ -3,6 +3,11 @@ import { Download, Eye, Code, Maximize, LayoutGrid, RotateCw, Monitor, Smartphon
 import { Link } from "react-router-dom";
 import { DesignCanvas } from "./DesignTab";
 import { downloadCode } from "../../data/mock";
+import Editor from 'react-simple-code-editor';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/themes/prism-tomorrow.css'; // dark theme for prism
 
 // WHY THE PREVIEW IS AN IFRAME OF /preview AND NOT A CANVAS.
 //
@@ -22,8 +27,7 @@ import { downloadCode } from "../../data/mock";
 // that is an honest label for it. It is no longer allowed to impersonate the
 // generated section.
 
-export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, pageName = "Home", previewKey = 0 }) {
-  const [viewMode, setViewMode] = useState("design");
+export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, onCodeChange, pageName = "Home", previewKey = 0, viewMode, setViewMode }) {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [isDesktop, setIsDesktop] = useState(true);
 
@@ -34,8 +38,12 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
     { id: "code", label: "Code", Icon: Code },
   ];
 
+  const highlightWithPrism = (codeStr) => {
+    return Prism.highlight(codeStr || '', Prism.languages.jsx, 'jsx');
+  };
+
   return (
-    <div className="section-editor" data-testid="composer-section-editor-wrap" style={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="section-editor" data-testid="composer-section-editor-wrap" style={{ display: 'flex', flexDirection: 'column', flex: viewMode === "code" ? '1 1 auto' : 'unset', minHeight: viewMode === "code" ? '400px' : 'auto' }}>
 
       {/* Header bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
@@ -52,21 +60,25 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
 
         {/* Right side: Toggle */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => setIsDesktop(!isDesktop)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
-            title={isDesktop ? "Switch to Mobile View" : "Switch to Desktop View"}
-          >
-            {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
-          </button>
-          <Link
-            to={previewSrc}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
-            title="Full Screen Preview"
-          >
-            <Maximize size={14} />
-          </Link>
+          {viewMode === "design" && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsDesktop(!isDesktop)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
+                title={isDesktop ? "Switch to Mobile View" : "Switch to Desktop View"}
+              >
+                {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
+              </button>
+              <Link
+                to={previewSrc}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
+                title="Full Screen Preview"
+              >
+                <Maximize size={14} />
+              </Link>
+            </>
+          )}
           <div style={{ display: 'flex', background: 'var(--bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
             {TABS.map(({ id, label, Icon }) => (
               <button
@@ -83,18 +95,28 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: isDesktop ? 'transparent' : '#1a1a1c', overflow: 'hidden', transition: 'background 0.2s', borderRadius: '0 0 8px 8px' }}>
-        <div style={{ width: isDesktop ? '100%' : 360, flexShrink: 0, transition: 'width 0.2s', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: isDesktop || viewMode === "code" ? 'transparent' : '#1a1a1c', overflow: 'hidden', transition: 'background 0.2s', borderRadius: '0 0 8px 8px' }}>
+        <div style={{ width: isDesktop || viewMode === "code" ? '100%' : 360, flexShrink: 0, transition: 'width 0.2s', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
           {viewMode === "design" ? (
             <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} scope="composer" />
           ) : (
-            <pre className="section-editor-code-preview" data-testid="composer-code-preview" style={{ flex: 1, margin: 0, padding: '16px', borderTop: 'none', borderRadius: isDesktop ? '0 0 8px 8px' : '0' }}>
-              {code}
-            </pre>
+            <div className="section-editor-code-preview" data-testid="composer-code-preview" style={{ flex: 1, margin: 0, padding: 0, borderTop: 'none', borderRadius: '0 0 8px 8px', maxHeight: 'none', display: 'flex', flexDirection: 'column', overflow: 'auto', background: '#1d1f21' }}>
+              <Editor
+                value={code || ''}
+                onValueChange={codeStr => onCodeChange ? onCodeChange(codeStr) : null}
+                highlight={highlightWithPrism}
+                padding={16}
+                style={{
+                  fontFamily: '"Fira code", "Fira Mono", monospace',
+                  fontSize: 12,
+                  minHeight: '100%',
+                  outline: 'none'
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
     </div>
   );
 }
-

@@ -310,6 +310,8 @@ export default function Studio() {
 
   const stages = realTrace ? getRealStageStatuses(realTrace) : getStageStatuses(jobState, runningIndex);
 
+  const [viewMode, setViewMode] = useState("design");
+
   return (
     <div className="studio-page">
       <div className="studio-heading">
@@ -348,8 +350,14 @@ export default function Studio() {
             </div>
           </section>
         </div>
-        <div className="studio-right-column">
-          <SectionEditor elements={elements} accent={accent} code={codeText} selectedField={selectedField} setSelectedField={setSelectedField} onUpdate={onElementUpdate} pageName={previewPage} previewKey={previewKey} />
+        <div className="studio-right-column" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '4px' }}>
+          <SectionEditor 
+            elements={elements} accent={accent} code={codeText} 
+            selectedField={selectedField} setSelectedField={setSelectedField} 
+            onUpdate={onElementUpdate} onCodeChange={onCodeChange}
+            pageName={previewPage} previewKey={previewKey} 
+            viewMode={viewMode} setViewMode={setViewMode}
+          />
           <ComponentToolkit
             elements={elements}
             selectedField={selectedField}
