@@ -72,6 +72,8 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
               </button>
               <Link
                 to={previewSrc}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
                 title="Full Screen Preview"
               >
