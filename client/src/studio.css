@@ -84,7 +84,7 @@
 .code-editor-hint{display:block;margin-top:7px;color:var(--dim);font-size:9px}
 
 .design-tab{display:grid;grid-template-columns:150px minmax(0,1fr) 240px;gap:14px;margin-top:12px;align-items:start}
-.design-layers{display:flex;flex-direction:column;gap:4px;max-height:500px;overflow-y:auto;padding-right:4px}
+.design-layers{display:flex;flex-direction:column;gap:4px;max-height:250px;overflow-y:auto;padding-right:4px}
 .design-layers::-webkit-scrollbar{width:4px}
 .design-layers::-webkit-scrollbar-thumb{background:#3f3f46;border-radius:4px}
 .design-layers-label{font:9px var(--mono);color:var(--dim);letter-spacing:.08em;margin-bottom:4px;flex-shrink:0}
@@ -94,14 +94,14 @@
 .design-layer-actions button{width:16px;height:16px;display:grid;place-items:center;border:0;background:#232326;color:var(--dim);border-radius:3px;font-size:9px;cursor:pointer}
 .design-layer-actions button:disabled{opacity:.3;cursor:not-allowed}
 .design-hint{margin-top:6px;font-size:9px;color:#52525b;line-height:1.5;flex-shrink:0}
-.design-canvas-wrap{overflow:auto;background:#101012;border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;justify-content:flex-start;max-height:500px}
+.design-canvas-wrap{overflow:auto;background:#101012;border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;justify-content:flex-start;max-height:350px}
 .design-canvas{position:relative;background:#f7f7f5;border-radius:6px;flex-shrink:0;overflow:hidden}
 .design-block{position:absolute;left:0;top:0;cursor:grab;border:1.5px dashed transparent;color:#18181b;user-select:none;box-sizing:border-box}
 .design-block:hover{border-color:rgba(59,130,246,.4)}
 .design-block.selected{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
 .design-block:active{cursor:grabbing}
 .design-block.type-image{background-image:linear-gradient(45deg,rgba(0,0,0,.06) 25%,transparent 25%,transparent 50%,rgba(0,0,0,.06) 50%,rgba(0,0,0,.06) 75%,transparent 75%,transparent);background-size:16px 16px}
-.design-inspector{border:1px solid var(--line);border-radius:8px;padding:14px;background:#101012;max-height:500px;overflow-y:auto}
+.design-inspector{border:1px solid var(--line);border-radius:8px;padding:14px;background:#101012;max-height:250px;overflow-y:auto}
 .design-inspector-head{font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .design-inspector .field{margin-bottom:12px}
 .design-inspector .field textarea{min-height:60px}
