@@ -59,15 +59,15 @@ export const DEFAULT_TOKENS = Object.freeze({
     }),
   }),
   spacing: Object.freeze({
-    sectionY: 'py-8 md:py-16',
-    gap: 'gap-4',
+    sectionY: 'py-10 md:py-20',
+    gap: 'gap-6',
     containerX: 'px-0 md:px-12',
   }),
-  shadows: Object.freeze({ card: 'shadow-sm', button: 'shadow-sm' }),
+  shadows: Object.freeze({ card: 'shadow-md', button: 'shadow-sm' }),
   borderRadius: Object.freeze({
     button: 'rounded-md',
-    card: 'rounded-lg',
-    image: 'rounded-none',
+    card: 'rounded-xl',
+    image: 'rounded-xl',
   }),
   breakpoints: Object.freeze({ stack: 'md' }),
   components: Object.freeze({

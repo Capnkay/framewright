@@ -248,7 +248,7 @@ def template_elements() -> list[dict[str, Any]]:
         _element("heroImage", "Image", "img", 0, "default/images/hero-placeholder.jpg",
                  "w-full h-auto object-cover", alt="Athlete performing a dumbbell exercise"),
         _element("brandBadge", "Text", "span", 1, "PULSE FIT",
-                 "text-sm font-semibold tracking-widest text-red-500"),
+                 "text-sm font-semibold tracking-widest"),
         _element("headlineMain", "Text", "h1", 2, "CHALLENGE YOUR LIMITS",
                  "text-4xl md:text-5xl font-extrabold tracking-tight leading-tight"),
         _element("headlineSub", "Text", "h2", 3, "Be a part of the tribe that's limitless.",

@@ -153,9 +153,15 @@ function renderElementNode(el, tokens) {
 
   // Text / Textfield
   const textClasses = [classes || ''];
-  if (!/(^|\s)text-(?!sm\b|base\b|lg\b|xl\b|\dxl\b|left\b|center\b|right\b)\S+/.test(textClasses[0])) {
-    if (/badge/i.test(elementName)) textClasses.push(`text-${tokens.colors.accent}`);
-    else if (/sub|description/i.test(elementName)) textClasses.push(`text-${tokens.colors.textMuted}`);
+  if (/badge|eyebrow|kicker|tag/i.test(elementName)) {
+    // Eyebrow/badge-type labels read as flat, default-browser text when only
+    // tinted -- wrap them as a proper pill so a hero section reads as
+    // "designed" instead of plain. Uses only already-existing tokens.
+    textClasses.push(
+      `inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-${tokens.colors.accent} text-${tokens.colors.accentContrast}`,
+    );
+  } else if (!/(^|\s)text-(?!sm\b|base\b|lg\b|xl\b|\dxl\b|left\b|center\b|right\b)\S+/.test(textClasses[0])) {
+    if (/sub|description/i.test(elementName)) textClasses.push(`text-${tokens.colors.textMuted}`);
     else textClasses.push(`text-${tokens.colors.text}`);
   }
 

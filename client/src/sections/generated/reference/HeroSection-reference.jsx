@@ -109,10 +109,10 @@ export default function Custom({ pageName = 'Home', section = {} }) {
         />
       </div>
 
-      <div className="w-full md:w-1/2 flex flex-col gap-4 py-8 md:py-16">
+      <div className="w-full md:w-1/2 flex flex-col gap-6 py-10 md:py-20">
         <span
           id={ids.brandBadge}
-          className="dynamicStyle text-sm font-semibold tracking-widest text-red-500"
+          className="dynamicStyle text-sm font-semibold tracking-widest text-red-500 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-500 text-white"
           dangerouslySetInnerHTML={{
             __html: getHtml(
               getTextValue(data, ids.brandBadge, DEFAULTS[ids.brandBadge]),
@@ -154,9 +154,9 @@ export default function Custom({ pageName = 'Home', section = {} }) {
           }}
         />
 
-        <div id={ids.statBadges} className="grid grid-cols-3 gap-4 py-2">
+        <div id={ids.statBadges} className="grid grid-cols-3 gap-6 py-2">
           {items.map((item, index) => (
-            <div key={item.fieldId1 || index} className="flex flex-col gap-4 p-4 bg-gray-50 rounded-lg shadow-sm">
+            <div key={item.fieldId1 || index} className="flex flex-col gap-6 p-4 bg-gray-50 rounded-xl shadow-md">
               <span
                 id={item.fieldId1}
                 className="dynamicStyle text-2xl font-extrabold text-gray-800"
