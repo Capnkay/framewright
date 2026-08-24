@@ -369,16 +369,7 @@ export default function Studio() {
         <div><Label>GENERATOR STUDIO</Label><h1>Build a section.</h1><p>Give Framewright a signal. Watch every decision happen.</p></div>
         <div className="studio-actions"><button className="icon-btn" data-testid="new-job-button"><Plus size={16} /></button><span className="job-count"><span className="live-dot" />3 jobs</span></div>
       </div>
-      {runWarnings.length > 0 && (
-        <div className="studio-run-warnings" data-testid="run-warnings" style={{ margin: '0 0 12px', padding: '10px 14px', border: '1px solid var(--border)', borderLeft: '3px solid #d97706', borderRadius: '6px', background: 'var(--surface)' }}>
-          <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-            HOW THIS RUN DEGRADED
-          </div>
-          <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {runWarnings.map((w, i) => <li key={i}>{w}</li>)}
-          </ul>
-        </div>
-      )}
+      {/* runWarnings section disabled as requested by user */}
       <div className="studio-layout">
         <div className="studio-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '13px', overflowY: 'auto', height: '100%' }}>
           <Composer

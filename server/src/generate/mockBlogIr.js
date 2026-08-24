@@ -42,7 +42,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
         tag: 'div',
         default: '',
         order: order++,
-        css: `position: absolute; left: ${X - 10}px; top: ${Y - 10}px; width: 230px; height: 300px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);`,
+        css: `position: absolute; left: ${X - 10}px; top: ${Y - 10}px; width: 230px; height: 300px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px #00000014;`,
       });
 
       // Image
