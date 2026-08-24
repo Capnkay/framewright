@@ -370,7 +370,7 @@ export default function Studio() {
 
   const stages = realTrace ? getRealStageStatuses(realTrace) : getStageStatuses(jobState, runningIndex);
 
-  const [viewMode, setViewMode] = useState("design");
+  const [viewMode, setViewMode] = useState("preview");
 
   return (
     <div className="studio-page">
