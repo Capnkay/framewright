@@ -225,16 +225,21 @@ export default function Studio() {
               let color = "#18181b";
               let align = "left";
               let bg = el.contentType === "Button" ? undefined : (el.contentType === "Image" ? "#e5e7eb" : "transparent");
+              let borderRadius = el.contentType === "Button" ? 7 : (el.contentType === "Image" ? 6 : 0);
+              let boxShadow = undefined;
 
               if (el.css) {
-                const leftMatch = el.css.match(/left:\s*(\d+)px/);
-                const topMatch = el.css.match(/top:\s*(\d+)px/);
+                const leftMatch = el.css.match(/left:\s*(-?\d+)px/);
+                const topMatch = el.css.match(/top:\s*(-?\d+)px/);
                 const widthMatch = el.css.match(/width:\s*(\d+)px/);
                 const heightMatch = el.css.match(/height:\s*(\d+)px/);
                 const fsMatch = el.css.match(/font-size:\s*(\d+)px/);
                 const fwMatch = el.css.match(/font-weight:\s*(bold|\d+)/);
                 const colorMatch = el.css.match(/color:\s*(#[0-9a-fA-F]{3,6})/i);
                 const alignMatch = el.css.match(/text-align:\s*(center|right|left)/);
+                const bgMatch = el.css.match(/background:\s*(#[0-9a-fA-F]{3,8}|white|black|transparent|rgba\([^)]+\))/i);
+                const brMatch = el.css.match(/border-radius:\s*(\d+)px/);
+                const shadowMatch = el.css.match(/box-shadow:\s*([^;]+)/);
 
                 if (leftMatch) x = parseInt(leftMatch[1], 10);
                 if (topMatch) y = parseInt(topMatch[1], 10);
@@ -244,6 +249,9 @@ export default function Studio() {
                 if (fwMatch) fontWeight = fwMatch[1] === 'bold' ? 700 : parseInt(fwMatch[1], 10);
                 if (colorMatch) color = colorMatch[1];
                 if (alignMatch) align = alignMatch[1];
+                if (bgMatch) bg = bgMatch[1];
+                if (brMatch) borderRadius = parseInt(brMatch[1], 10);
+                if (shadowMatch) boxShadow = shadowMatch[1];
               }
 
               const charsPerLine = Math.max(1, Math.floor(width / (fontSize * 0.55)));
@@ -268,7 +276,9 @@ export default function Studio() {
                 fontWeight,
                 color,
                 align,
-                bg
+                bg,
+                borderRadius,
+                boxShadow
               };
             });
             setElements(mappedElements);

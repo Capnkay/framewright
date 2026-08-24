@@ -53,7 +53,8 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
                   x: el.x, y: el.y, width: el.width, height: el.height || undefined,
                   fontSize: el.fontSize || undefined, fontWeight: el.fontWeight || undefined,
                   color: el.color || undefined, background: bg, textAlign: el.align, padding: el.padding,
-                  position: 'absolute'
+                  position: 'absolute',
+                  borderRadius: el.borderRadius, boxShadow: el.boxShadow
                 }}
                 drag dragMomentum={false}
                 dragConstraints={{ left: 0, top: 0, right: maxX, bottom: maxY }}

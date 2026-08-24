@@ -6,7 +6,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
       tag: 'h1',
       default: 'BLOG',
       order: 0,
-      css: 'position: absolute; left: 40px; top: 20px; width: 680px; text-align: center; font-size: 36px; font-weight: bold;',
+      css: 'position: absolute; left: 40px; top: 20px; width: 680px; text-align: center; font-size: 36px; font-weight: bold; color: #1f2937;',
     },
     {
       elementName: 'blog_pagination',
@@ -14,7 +14,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
       tag: 'p',
       default: '1 2 3 [Next Page]',
       order: 100,
-      css: 'position: absolute; left: 40px; top: 1020px; width: 680px; text-align: center; font-size: 14px;',
+      css: 'position: absolute; left: 40px; top: 1040px; width: 680px; text-align: center; font-size: 14px; font-weight: bold; color: #f97316;',
     }
   ];
 
@@ -35,6 +35,16 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
       const X = cols[c];
       const Y = rows[r];
 
+      // Card Background
+      elements.push({
+        elementName: `card_${idx + 1}_bg`,
+        contentType: 'Text',
+        tag: 'div',
+        default: '',
+        order: order++,
+        css: `position: absolute; left: ${X - 10}px; top: ${Y - 10}px; width: 230px; height: 300px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);`,
+      });
+
       // Image
       elements.push({
         elementName: `card_${idx + 1}_image`,
@@ -42,7 +52,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
         tag: 'div',
         default: 'default/images/hero-placeholder.jpg',
         order: order++,
-        css: `position: absolute; left: ${X}px; top: ${Y}px; width: 210px; height: 120px; background: #e5e7eb; border-radius: 8px;`,
+        css: `position: absolute; left: ${X}px; top: ${Y}px; width: 210px; height: 120px; border-radius: 8px;`,
       });
 
       // Tag
@@ -52,7 +62,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
         tag: 'span',
         default: tags[idx],
         order: order++,
-        css: `position: absolute; left: ${X + 150}px; top: ${Y + 10}px; width: 50px; font-size: 12px; font-weight: bold; text-align: right;`,
+        css: `position: absolute; left: ${X + 130}px; top: ${Y + 10}px; width: 70px; font-size: 11px; font-weight: bold; text-align: right; color: #f97316;`,
       });
 
       // Title
@@ -62,7 +72,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
         tag: 'h3',
         default: titles[idx],
         order: order++,
-        css: `position: absolute; left: ${X}px; top: ${Y + 130}px; width: 210px; font-size: 18px; font-weight: bold;`,
+        css: `position: absolute; left: ${X}px; top: ${Y + 130}px; width: 210px; font-size: 18px; font-weight: bold; color: #111827;`,
       });
 
       // Author
@@ -72,7 +82,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
         tag: 'p',
         default: 'Author Name | Jan 01',
         order: order++,
-        css: `position: absolute; left: ${X}px; top: ${Y + 160}px; width: 210px; font-size: 12px; color: #6b7280;`,
+        css: `position: absolute; left: ${X}px; top: ${Y + 160}px; width: 210px; font-size: 12px; color: #6b7280; font-weight: 500;`,
       });
 
       // Excerpt
@@ -82,7 +92,7 @@ export function getMockBlogIr(pageName = 'Blog', sectionName = 'Blog') {
         tag: 'p',
         default: 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit. ---Excerpt Lines---',
         order: order++,
-        css: `position: absolute; left: ${X}px; top: ${Y + 185}px; width: 210px; font-size: 14px; color: #4b5563;`,
+        css: `position: absolute; left: ${X}px; top: ${Y + 185}px; width: 210px; font-size: 13px; color: #4b5563;`,
       });
     }
   }
