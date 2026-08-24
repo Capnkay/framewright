@@ -98,9 +98,9 @@ export default function Custom({ pageName = 'Home', section = {} }) {
   const items = getStatItems(data); // R9 — never a fixed-length guard
 
   return (
-    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-gradient-to-br from-white via-red-50 to-orange-100 ${textContrastClass}`}>
-      <div className="w-full md:w-1/2 relative overflow-hidden bg-gradient-to-br from-gray-50 via-red-100 to-orange-100">
-        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-orange-500 opacity-30 blur-3xl" aria-hidden="true" />
+    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-gradient-to-br from-white via-red-50 to-rose-100 ${textContrastClass}`}>
+      <div className="w-full md:w-1/2 relative overflow-hidden bg-gradient-to-br from-gray-50 via-red-100 to-rose-100">
+        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-rose-600 opacity-30 blur-3xl" aria-hidden="true" />
         <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-red-500 opacity-20 blur-3xl" aria-hidden="true" />
         <img
           id={ids.heroImage}

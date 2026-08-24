@@ -39,7 +39,12 @@
 export const DEFAULT_TOKENS = Object.freeze({
   colors: Object.freeze({
     accent: 'red-500',
-    accentAlt: 'orange-500',
+    // orange-500 desaturates toward a washed-out yellow-beige at the light
+    // shades (-50/-100) the gradient/glow actually use -- read as a
+    // coffee-stained-paper look, not a deliberate second colour. A hue on
+    // the other side of red (rose/violet) stays warm without drifting
+    // yellow at any shade.
+    accentAlt: 'rose-600',
     accentDark: 'gray-900',
     accentContrast: 'white',
     surface: 'white',
