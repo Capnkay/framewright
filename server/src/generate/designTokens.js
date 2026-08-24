@@ -253,13 +253,70 @@ export function resolveTokens(designTokens) {
  * from one source, and honouring only the token would silently drop a prompt
  * that moved the accent.
  */
+// Which hue reads as a deliberate SECOND colour next to a given accent hue,
+// for the gradient/glow/two-button treatment -- not the closest hue on the
+// colour wheel (that reads as a mismatch, one hue drifting into another),
+// a genuinely distinct partner with enough contrast to look chosen rather
+// than accidental. Every entry stays a real Tailwind hue name. Unlisted
+// hues (a prompt/pasted code can name any of Tailwind's ~22) fall back to
+// the accent's own hue at a deeper shade in deriveAccentAlt below, rather
+// than guessing at a pairing this map does not vouch for.
+const HUE_PARTNER = {
+  red: 'rose', rose: 'red', pink: 'rose', fuchsia: 'purple',
+  orange: 'red', amber: 'red', yellow: 'red',
+  lime: 'emerald', green: 'emerald', emerald: 'teal', teal: 'cyan',
+  cyan: 'sky', sky: 'blue', blue: 'indigo', indigo: 'violet',
+  violet: 'fuchsia', purple: 'fuchsia',
+  gray: 'slate', slate: 'zinc', zinc: 'slate', neutral: 'stone', stone: 'neutral',
+};
+
+/**
+ * deriveAccentAlt(accentToken) -> a second Tailwind colour token.
+ *
+ * §6.1's own colours never carry a literal outside the Tailwind palette, so
+ * this only ever returns a `<hue>-<shade>` token, same as every other colour
+ * field. A pure function of `accentToken` alone -- same accent always
+ * derives the same accentAlt, keeping the emitter deterministic (the same
+ * IR gives the same source is asserted by tests/emitter-tokens.test.mjs).
+ */
+export function deriveAccentAlt(accentToken) {
+  const match = /^([a-z]+)-(\d+)$/.exec(accentToken || '');
+  if (!match) return accentToken;
+  const [, hue, shade] = match;
+  const partner = HUE_PARTNER[hue] || hue;
+  const partnerShade = partner === hue ? String(Math.min(900, Number(shade) + 100)) : shade;
+  return `${partner}-${partnerShade}`;
+}
+
 export function tokensFromIr(ir) {
   const tokens = resolveTokens(ir && ir.designTokens);
   const themeAccent = ir && ir.theme && ir.theme.accent;
   const explicitTokenAccent = ir && ir.designTokens && ir.designTokens.colors && ir.designTokens.colors.accent;
+  const explicitAccentAlt = ir && ir.designTokens && ir.designTokens.colors && ir.designTokens.colors.accentAlt;
 
   if (themeAccent && !explicitTokenAccent && isTailwindTokenValue(themeAccent)) {
     tokens.colors = { ...tokens.colors, accent: themeAccent };
+  }
+  // A prompt/pasted section that moves the accent (e.g. "a green accent")
+  // previously kept accentAlt hardcoded to rose regardless -- a green
+  // section rendered with a clashing rose gradient. Deriving accentAlt from
+  // whatever accent actually is means colour variety follows the accent
+  // automatically, system-wide, rather than needing its own override path.
+  //
+  // Gated on accent having actually MOVED from DEFAULT_TOKENS's own accent,
+  // not merely on the absence of an explicit override -- an IR with no
+  // designTokens at all and an IR that explicitly supplies DEFAULT_TOKENS
+  // must emit byte-identical output (§6.1's own equivalence requirement).
+  // Deriving unconditionally broke exactly that: the first case had
+  // `ir.designTokens` undefined (nothing to read an "explicit" accentAlt
+  // from, so this ran and produced 'rose-500' from the shade-preserving
+  // branch), the second carried designTokens.colors.accentAlt verbatim
+  // ('rose-600', so `explicitAccentAlt` was truthy and this never ran) --
+  // two paths that resolve to the identical default accent, disagreeing on
+  // accentAlt anyway. An explicit designTokens.colors.accentAlt still wins
+  // outright over any derivation.
+  if (tokens.colors.accent !== DEFAULT_TOKENS.colors.accent && !explicitAccentAlt) {
+    tokens.colors = { ...tokens.colors, accentAlt: deriveAccentAlt(tokens.colors.accent) };
   }
   return tokens;
 }
