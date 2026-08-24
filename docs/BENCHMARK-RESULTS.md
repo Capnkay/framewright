@@ -1739,3 +1739,174 @@ more than one instance of an unaddressed field** — a pricing table's per-tier 
 form's per-field inputs, a testimonial's per-card quote — will not get those fields invented,
 whether or not the hosted model is reachable; that is a scope boundary in the IR schema
 itself (§6), not a bug in the renaming layer sitting in front of it.
+## B-019 · A detector trained on synthetic wireframes loses to OpenCV contours — and 3× the data made it worse — T-150
+
+**Date:** 2026-08-24 · **Status:** DEFINITIVE — two training budgets, four confidence thresholds each · **VERIFIED** (trained and scored on our hardware)
+
+### The objection, on record before the attempt
+
+T-150's `doneWhen` requires this stated first, not afterwards. Three learned models had
+already been measured on this exact input and all three scored **0 of 7**: Florence-2
+(B-001), DETR across four thresholds (B-002), and a hosted VLM over three runs (B-006) —
+against OpenCV contour detection at **7 of 7** (B-003). PS7 §5.2 also puts training out of
+scope. This was attempted anyway at the owner's explicit direction, after that evidence was
+presented.
+
+**The ship rule was fixed in advance and is not renegotiated below:** a trained detector
+replaces `detect_regions` only if it scores **≥ 7 of 7** on B-003's targets at IoU 0.5
+**and** does not reduce B-004's 7 of 7 geometry or 4 of 4 text. Anything else is a measured
+negative result and nothing ships.
+
+### Machine
+
+| | |
+|---|---|
+| GPU | NVIDIA GeForce RTX 3050 Laptop, **6.00 GB** |
+| torch / torchvision | 2.6.0+cu124 / 0.21.0+cu124, Python 3.10 |
+| Model | `torchvision` Faster R-CNN ResNet-50 FPN, COCO-pretrained backbone |
+| Licence | **BSD-3-Clause** — already declared in the README table |
+| Network at train or eval time | **None** (weights were already cached) |
+
+YOLOv8 (AGPL network clause), LayoutLMv3 weights (CC-BY-NC-SA) and Qwen2.5-Coder-3B
+(non-commercial) are on AGENTS.md's forbidden list and none was used. No weight file is
+committed: checkpoints land in `perception/synthetic/dataset/`, excluded by both that
+directory's `.gitignore` rule and the `*.pt` rule.
+
+### Method — B-003's harness, not a new one
+
+```
+perception/.venv/Scripts/python -m perception.benchmarks.train_detector \
+    --train-dir perception/synthetic/dataset/train perception/synthetic/dataset/train2 \
+    --eval-image ../gpu-test/wireframe.png
+```
+
+`perception/benchmarks/train_detector.py` **imports** `TARGETS`, `iou`, `HIT_IOU` and
+`DEGENERATE_AREA_FRACTION` from `contours_wireframe.py` rather than restating them, so this
+number cannot drift from the one OpenCV was measured against. Matching is **class-agnostic**
+and the ≥75%-of-frame degenerate filter runs first — identical to the rule that produced
+B-003's 7 of 7. A learned detector emits labels and the contour detector does not, so the
+class-aware column is reported beside the comparable number, never as it.
+
+Training data is synthetic, from `perception/synthetic/generate_wireframe.py` (B-016).
+Evaluation is on `gpu-test/wireframe.png`, 1600×1168, the same photograph B-001 through
+B-004 used, fed through stage 2 first (scale 0.64, offsetY 138). Training images are passed
+through the **same** `normalise()` enhancement the real upload gets, so a poor transfer
+result cannot be blamed on a preprocessing mismatch.
+
+### What we measured
+
+| | Run A | Run B |
+|---|---|---|
+| Training images (unique seeds) | 2,000 | **6,000** |
+| Epochs / optimiser steps | 8 / 8,000 | 8 / **24,000** |
+| Train time | 54.6 min | **159.5 min** |
+| Final mean loss | 0.0565 | **0.0456** |
+| Peak VRAM | 1.8 GB | 1.8 GB |
+| Inference | 0.30 s | 0.38 s |
+| Regions returned | 6 | 6 |
+| **Targets located (t=0.5)** | **5 of 7** | **4 of 7** |
+| Best across the sweep | 6 of 7 | 5 of 7 |
+| Class-aware (secondary) | 3 of 7 | **1 of 7** |
+| **Held-out synthetic recall** | **1.000 ×7** | **1.000 ×7** |
+
+### Per target, at t=0.5
+
+| Target | Run A IoU | Run B IoU | OpenCV (B-003) |
+|---|---|---|---|
+| `heroImage` | 0.597 ✓ | 0.153 ✗ | 0.88 ✓ |
+| `brandBadge` | 0.727 ✓ | 0.820 ✓ | 0.78 ✓ |
+| `headlineMain` | 0.007 ✗ | 0.439 ✗ | 0.83 ✓ |
+| `headlineSub` | 0.826 ✓ | 0.713 ✓ | 0.80 ✓ |
+| `description` | 0.562 ✓ | 0.618 ✓ | 0.69 ✓ |
+| `statBadges` | 0.786 ✓ | 0.821 ✓ | 0.72 ✓ |
+| `ctaButton` | 0.000 ✗ | 0.008 ✗ | 0.76 ✓ |
+
+### The confidence sweep, run because B-002 established the precedent
+
+B-002 lowered DETR's threshold to 0.05 and found nothing underneath — one box, no hidden
+hypotheses. That test distinguishes a detector with weak beliefs from one with none, so it
+is repeated here. `regions_returned` prints beside every row, because locating 7 of 7 by
+returning hundreds of boxes is enumeration rather than detection (B-003's rule 3).
+
+| Threshold | Run A | regions | Run B | regions |
+|---|---|---|---|---|
+| 0.50 | 5 of 7 | 6 | 4 of 7 | 6 |
+| 0.30 | **6 of 7** | 10 | 4 of 7 | 6 |
+| 0.10 | 6 of 7 | 15 | **5 of 7** | 10 |
+| 0.05 | 6 of 7 | 19 | 5 of 7 | 12 |
+
+**The headline number stays the one at t=0.5.** The sweep is diagnosis. It shows that unlike
+DETR, this detector does hold weak hypotheses: run A's `headlineMain` is absent at 0.5 and
+arrives at 0.3 with **IoU 0.796** — the box was always there, just under the cut.
+
+### The three findings
+
+**1. More data made transfer worse, while the loss curve improved.** Run B saw 3× the
+unique images and 3× the optimiser steps, reached a **lower** training loss (0.0456 vs
+0.0565), and scored **worse on the real photograph** (4 of 7 vs 5 of 7; 5 of 7 vs 6 of 7
+across the sweep). `heroImage` collapsed from IoU 0.597 to 0.153. The only variable changed
+between the runs was dataset size — same architecture, same hyperparameters, same seeds for
+the eval. This is domain overfitting measured directly: the extra data taught the model the
+generator's distribution more precisely, and the generator is not the photograph.
+
+**2. The held-out synthetic score is worthless as evidence, and now that is a number rather
+than a warning.** Recall on 100 unseen generated images was **1.000 on all seven classes in
+both runs** — perfectly flat — while real-image performance moved 5 of 7 → 4 of 7 underneath
+it. A metric that does not move when the thing it claims to measure halves is not measuring
+it. T-150 said a good synthetic score "proves nothing and must not be reported as if it
+did"; this is what that looks like when you check.
+
+**3. `ctaButton` is never found, by either run, at any threshold.** Best IoU across all
+eight measurements is **0.008**. The SUBMIT button is a small drawn rectangle containing a
+handwritten word — the class the generator draws most confidently and the one it apparently
+draws least like the real page. Run B's labelling also collapsed: five of its six boxes are
+labelled `description`, which is why its class-aware score falls to 1 of 7 while its
+geometry holds roughly steady.
+
+### Read alongside B-001, B-002, B-006 and B-003
+
+| | Florence-2 | DETR | Hosted VLM | **Trained (best, A)** | **OpenCV** |
+|---|---|---|---|---|---|
+| **Targets located** | **0 of 7** | **0 of 7** | **0 of 7** | **5 of 7** | **7 of 7** |
+| Boxes returned | 1 | 1 | 9 | 6 | 35 |
+| Device | GPU | GPU | hosted | GPU | **CPU** |
+| Weights | 1.1 GB | 167 MB | hosted | 166 MB | **None** |
+| Train cost | — | — | — | **54.6 min** | **None** |
+| Time | 0.3 s | 1.5 s | ~4 s | 0.30 s | **0.04 s** |
+
+**Training on our own schema is the first learned approach to get off zero on this input.**
+Five of seven, from a model that had never seen a photograph of a wireframe, is a real
+result and it is the one B-001's write-up predicted the generator would unlock. It is also
+**still a loss.** OpenCV finds all seven, in 0.04 s, on the CPU, with nothing downloaded and
+nothing trained.
+
+### The ship decision
+
+**DOES NOT SHIP.** The rule required ≥ 7 of 7; the best measurement is 5 of 7 at the fixed
+threshold and 6 of 7 anywhere in the sweep. `detect_regions.py` is unchanged and remains the
+detector.
+
+The second half of the rule — B-004's 7 of 7 geometry and 4 of 4 text — **was not
+evaluated**, because the detection bar already fails and nothing about a fusion result could
+change that. Stated rather than quietly skipped: this entry does not claim the trained
+detector is fusion-safe, only that it never earned the chance to be asked.
+
+### What this does not establish
+
+This is **one image, one architecture, one generator**. It measures that a torchvision
+Faster R-CNN trained on `generate_wireframe.py` loses to contour detection on
+`gpu-test/wireframe.png` — not that no trained detector could win, and not that the
+synthetic-data approach is dead. The two obvious untried levers are photometric and
+geometric augmentation to close the domain gap finding 1 exposes, and a generator whose
+`ctaButton` looks more like a real one. Neither was attempted here, and the negative result
+above is the honest state of the question without them.
+
+**The line for a judge:**
+
+> *"We built the training data, trained the detector, and it went from zero to five of seven —
+> the first learned model in this project to see a wireframe at all. Then we tripled the
+> data: training loss went down and real-world accuracy went down with it. Meanwhile its
+> score on our own synthetic test set sat at a perfect 1.000 through both runs and never
+> flinched. That is the whole lesson in one number — we could have shipped the 1.000 and
+> been wrong. The 35-year-old contour detector still wins, 7 of 7, on the CPU, in 40
+> milliseconds."*
