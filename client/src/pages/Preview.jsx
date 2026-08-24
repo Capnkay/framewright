@@ -115,7 +115,7 @@ export default function Preview() {
           {/* Left: Back + Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button
-              onClick={() => navigate('/studio')}
+              onClick={() => navigate('/generate')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)', borderRadius: 8, cursor: 'pointer' }}
               title="Back to Studio"
               data-testid="preview-back-button"
@@ -172,7 +172,7 @@ export default function Preview() {
               <ExternalLink size={14} />
             </button>
             <button
-              onClick={() => navigate('/studio')}
+              onClick={() => navigate('/generate')}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--blue)', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
               data-testid="preview-edit-button"
             >

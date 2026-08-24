@@ -62,24 +62,22 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
         {/* Right side: Toggle */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {viewMode === "design" && (
-            <>
-              <button
-                type="button"
-                onClick={() => setIsDesktop(!isDesktop)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
-                title={isDesktop ? "Switch to Mobile View" : "Switch to Desktop View"}
-              >
-                {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
-              </button>
-              <Link
-                to={previewSrc}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
-                title="Full Screen Preview"
-              >
-                <Maximize size={14} />
-              </Link>
-            </>
+            <button
+              type="button"
+              onClick={() => setIsDesktop(!isDesktop)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
+              title={isDesktop ? "Switch to Mobile View" : "Switch to Desktop View"}
+            >
+              {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
+            </button>
           )}
+          <Link
+            to={previewSrc}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
+            title="Full Screen Preview"
+          >
+            <Maximize size={14} />
+          </Link>
           <div style={{ display: 'flex', background: 'var(--bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
             {TABS.map(({ id, label, Icon }) => (
               <button
