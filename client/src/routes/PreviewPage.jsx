@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Code, LayoutGrid, RotateCw, ArrowLeft, Download, Layers } from 'lucide-react';
 import SideEditor from '../studio/SideEditor';
+import Editor from 'react-simple-code-editor';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/themes/prism-tomorrow.css';
 
 // Eagerly discover all generated JSX components.
-// Keys are relative paths: '../sections/generated/SectionName-1000000001-v1.jsx'
 const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
 
 function SectionWrapper({ section, Component, pageName }) {
@@ -44,7 +49,7 @@ function SectionWrapper({ section, Component, pageName }) {
   };
 
   return (
-    <div className="relative group border border-studio-border rounded-studio-lg mb-8 p-4 bg-studio-bg-raised">
+    <div className="relative group border border-studio-border rounded-studio-lg mb-6 p-4 bg-studio-bg-raised">
       <form 
         onSubmit={handleRegenerate}
         className="absolute top-2 right-2 bg-studio-bg-overlay border border-studio-border shadow-studio-md rounded-studio-md px-3 py-2 z-10 flex flex-col gap-2 text-studio-sm opacity-0 group-hover:opacity-100 transition-opacity side-editor-ignore"
@@ -93,6 +98,9 @@ function SectionWrapper({ section, Component, pageName }) {
 export default function PreviewPage() {
   const { pageName = 'Home' } = useParams();
   const [sectionDocs, setSectionDocs] = useState([]);
+  const [viewMode, setViewMode] = useState('design'); // 'design' | 'code'
+  const [displayFilter, setDisplayFilter] = useState('latest'); // 'latest' | 'all'
+  const [codeText, setCodeText] = useState('');
   
   const [editingFieldId, setEditingFieldId] = useState(null);
   const [editorPos, setEditorPos] = useState({ top: 0, left: 0 });
@@ -103,7 +111,19 @@ export default function PreviewPage() {
       .then(res => res.json())
       .then(data => {
         if (!active) return;
-        setSectionDocs(Array.isArray(data) ? data : []);
+        const docs = Array.isArray(data) ? data : [];
+        setSectionDocs(docs);
+
+        // Fetch latest component code for code editor
+        if (docs.length > 0) {
+          const latestDoc = docs[docs.length - 1];
+          if (latestDoc?.jobId) {
+            fetch(`/api/jobs/${latestDoc.jobId}/component`)
+              .then(r => r.ok ? r.text() : '')
+              .then(code => { if (active && code) setCodeText(code); })
+              .catch(() => {});
+          }
+        }
       })
       .catch(err => console.error(err));
     return () => { active = false; };
@@ -119,7 +139,6 @@ export default function PreviewPage() {
     const handleClick = (e) => {
       const el = e.target.closest('[id]');
       
-      // Dismiss if clicking outside a valid field and not inside the editor
       if (!el || !sections || sections[el.id] === undefined) {
         if (!e.target.closest('.side-editor-ignore') && !e.target.closest('.side-editor-container')) {
           setEditingFieldId(null);
@@ -144,51 +163,133 @@ export default function PreviewPage() {
     return () => document.removeEventListener('click', handleClick, true);
   }, [sections]);
 
+  const highlightWithPrism = (codeStr) => {
+    return Prism.highlight(codeStr || '', Prism.languages.jsx, 'jsx');
+  };
+
   const keyCount = sections ? Object.keys(sections).length : 0;
   const missingCount = Array.isArray(missing) ? missing.length : 0;
-
   const unbuilt = [];
 
-  const renderedSections = sectionDocs.map((section) => {
+  // Filter sections: if displayFilter === 'latest', show only the newest section!
+  const filteredDocs = displayFilter === 'latest' && sectionDocs.length > 0 
+    ? [sectionDocs[sectionDocs.length - 1]] 
+    : sectionDocs;
+
+  const renderedSections = filteredDocs.map((section) => {
     const safeName = String(section.sectionName || 'Section').replace(/[^a-zA-Z0-9_]/g, '');
     const filename = `${safeName}-${section.sectionId}-v${section.variations || section.variation || '1'}.jsx`;
     const moduleKey = `../sections/generated/${filename}`;
     const Component = generatedModules[moduleKey]?.default;
 
     if (!Component) {
-      // In case the module is not found, render a fallback.
-      // NOTHING IS RENDERED FOR A SECTION THIS MACHINE CANNOT BUILD, and that is a
-      // change from showing an explanatory card for each one.
-      //
-      // The card was right when there were three of them. Measured on a store that
-      // had accumulated a few weeks of runs: 163 sections on `Home`, 54 with a
-      // component file and **109 without** — so the page opened with a hundred
-      // identical "isn't built here" blocks and the real sections were somewhere
-      // past them. An explanation repeated a hundred times is not an explanation,
-      // it is the page.
-      //
-      // The state is not hidden, it is COUNTED, and the count sits with the other
-      // §9 diagnostics below. One line saying "109 sections are not built here"
-      // tells a reader more than a hundred cards saying it individually, and it
-      // keeps the fact available rather than silently dropping it.
       unbuilt.push(section);
       return null;
     }
     
     return <SectionWrapper key={section.sectionId} section={section} Component={Component} pageName={pageName} />;
-    // The above hands <Component key={section.sectionId} pageName={pageName} /> to the wrapper.
   });
 
   return (
     <main className="min-h-[calc(100vh-5rem)] bg-studio-bg-base p-6 text-studio-text-primary relative">
-      <div className="flex flex-col gap-8">{renderedSections}</div>
+      
+      {/* Top Preview Control Bar */}
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-studio-border bg-studio-bg-raised p-4 rounded-studio-lg shadow-studio-sm">
+        <div className="flex items-center gap-3">
+          <Link to="/" className="p-2 rounded-studio-md hover:bg-studio-bg-base text-studio-text-secondary hover:text-studio-text-primary transition-colors">
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="text-studio-lg font-bold tracking-tight text-studio-text-primary">
+              Live Preview: <span className="text-studio-accent">{pageName}</span>
+            </h1>
+            <p className="text-studio-xs text-studio-text-secondary">
+              {displayFilter === 'latest' ? 'Showing latest generation' : `Showing all ${sectionDocs.length} sections`}
+            </p>
+          </div>
+        </div>
 
-      {sectionDocs.length === 0 ? (
-        <p className="max-w-prose rounded-studio-lg border border-dashed border-studio-border p-6 text-studio-sm text-studio-text-secondary">
-          No sections on <span className="font-medium text-studio-text-primary">{pageName}</span> yet.
-          Generate one in the Studio and it will appear here.
-        </p>
-      ) : null}
+        {/* Action Controls & Mode Selectors */}
+        <div className="flex items-center gap-3">
+          {/* Display Mode Filter: Latest vs All */}
+          <div className="flex bg-studio-bg-base border border-studio-border p-1 rounded-studio-md text-studio-xs">
+            <button 
+              onClick={() => setDisplayFilter('latest')}
+              className={`px-3 py-1.5 rounded-studio-sm font-medium transition-all ${displayFilter === 'latest' ? 'bg-studio-bg-overlay text-studio-text-primary shadow-sm' : 'text-studio-text-secondary hover:text-studio-text-primary'}`}
+            >
+              Latest Section
+            </button>
+            <button 
+              onClick={() => setDisplayFilter('all')}
+              className={`px-3 py-1.5 rounded-studio-sm font-medium transition-all ${displayFilter === 'all' ? 'bg-studio-bg-overlay text-studio-text-primary shadow-sm' : 'text-studio-text-secondary hover:text-studio-text-primary'}`}
+            >
+              All Stacked ({sectionDocs.length})
+            </button>
+          </div>
+
+          {/* View Mode Toggle: Design Preview vs Code Editor */}
+          <div className="flex bg-studio-bg-base border border-studio-border p-1 rounded-studio-md text-studio-xs">
+            <button 
+              onClick={() => setViewMode('design')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-studio-sm font-medium transition-all ${viewMode === 'design' ? 'bg-studio-accent text-studio-accent-foreground shadow-sm' : 'text-studio-text-secondary hover:text-studio-text-primary'}`}
+            >
+              <LayoutGrid size={14} /> Design
+            </button>
+            <button 
+              onClick={() => setViewMode('code')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-studio-sm font-medium transition-all ${viewMode === 'code' ? 'bg-studio-accent text-studio-accent-foreground shadow-sm' : 'text-studio-text-secondary hover:text-studio-text-primary'}`}
+            >
+              <Code size={14} /> Code Editor
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      {viewMode === 'design' ? (
+        <div className="flex flex-col gap-8">
+          {renderedSections}
+          {sectionDocs.length === 0 && (
+            <p className="max-w-prose rounded-studio-lg border border-dashed border-studio-border p-6 text-studio-sm text-studio-text-secondary">
+              No sections on <span className="font-medium text-studio-text-primary">{pageName}</span> yet.
+              Generate one in the Studio and it will appear here.
+            </p>
+          )}
+        </div>
+      ) : (
+        /* Full Code Editor View */
+        <div className="rounded-studio-lg border border-studio-border bg-[#0d0d0e] p-4 shadow-studio-lg">
+          <div className="flex justify-between items-center mb-3 pb-2 border-b border-studio-border/50 text-studio-xs text-studio-text-secondary">
+            <span className="font-mono text-studio-accent">Component Source Code (.jsx)</span>
+            <button 
+              onClick={() => {
+                const blob = new Blob([codeText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${pageName}.jsx`;
+                a.click();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 bg-studio-bg-overlay border border-studio-border hover:border-studio-accent rounded-studio-md text-studio-text-primary transition-all"
+            >
+              <Download size={13} /> Download .jsx
+            </button>
+          </div>
+          <div className="overflow-auto max-h-[650px] font-mono text-studio-xs rounded-studio-md border border-studio-border/40 p-3 bg-[#111113]">
+            <Editor
+              value={codeText || '// Loading generated React code...'}
+              onValueChange={code => setCodeText(code)}
+              highlight={highlightWithPrism}
+              padding={10}
+              style={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: 13,
+                backgroundColor: 'transparent',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Floating Canvas Editor */}
       {editingFieldId && (
@@ -209,6 +310,7 @@ export default function PreviewPage() {
         </div>
       )}
 
+      {/* Status Details */}
       <details className="mt-12 max-w-md rounded-studio-lg border border-studio-border bg-studio-bg-raised p-4 text-studio-sm">
         <summary className="cursor-pointer font-medium text-studio-text-primary">
           Content status
@@ -235,25 +337,16 @@ export default function PreviewPage() {
           <dd className="font-studio-mono text-studio-text-primary">{unbuilt.length}</dd>
         </dl>
 
-        {unbuilt.length > 0 ? (
+        {unbuilt.length > 0 && (
           <p className="mt-3 text-studio-text-secondary">
             {unbuilt.length} section{unbuilt.length === 1 ? '' : 's'} on this page {unbuilt.length === 1 ? 'has' : 'have'} content
-            saved but no component file on this machine, so {unbuilt.length === 1 ? 'it is' : 'they are'} not shown. Generate
-            {unbuilt.length === 1 ? ' it' : ' them'} again from the Studio to see {unbuilt.length === 1 ? 'it' : 'them'} render.
+            saved but no component file on this machine, so {unbuilt.length === 1 ? 'it is' : 'they are'} not shown.
           </p>
-        ) : null}
+        )}
 
-        {error ? (
+        {error && (
           <p className="mt-3 rounded-studio-sm bg-studio-destructive/10 border border-studio-destructive/30 p-3 text-studio-destructive">{error}</p>
-        ) : null}
-
-        {keyCount === 0 ? (
-          <p className="mt-3 rounded-studio-sm bg-studio-warn/10 border border-studio-warn/30 p-3 text-studio-warn">
-            No content loaded for <span className="font-medium">{pageName}</span>. The sections
-            below are showing their built-in defaults, so the page looks finished while nothing is
-            actually coming from the store — check that the API is running.
-          </p>
-        ) : null}
+        )}
       </details>
     </main>
   );
