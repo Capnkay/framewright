@@ -99,14 +99,23 @@ const STORAGE_KEY = "framewright.studio-design";
 
 export default function Studio() {
   const [mode, setMode] = useState("Wireframe");
-  const [form, setForm] = useState({ page: "Marketing site", section: "Hero section", file: "", code: "", prompt: "" });
-  const [accent, setAccent] = useState("");
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      return { page: saved.page || "Marketing site", section: saved.section || "Hero section", file: "", code: "", prompt: "" };
+    } catch { return { page: "Marketing site", section: "Hero section", file: "", code: "", prompt: "" }; }
+  });
+  const [accent, setAccent] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}").accent || ""; } catch { return ""; }
+  });
   const [jobState, setJobState] = useState("idle");
   const [runningIndex, setRunningIndex] = useState(-1);
   const [selectedStage, setSelectedStage] = useState(null);
   const [tab, setTab] = useState("Stages");
   const [chosenAnswer, setChosenAnswer] = useState(null);
-  const [elements, setElements] = useState([]);
+  const [elements, setElements] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}").elements || []; } catch { return []; }
+  });
   const [selectedField, setSelectedField] = useState(null);
   const [codeText, setCodeText] = useState(() => generateCode(elements, accent));
 
