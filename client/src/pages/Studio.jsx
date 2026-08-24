@@ -45,11 +45,24 @@ function Composer({ mode, setMode, form, setForm, accent, setAccent, generate, r
       <AnimatePresence mode="wait">
         <motion.div className="mode-content" key={mode} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           {mode === "Wireframe" && (
-            <div className="upload-zone" onClick={() => file.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const dropped = e.dataTransfer.files[0]; set("file")(dropped?.name || "wireframe.png"); set("fileObj")(dropped); }} data-testid="wireframe-upload-zone">
+            <div className={`upload-zone ${form.fileObj ? 'has-file' : ''}`} onClick={() => file.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const dropped = e.dataTransfer.files[0]; set("file")(dropped?.name || "wireframe.png"); set("fileObj")(dropped); }} data-testid="wireframe-upload-zone">
               <input ref={file} type="file" hidden onChange={e => { const picked = e.target.files[0]; set("file")(picked?.name || "wireframe.png"); set("fileObj")(picked); }} data-testid="wireframe-file-input" />
-              <div className="upload-icon"><Upload size={18} /></div>
-              <strong>{form.file || "Drop a wireframe here"}</strong>
-              <span>PNG, JPG or WEBP &middot; max 8MB</span>
+              {form.fileObj ? (
+                 <div className="upload-preview" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '10px 0'}}>
+                    <img src={URL.createObjectURL(form.fileObj)} alt="Preview" style={{maxHeight: '140px', maxWidth: '100%', borderRadius: '8px', border: '2px solid var(--border)', objectFit: 'contain', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981'}}>
+                      <Check size={16} />
+                      <strong style={{color: 'var(--text)'}}>{form.file}</strong>
+                    </div>
+                    <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>Click or drag to change file</span>
+                 </div>
+              ) : (
+                 <>
+                    <div className="upload-icon"><Upload size={18} /></div>
+                    <strong>Drop a wireframe here</strong>
+                    <span>PNG, JPG or WEBP &middot; max 8MB</span>
+                 </>
+              )}
             </div>
           )}
           <div className="fields-grid">
