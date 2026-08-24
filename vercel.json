@@ -1,8 +1,9 @@
 {
-  "buildCommand": "rm -rf public && mkdir -p public && cp -r docs/html/. public/",
-  "installCommand": "echo \"no dependencies\"",
-  "outputDirectory": "public",
+  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build",
+  "installCommand": "echo \"handled by buildCommand\"",
+  "outputDirectory": "client/dist",
   "framework": null,
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

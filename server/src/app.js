@@ -126,6 +126,17 @@ export function createApp({ env = process.env } = {}) {
 
   app.use(express.json({ limit: '1mb' }));
 
+  // Cross-origin: the demo deploy runs the client on Vercel and this API on Render,
+  // two origins. Dev keeps working unchanged — Vite's proxy means the browser never
+  // sends Origin cross-site locally, so this middleware is a no-op there.
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', env.ALLOWED_ORIGIN || '*');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+  });
+
   // §7 R7's placeholder, and every other stored image, served from disk.
   //
   // T-129: NOTHING SERVED THIS. `getImage` resolves an empty image to

@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: framewright-api
+    runtime: node
+    buildCommand: cd server && npm install
+    startCommand: node server/src/server.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: STORE_TYPE
+        value: json
+      - key: VITE_STORAGE_URL
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_PROVIDER
+        sync: false
