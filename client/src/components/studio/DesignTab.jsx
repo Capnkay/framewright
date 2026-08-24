@@ -26,8 +26,7 @@ export function DesignLayers({ elements, selectedId, onSelect, onReorder, scope 
   );
 }
 
-export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelete, accent, scope = "pipeline" }) {
-  const [deletableId, setDeletableId] = useState(null);
+export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent, scope = "pipeline" }) {
   const selectedEl = elements.find(e => e.id === selectedId) || elements[0];
   const effectiveColor = /^#[0-9a-fA-F]{3,8}$/.test(accent || "") ? accent : "#3b82f6";
   const p = scope === "composer" ? "composer-" : "";
@@ -35,8 +34,8 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelet
   const actualHeight = Math.max(CANVAS_H, elements.reduce((max, el) => Math.max(max, (el.y || 0) + (el.height || 50)), CANVAS_H) + 50);
 
   return (
-    <div className="design-canvas-wrap" style={{ overflowY: 'auto' }} onClick={() => setDeletableId(null)}>
-      <div className={`design-canvas ${elements.length === 0 ? 'empty' : ''}`} style={{ width: CANVAS_W, height: actualHeight, background: `linear-gradient(135deg, #ffffff 0%, ${effectiveColor}15 100%)` }} data-testid={tid("design-canvas")}>
+    <div className="design-canvas-wrap" style={{ overflowY: 'auto' }}>
+      <div className={`design-canvas ${elements.length === 0 ? 'empty' : ''}`} style={{ width: CANVAS_W, height: actualHeight }} data-testid={tid("design-canvas")}>
         {elements.length === 0 ? (
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#71717a', fontSize: '13px'}}>
             Awaiting generation...
@@ -59,8 +58,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelet
                 }}
                 drag dragMomentum={false}
                 dragConstraints={{ left: 0, top: 0, right: maxX, bottom: maxY }}
-                onPointerDown={(e) => { e.stopPropagation(); onSelect(el.id); if (deletableId !== el.id) setDeletableId(null); }}
-                onDoubleClick={(e) => { e.stopPropagation(); setDeletableId(el.id); }}
+                onPointerDown={() => onSelect(el.id)}
                 onDragEnd={(e, info) => onUpdate(el.id, {
                   x: Math.round(clamp(el.x + info.offset.x, 0, maxX)),
                   y: Math.round(clamp(el.y + info.offset.y, 0, maxY)),
@@ -68,19 +66,6 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelet
                 data-testid={tid(`design-block-${el.id}`)}
               >
                 {el.type !== "image" ? el.content : null}
-                {deletableId === el.id && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDelete?.(el.id); setDeletableId(null); }}
-                    style={{
-                      position: 'absolute', top: -10, right: -10, background: '#ef4444', color: 'white',
-                      border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'grid', placeItems: 'center',
-                      cursor: 'pointer', zIndex: 50, boxShadow: '0 2px 5px rgba(0,0,0,0.2)', fontSize: '14px', lineHeight: 1
-                    }}
-                    title="Delete element"
-                  >
-                    ×
-                  </button>
-                )}
               </motion.div>
             );
           })
@@ -90,7 +75,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onDelet
   );
 }
 
-export function DesignInspector({ elements, selectedId, accent, onUpdate, onContentChange, scope = "pipeline", sectionAccent, onAccentChange = () => {} }) {
+export function DesignInspector({ elements, selectedId, accent, onUpdate, onContentChange, scope = "pipeline" }) {
   const selectedEl = elements.find(e => e.id === selectedId) || elements[0];
   const effectiveColor = /^#[0-9a-fA-F]{3,8}$/.test(accent || "") ? accent : "#3b82f6";
   const p = scope === "composer" ? "composer-" : "";
@@ -101,7 +86,6 @@ export function DesignInspector({ elements, selectedId, accent, onUpdate, onCont
   return (
     <div className="design-inspector" data-testid={tid("design-inspector")}>
       <div className="design-inspector-head">{selectedEl.label || ELEMENT_LABELS[selectedEl.id] || selectedEl.id}</div>
-      <label className="field">Section accent<input type="color" value={sectionAccent || effectiveColor} onChange={e => onAccentChange(e.target.value)} data-testid={tid("design-section-accent-input")} /></label>
       {selectedEl.type !== "image" && (
         <label className="field">Content
           <textarea value={selectedEl.content} onChange={e => onContentChange(selectedEl.id, e.target.value)} data-testid={tid("design-content-input")} />
@@ -136,14 +120,14 @@ export function DesignInspector({ elements, selectedId, accent, onUpdate, onCont
   );
 }
 
-export function DesignTab({ elements, accent, onUpdate, onReorder, onContentChange, scope = "pipeline", sectionAccent, onAccentChange }) {
+export function DesignTab({ elements, accent, onUpdate, onReorder, onContentChange, scope = "pipeline" }) {
   const [selected, setSelected] = useState(elements[0]?.id || null);
 
   return (
     <div className="design-tab" data-testid={scope === "composer" ? "composer-section-editor" : "pipeline-design-tab"}>
       <DesignLayers elements={elements} selectedId={selected} onSelect={setSelected} onReorder={onReorder} scope={scope} />
       <DesignCanvas elements={elements} selectedId={selected} onSelect={setSelected} onUpdate={onUpdate} accent={accent} scope={scope} />
-      <DesignInspector elements={elements} selectedId={selected} accent={accent} onUpdate={onUpdate} onContentChange={onContentChange} scope={scope} sectionAccent={sectionAccent} onAccentChange={onAccentChange} />
+      <DesignInspector elements={elements} selectedId={selected} accent={accent} onUpdate={onUpdate} onContentChange={onContentChange} scope={scope} />
     </div>
   );
 }

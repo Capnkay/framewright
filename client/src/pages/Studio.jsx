@@ -142,14 +142,6 @@ export default function Studio() {
   const onElementUpdate = (id, patch) => {
     setElements(els => { const next = els.map(el => (el.id === id ? { ...el, ...patch } : el)); setCodeText(generateCode(next, accent)); return next; });
   };
-  const onElementDelete = (id) => {
-    setElements(els => {
-      const next = els.filter(el => el.id !== id);
-      setCodeText(generateCode(next, accent));
-      if (selectedField === id) setSelectedField(next[0]?.id || null);
-      return next;
-    });
-  };
   const onContentChange = (id, value) => onElementUpdate(id, { content: value });
   const onElementReorder = (id, dir) => {
     setElements(els => {
@@ -236,7 +228,7 @@ export default function Studio() {
               
               let x = 20;
               let y = yCursor;
-              let width = el.contentType === "Button" ? Math.min(CANVAS_WIDTH, 200) : CANVAS_WIDTH;
+              let width = CANVAS_WIDTH;
               let height = undefined;
               let fontWeight = el.tag === "h1" || el.tag === "h2" || el.contentType === "Button" ? 700 : 400;
               let color = "#18181b";
@@ -378,7 +370,7 @@ export default function Studio() {
 
   const stages = realTrace ? getRealStageStatuses(realTrace) : getStageStatuses(jobState, runningIndex);
 
-  const [viewMode, setViewMode] = useState("preview");
+  const [viewMode, setViewMode] = useState("design");
 
   return (
     <div className="studio-page">
@@ -413,7 +405,7 @@ export default function Studio() {
           <SectionEditor 
             elements={elements} accent={accent} code={codeText} 
             selectedField={selectedField} setSelectedField={setSelectedField} 
-            onUpdate={onElementUpdate} onDelete={onElementDelete} onCodeChange={onCodeChange}
+            onUpdate={onElementUpdate} onCodeChange={onCodeChange}
             pageName={previewPage} previewKey={previewKey} 
             viewMode={viewMode} setViewMode={setViewMode}
           />

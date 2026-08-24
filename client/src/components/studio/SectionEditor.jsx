@@ -27,14 +27,13 @@ import 'prismjs/themes/prism-tomorrow.css'; // dark theme for prism
 // that is an honest label for it. It is no longer allowed to impersonate the
 // generated section.
 
-export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, onDelete, onCodeChange, pageName = "Home", previewKey = 0, viewMode, setViewMode }) {
+export function SectionEditor({ elements, accent, code, selectedField, setSelectedField, onUpdate, onCodeChange, pageName = "Home", previewKey = 0, viewMode, setViewMode }) {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [isDesktop, setIsDesktop] = useState(true);
 
   const previewSrc = `/preview/${encodeURIComponent(pageName || "Home")}`;
 
   const TABS = [
-    { id: "preview", label: "Preview", Icon: Eye },
     { id: "design", label: "Design", Icon: LayoutGrid },
     { id: "code", label: "Code", Icon: Code },
   ];
@@ -62,22 +61,24 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
         {/* Right side: Toggle */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {viewMode === "design" && (
-            <button
-              type="button"
-              onClick={() => setIsDesktop(!isDesktop)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
-              title={isDesktop ? "Switch to Mobile View" : "Switch to Desktop View"}
-            >
-              {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setIsDesktop(!isDesktop)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
+                title={isDesktop ? "Switch to Mobile View" : "Switch to Desktop View"}
+              >
+                {isDesktop ? <Monitor size={14} /> : <Smartphone size={14} />}
+              </button>
+              <Link
+                to={previewSrc}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
+                title="Full Screen Preview"
+              >
+                <Maximize size={14} />
+              </Link>
+            </>
           )}
-          <Link
-            to={previewSrc}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', textDecoration: 'none' }}
-            title="Full Screen Preview"
-          >
-            <Maximize size={14} />
-          </Link>
           <div style={{ display: 'flex', background: 'var(--bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
             {TABS.map(({ id, label, Icon }) => (
               <button
@@ -96,17 +97,8 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: isDesktop || viewMode === "code" ? 'transparent' : '#1a1a1c', overflow: 'hidden', transition: 'background 0.2s', borderRadius: '0 0 8px 8px' }}>
         <div style={{ width: isDesktop || viewMode === "code" ? '100%' : 360, flexShrink: 0, transition: 'width 0.2s', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-          {viewMode === "preview" ? (
-            <div style={{ flex: 1, position: 'relative', background: '#f8f9fa', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-              <iframe 
-                key={reloadNonce + previewKey}
-                src={previewSrc} 
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                title="Preview"
-              />
-            </div>
-          ) : viewMode === "design" ? (
-            <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} onDelete={onDelete} scope="composer" />
+          {viewMode === "design" ? (
+            <DesignCanvas elements={elements} accent={accent} selectedId={selectedField} onSelect={setSelectedField} onUpdate={onUpdate} scope="composer" />
           ) : (
             <div className="section-editor-code-preview" data-testid="composer-code-preview" style={{ flex: 1, margin: 0, padding: 0, borderTop: 'none', borderRadius: '0 0 8px 8px', maxHeight: 'none', display: 'flex', flexDirection: 'column', overflow: 'auto', background: '#1d1f21' }}>
               <Editor
