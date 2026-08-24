@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, RotateCw, Monitor, Smartphone, Tablet, ExternalLink, Code } from "lucide-react";
-import { Label, fade } from "../components/Shell";
+import { Label, fade, isFramed } from "../components/Shell";
 import SideEditor from "../studio/SideEditor";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { fetchElementsByIds } from "../redux/fetchElementsByIds.js";
+import { loadPageSections } from "../redux/appSlice.js";
 
 const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
 
@@ -58,7 +59,6 @@ export default function Preview() {
   const { pageName = 'Home' } = useParams();
   const navigate = useNavigate();
   const [variation, setVariation] = useState("A");
-  const [sectionDocs, setSectionDocs] = useState([]);
   const [viewport, setViewport] = useState("Desktop");
   const [reloadKey, setReloadKey] = useState(0);
   
@@ -67,16 +67,8 @@ export default function Preview() {
 
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    fetch('/api/sections')
   const sectionDocs = useSelector(state => state.app.sections.filter(s => s.pageName === pageName));
   const framed = isFramed();
-
-  const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
-
-  const componentKeyFor = (sectionDoc) => {
-    return `../sections/generated/${sectionDoc.sectionId}.jsx`;
-  };
 
   useEffect(() => {
     document.title = `${pageName} - Preview`;
@@ -172,7 +164,7 @@ export default function Preview() {
               <ExternalLink size={14} />
             </button>
             <button
-              onClick={() => navigate('/generate')}
+              onClick={() => navigate('/studio')}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--blue)', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
               data-testid="preview-edit-button"
             >
