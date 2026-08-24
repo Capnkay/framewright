@@ -2375,3 +2375,45 @@ enforced by a hook) and benchmark and task IDs have none. Recorded as a structur
 fixed under deadline.
 
 **Owner.** Mine.
+
+## 2026-08-24 · §6.1 card/button/section tokens defined but never consumed by the emitter
+
+**What.** `DEFAULT_TOKENS` (`server/src/generate/designTokens.js`) declared
+`shadows.card`, `shadows.button`, `borderRadius.card`, and `colors.surface` — all frozen
+as contract text since T-092/T-093 — but `emitComponent.js`'s `renderCardsBlock`,
+`buttonClasses`, and `containerClasses` never read them. Every generated section's stat
+cards rendered as bare stacked text with no container (no background, padding, or edge);
+the CTA button and outer section carried no shadow or explicit surface color; a pasted
+`<img>` with no `className` of its own emitted `className="dynamicStyle2 "` — no sizing,
+no fit, no radius. The visible result: every generated section looked flat and unstyled
+regardless of input, which is what the Cap'n hit live testing mode=code.
+
+**Why it happened.** T-092/T-093 wired `designTokens` through the emitter's typography,
+spacing and accent color paths and asserted the byte-identical-default equivalence for
+those, but never extended the same wiring to the card/button/section/image tokens already
+sitting in `DEFAULT_TOKENS`. Nothing failed a test because nothing asserted those tokens
+were consumed — only that the ones already wired stayed byte-identical.
+
+**Fixed.**
+1. `renderCardsBlock` now applies `p-4 bg-${colors.surfaceAlt} ${borderRadius.card}
+   ${shadows.card}` to each card item div.
+2. `buttonClasses`'s token path now includes `${shadows.button}`.
+3. `containerClasses` (the outer `<section>`) now includes `bg-${colors.surface}`, so a
+   section states its own background rather than inheriting whatever page shell wraps it.
+4. The Image branch of `renderElementNode` now falls back to `w-full h-full object-cover
+   ${borderRadius.image}` when the element carries no `className` of its own, instead of
+   emitting an unstyled, unsized `<img>`.
+5. `DEFAULT_TOKENS.shadows` changed from `{card: 'shadow-none', button: 'shadow-none'}` to
+   `{card: 'shadow-sm', button: 'shadow-sm'}` — the flat values were themselves why nothing
+   downstream had any depth even once wired.
+
+All five changes stay inside §6.1 rules 1 and 2 (Tailwind utility classes only, no colour
+literals) and rule 4 (unrecognised tokens still silently ignored). §6.1's byte-identical
+equivalence (`resolveTokens(undefined)` deep-equals `resolveTokens(DEFAULT_TOKENS)`) is
+unaffected — both still resolve through the same merge path.
+
+**Regenerated per doneWhen.** `node tools/emit-reference.mjs` — the checked-in golden
+component now carries `bg-white` on the section and the card-item container classes.
+Full suite re-run clean: 807/807.
+
+**Owner.** Mine, Cap'n-approved live during the hackathon crunch.

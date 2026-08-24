@@ -76,7 +76,11 @@ function containerClasses(layout, tokens) {
   const dir = layout.direction === 'row' ? `flex-col ${bp}:flex-row` : 'flex-col';
   const maxW = layout.container?.maxWidth ? `max-w-[${layout.container.maxWidth}]` : '';
   const containerX = layout.container?.padding || tokens.spacing.containerX;
-  return `w-full ${maxW} mx-auto ${containerX} flex ${dir}`;
+  // tokens.colors.surface was defined in §6.1 and never applied anywhere --
+  // the section had no declared background of its own, only whatever the page
+  // shell around it happened to be. Stating it explicitly keeps the section
+  // readable and self-contained regardless of what wraps it.
+  return `w-full ${maxW} mx-auto ${containerX} flex ${dir} bg-${tokens.colors.surface}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -99,7 +103,7 @@ function containerClasses(layout, tokens) {
  * override a stated value.
  */
 function buttonClasses(classes, tokens) {
-  const tokenClasses = `${tokens.components.button} ${tokens.borderRadius.button} bg-${tokens.colors.accent} px-6 py-3 text-${tokens.colors.accentContrast} ${tokens.typography.headingWeight} w-fit`;
+  const tokenClasses = `${tokens.components.button} ${tokens.borderRadius.button} ${tokens.shadows.button} bg-${tokens.colors.accent} px-6 py-3 text-${tokens.colors.accentContrast} ${tokens.typography.headingWeight} w-fit`;
   if (!classes) return tokenClasses;
 
   const parts = [classes];
@@ -116,9 +120,13 @@ function renderElementNode(el, tokens) {
 
   if (contentType === 'Image') {
     const altText = alt || `${elementName} image`;
+    // A pasted <img> without its own className produced `className="dynamicStyle2 "`
+    // -- no sizing, no fit, no radius, so the placeholder rendered as a bare,
+    // unstyled box instead of a filled, edge-to-edge media panel.
+    const imageClasses = classes || `w-full h-full object-cover ${tokens.borderRadius.image}`;
     return `        <${tag}
           id={${idExpr}}
-          className="dynamicStyle2 ${classes || ''}"
+          className="dynamicStyle2 ${imageClasses}"
           src={getImage(getTextValue(data, ids.${elementName}, DEFAULTS[ids.${elementName}]))}
           onError={errorImage}
           alt="${altText}"
@@ -191,9 +199,15 @@ function renderCardsBlock(cards, tokens) {
     }
   }
 
+  // §6.1's card tokens (borderRadius.card, shadows.card, colors.surfaceAlt)
+  // were defined but never consumed here -- every stat/card item rendered as
+  // bare stacked text with no container: no background, no padding, no edge.
+  // A designed "card" needs a card, not just card-shaped data.
+  const cardItemClasses = `flex flex-col ${tokens.spacing.gap} p-4 bg-${tokens.colors.surfaceAlt} ${tokens.borderRadius.card} ${tokens.shadows.card}`;
+
   return `        <div id={ids.${elName}} className="${gridClass}">
           {items.map((item, index) => (
-            <div key={item.fieldId1 || index} className="flex flex-col">
+            <div key={item.fieldId1 || index} className="${cardItemClasses}">
 ${fieldRenderers.join('\n')}
             </div>
           ))}

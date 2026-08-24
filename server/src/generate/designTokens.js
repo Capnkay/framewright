@@ -63,7 +63,7 @@ export const DEFAULT_TOKENS = Object.freeze({
     gap: 'gap-4',
     containerX: 'px-0 md:px-12',
   }),
-  shadows: Object.freeze({ card: 'shadow-none', button: 'shadow-none' }),
+  shadows: Object.freeze({ card: 'shadow-sm', button: 'shadow-sm' }),
   borderRadius: Object.freeze({
     button: 'rounded-md',
     card: 'rounded-lg',

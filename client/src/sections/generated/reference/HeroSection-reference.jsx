@@ -98,7 +98,7 @@ export default function Custom({ pageName = 'Home', section = {} }) {
   const items = getStatItems(data); // R9 — never a fixed-length guard
 
   return (
-    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row ${textContrastClass}`}>
+    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-white ${textContrastClass}`}>
       <div className="w-full md:w-1/2">
         <img
           id={ids.heroImage}
@@ -156,7 +156,7 @@ export default function Custom({ pageName = 'Home', section = {} }) {
 
         <div id={ids.statBadges} className="grid grid-cols-3 gap-4 py-2">
           {items.map((item, index) => (
-            <div key={item.fieldId1 || index} className="flex flex-col">
+            <div key={item.fieldId1 || index} className="flex flex-col gap-4 p-4 bg-gray-50 rounded-lg shadow-sm">
               <span
                 id={item.fieldId1}
                 className="dynamicStyle text-2xl font-extrabold text-gray-800"
