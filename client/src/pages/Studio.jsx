@@ -154,7 +154,12 @@ export default function Studio() {
   // What the preview iframe points at, and what remounts it. Both are set only
   // after a generation SUCCEEDS, so a failed run leaves the last good section
   // on screen instead of blanking it.
-  const [previewPage, setPreviewPage] = useState("Home");
+  const [previewPage, setPreviewPage] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      return saved.page ? sanitizeName(saved.page) : "Marketing-site";
+    } catch { return "Marketing-site"; }
+  });
   const [previewKey, setPreviewKey] = useState(0);
   // §12 degradation, run-level. POST /api/generate answers with a `warnings`
   // array beside `job` -- it is where "Hosted model not used: <reason>" lands,
