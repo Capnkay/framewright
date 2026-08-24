@@ -8,7 +8,7 @@ export const fade = { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0
 export function Logo() {
   return (
     <div className="logo" data-testid="framewright-logo">
-      <img src="/navbar-logo.jpg" alt="Framewright Logo" style={{ height: "46px", width: "auto", mixBlendMode: 'lighten' }} />
+      <img src="/logo.png" alt="Framewright Logo" style={{ height: "46px", width: "auto" }} />
     </div>
   );
 }
