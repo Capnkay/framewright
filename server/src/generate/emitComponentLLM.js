@@ -2,43 +2,38 @@
 //
 // LLM-powered code generation — takes an IR + the user's design prompt
 // and asks the model to write a beautiful, production-quality React component
-// with Tailwind CSS, instead of using the rigid deterministic emitter.
-//
-// Uses OpenRouter (OPENROUTER_API_KEY) if available, otherwise falls back
-// to the main LLM_API_KEY. This allows using a different provider for
-// code generation vs structured IR generation.
+// with Tailwind CSS, interactive React state, and working buttons.
 
 import { emitComponent as deterministicEmit } from './emitComponent.js';
 
 const SYSTEM_PROMPT = [
-  'You are an elite UI engineer who writes stunning, production-quality React components with Tailwind CSS.',
+  'You are an elite, world-class Principal UI Engineer and Product Designer (ex-Vercel, ex-Linear, ex-Stripe).',
   'You receive a JSON layout specification (IR) and a user design prompt.',
-  'Your job: generate a SINGLE default-exported React functional component that implements the described UI.',
+  'Your mission: Generate a SINGLE, PRODUCTION-READY, FULLY INTERACTIVE React functional component.',
   '',
-  'RULES:',
-  '- Use ONLY Tailwind CSS utility classes for all styling. No inline styles, no CSS modules.',
-  '- Make the design visually stunning: use gradients, shadows, rounded corners, hover effects, smooth transitions.',
-  '- Use a modern, premium aesthetic — think Linear, Vercel, or Stripe quality.',
-  '- The component must be self-contained — no imports except React.',
-  '- Use semantic HTML (section, nav, header, main, footer, article, etc).',
-  '- Make it fully responsive with Tailwind breakpoints (sm:, md:, lg:, xl:).',
-  '- Include realistic placeholder content based on the user prompt (not lorem ipsum).',
-  '- For images, use placeholder divs with bg-gradient backgrounds or emoji/SVG icons.',
-  '- Add subtle animations where appropriate (hover:scale, transition-all, etc).',
-  '- Export the component as: export default function ComponentName() { ... }',
+  'HIGH-QUALITY DESIGN REQUIREMENTS:',
+  '- Aesthetic: Ultra-modern, premium dark/light themes, sleek glassmorphism (backdrop-blur), rich gradients, glowing accents, subtle borders (border-slate-800 or border-slate-200), and crisp typography.',
+  '- Components to include: Navigation bar, Hero section with interactive CTA buttons, Feature grid with hover effects, Interactive tabs/filters, Stats counter grid, Testimonial/User card, and an interactive Modal/Drawer dialog state.',
+  '- Responsiveness: 100% mobile-friendly with Tailwind breakpoints (sm:, md:, lg:, xl:).',
   '',
-  'OUTPUT FORMAT:',
-  '- Output ONLY the raw JSX/JavaScript code.',
-  '- Do NOT wrap in markdown fences (no ```jsx or ```).',
-  '- Do NOT include any explanation, comments about the code, or anything other than the component code itself.',
+  'INTERACTIVITY & STATE (CRITICAL - ALL BUTTONS MUST BE FUNCTIONAL):',
+  '- Use React hooks: `import React, { useState } from "react";`',
+  '- Add interactive state for: active tabs, modal popup visibility, button click notifications/alerts, counter increments, or search/filter queries.',
+  '- EVERY BUTTON MUST DO SOMETHING INTERACTIVE when clicked (e.g. `onClick={() => setModalOpen(true)}`, `onClick={() => setActiveTab("overview")}`, `onClick={() => setNotification("Saved!")}`).',
+  '- Render an interactive Modal or Slide-over when primary buttons like "Get Started", "Sign Up", or "Explore" are clicked.',
+  '',
+  'TECHNICAL CONSTRAINTS:',
+  '- Code must be self-contained in a SINGLE file (no external imports except `React` and `{ useState, useEffect }`).',
+  '- Use custom SVG icons inline (e.g. <svg className="w-5 h-5"...>) or clean Tailwind elements.',
+  '- Do NOT use markdown code fences in output (no ```jsx or ```).',
+  '- Export the component as: `export default function GeneratedSection() { ... }`',
+  '- Output ONLY raw JSX/JavaScript code — no introductory text, no explanations, no markdown fences.',
 ].join('\n');
 
 /**
  * Make a direct fetch call to the LLM provider for code generation.
- * This bypasses the orchestrator's JSON parsing since we want raw text.
  */
 async function callForCode(prompt, systemPrompt) {
-  // Prefer OpenRouter for code gen (no rate limits), fall back to main LLM
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.LLM_API_KEY;
   const baseUrl = process.env.OPENROUTER_API_KEY
     ? 'https://openrouter.ai/api/v1'
@@ -95,7 +90,6 @@ async function callForCode(prompt, systemPrompt) {
 export async function emitComponentLLM(ir, prompt) {
   const fallbackSource = deterministicEmit(ir);
 
-  // No prompt means no design intent to work with — deterministic is fine.
   if (!prompt) return fallbackSource;
 
   const userMessage = [
@@ -104,7 +98,7 @@ export async function emitComponentLLM(ir, prompt) {
     'LAYOUT SPECIFICATION (IR):',
     JSON.stringify(ir, null, 2),
     '',
-    'Generate the React component now. Remember: raw code only, no markdown fences, no explanations.',
+    'Write the production-ready interactive React component now. Include React useState hooks, interactive button click handlers, tab switching, and modal dialog state. Raw code only, no markdown fences.',
   ].join('\n');
 
   const source = await callForCode(userMessage, SYSTEM_PROMPT);
@@ -114,7 +108,7 @@ export async function emitComponentLLM(ir, prompt) {
     return fallbackSource;
   }
 
-  // Strip markdown fences if the model included them despite instructions
+  // Strip markdown fences if present
   let cleaned = source;
   cleaned = cleaned.replace(/^```(?:jsx|javascript|js|tsx)?\s*\n?/i, '');
   cleaned = cleaned.replace(/\n?```\s*$/i, '');
