@@ -336,6 +336,98 @@ ${innerNodes}${secondaryCta ? `
 }
 
 // ---------------------------------------------------------------------------
+// Layout templates
+// ---------------------------------------------------------------------------
+//
+// Every input mode (code, prompt, wireframe) converges on the same assembled
+// `elements`/`cards` shape before emitComponent ever runs -- so template
+// variety applied HERE, from that shape, benefits all three uniformly with
+// no mode-specific branching and no IR schema change. §6's `layout.regions`
+// stays exactly as it was for the one template that uses it (hero-split);
+// every other template composes directly from `elements`, ignoring regions.
+//
+// Every template reuses `renderElementNode` and `renderCardsBlock` verbatim
+// -- the CMS wiring (ids, DEFAULTS, dynamicStyle, dangerouslySetInnerHTML,
+// R1-R14) is identical no matter which one composes the output. Only the
+// container shape and element grouping differ.
+
+/**
+ * selectTemplate(elements, cards) -> template id
+ *
+ * A pure function of the assembled shape, so the same input always selects
+ * the same template -- the emitter stays deterministic (T-025's own
+ * requirement: same IR, same source). `hero-split` -- today's only shape --
+ * stays the fallback for anything ambiguous or carrying an image, since it
+ * is the one template with a golden-component-verified track record.
+ */
+function selectTemplate(elements, cards) {
+  const hasImage = elements.some((el) => el.contentType === 'Image');
+  const hasCTA = elements.some((el) => el.contentType === 'Button');
+  const hasHeadline = elements.some((el) => el.tag === 'h1');
+  const cardCount = cards && typeof cards.count === 'number'
+    ? cards.count
+    : (cards && Array.isArray(cards.items) ? cards.items.length : 0);
+  const hasCards = cardCount > 0;
+  const textCount = elements.filter((el) => el.contentType === 'Text' || el.contentType === 'Textfield').length;
+
+  if (hasImage) return 'hero-split';
+  if (hasCards && !hasHeadline && !hasCTA) return 'stats-band';
+  if (hasCards) return 'feature-grid';
+  if (hasCTA && textCount <= 2) return 'cta-banner';
+  if (hasHeadline) return 'hero-centered';
+  return 'hero-split';
+}
+
+function renderElementsList(elements, cards, tokens) {
+  return elements
+    .map((el) => (el.contentType === 'Cards' ? renderCardsBlock(cards, tokens) : renderElementNode(el, tokens)))
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+/** No image, but a real headline -- a single centred column. */
+function renderHeroCentered(elements, cards, tokens) {
+  const gap = tokens.spacing.heroGap || tokens.spacing.gap;
+  return `      <div className="w-full max-w-2xl mx-auto flex flex-col items-center text-center ${gap} ${tokens.spacing.sectionY}">
+${renderElementsList(elements, cards, tokens)}
+      </div>`;
+}
+
+/** A card grid with its own heading -- title centred above, cards full-width below. */
+function renderFeatureGrid(elements, cards, tokens) {
+  const gap = tokens.spacing.heroGap || tokens.spacing.gap;
+  const heading = elements.filter((el) => el.contentType !== 'Cards');
+  return `      <div className="w-full max-w-6xl mx-auto flex flex-col items-center text-center ${gap} ${tokens.spacing.sectionY}">
+${renderElementsList(heading, null, tokens)}
+        <div className="w-full">
+${renderCardsBlock(cards, tokens)}
+        </div>
+      </div>`;
+}
+
+/** Cards with no surrounding copy -- a bare stat strip. */
+function renderStatsBand(elements, cards, tokens) {
+  return `      <div className="w-full max-w-5xl mx-auto ${tokens.spacing.sectionY}">
+${renderCardsBlock(cards, tokens)}
+      </div>`;
+}
+
+/** A CTA with almost no supporting copy -- a minimal centred strip. */
+function renderCtaBanner(elements, cards, tokens) {
+  const gap = tokens.spacing.heroGap || tokens.spacing.gap;
+  return `      <div className="w-full max-w-3xl mx-auto flex flex-col items-center text-center ${gap} ${tokens.spacing.sectionY}">
+${renderElementsList(elements, cards, tokens)}
+      </div>`;
+}
+
+const TEMPLATE_RENDERERS = {
+  'hero-centered': renderHeroCentered,
+  'feature-grid': renderFeatureGrid,
+  'stats-band': renderStatsBand,
+  'cta-banner': renderCtaBanner,
+};
+
+// ---------------------------------------------------------------------------
 // ids map builder
 // ---------------------------------------------------------------------------
 
@@ -427,12 +519,23 @@ function emitComponent(ir) {
   const elements = ir.elements || [];
   const bp = layout?.breakpoint || tokens.breakpoints.stack || 'md';
 
-  const sectionClassName = containerClasses(layout || {}, tokens);
-
-  // Build each region
-  const regionBlocks = (layout?.regions || [])
-    .map(region => renderRegion(region, elements, cards, tokens, bp))
-    .join('\n\n');
+  const template = selectTemplate(elements, cards);
+  let sectionClassName;
+  let regionBlocks;
+  if (template === 'hero-split') {
+    sectionClassName = containerClasses(layout || {}, tokens);
+    regionBlocks = (layout?.regions || [])
+      .map(region => renderRegion(region, elements, cards, tokens, bp))
+      .join('\n\n');
+  } else {
+    // The non-hero-split templates are one flex column, not a media/content
+    // split, so they skip containerClasses' two-column direction and border
+    // logic -- they still state the same gradient-wash background so a
+    // stats band or CTA banner doesn't revert to a flat, undesigned white.
+    const wash = shiftShade(tokens.colors.accent, 50);
+    sectionClassName = `w-full flex flex-col items-stretch bg-gradient-to-br from-${tokens.colors.surface} to-${wash}`;
+    regionBlocks = TEMPLATE_RENDERERS[template](elements, cards, tokens);
+  }
 
   const idsMapLines = buildIdsMap(elements, cards);
   const defaultsMapLines = buildDefaultsMap(elements, tokens);
