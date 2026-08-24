@@ -3,7 +3,6 @@
   "installCommand": "echo \"handled by buildCommand\"",
   "outputDirectory": "client/dist",
   "framework": null,
-  "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
