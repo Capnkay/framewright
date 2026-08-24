@@ -98,8 +98,8 @@ export default function Custom({ pageName = 'Home', section = {} }) {
   const items = getStatItems(data); // R9 — never a fixed-length guard
 
   return (
-    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-white ${textContrastClass}`}>
-      <div className="w-full md:w-1/2">
+    <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-gradient-to-br from-white to-red-50 ${textContrastClass}`}>
+      <div className="w-full md:w-1/2 bg-gray-50">
         <img
           id={ids.heroImage}
           className="dynamicStyle2 w-full h-auto object-cover"
@@ -109,10 +109,10 @@ export default function Custom({ pageName = 'Home', section = {} }) {
         />
       </div>
 
-      <div className="w-full md:w-1/2 flex flex-col gap-6 py-10 md:py-20">
+      <div className="w-full md:w-1/2 flex flex-col gap-6 py-10 md:py-20 md:border-l-4 md:border-red-500 md:pl-10">
         <span
           id={ids.brandBadge}
-          className="dynamicStyle text-sm font-semibold tracking-widest text-red-500 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-500 text-white"
+          className="dynamicStyle text-sm font-semibold tracking-widest text-red-500 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-50 text-red-500"
           dangerouslySetInnerHTML={{
             __html: getHtml(
               getTextValue(data, ids.brandBadge, DEFAULTS[ids.brandBadge]),

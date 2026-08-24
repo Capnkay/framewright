@@ -71,16 +71,25 @@ function regionWidthClass(width) {
   return `w-full md:w-${width}`;
 }
 
+// A Tailwind colour token is `<hue>-<shade>` (`red-500`). Shifting the shade
+// number gives a lighter/darker relative of the SAME hue without a second
+// colour token -- `red-500` -> `red-50` for a barely-there wash, `red-600` for
+// a deeper gradient stop. Falls back to the input unchanged for a bare colour
+// word like `white` that carries no shade suffix (nothing to shift).
+function shiftShade(colourToken, targetShade) {
+  return /-\d+$/.test(colourToken) ? colourToken.replace(/-\d+$/, `-${targetShade}`) : colourToken;
+}
+
 function containerClasses(layout, tokens) {
   const bp = (layout.breakpoint || tokens.breakpoints.stack || 'md');
   const dir = layout.direction === 'row' ? `flex-col ${bp}:flex-row` : 'flex-col';
   const maxW = layout.container?.maxWidth ? `max-w-[${layout.container.maxWidth}]` : '';
   const containerX = layout.container?.padding || tokens.spacing.containerX;
-  // tokens.colors.surface was defined in §6.1 and never applied anywhere --
-  // the section had no declared background of its own, only whatever the page
-  // shell around it happened to be. Stating it explicitly keeps the section
-  // readable and self-contained regardless of what wraps it.
-  return `w-full ${maxW} mx-auto ${containerX} flex ${dir} bg-${tokens.colors.surface}`;
+  // A flat bg-white read as "no background whatsoever" -- a barely-there wash
+  // from the surface colour into a hint of the accent hue gives the section a
+  // background of its own without fighting the CMS content's own colours.
+  const wash = shiftShade(tokens.colors.accent, 50);
+  return `w-full ${maxW} mx-auto ${containerX} flex ${dir} bg-gradient-to-br from-${tokens.colors.surface} to-${wash}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,11 +112,21 @@ function containerClasses(layout, tokens) {
  * override a stated value.
  */
 function buttonClasses(classes, tokens) {
-  const tokenClasses = `${tokens.components.button} ${tokens.borderRadius.button} ${tokens.shadows.button} bg-${tokens.colors.accent} px-6 py-3 text-${tokens.colors.accentContrast} ${tokens.typography.headingWeight} w-fit`;
+  // A single flat fill read as one of "two red buttons" indistinguishable
+  // from the badge pill. A same-hue gradient (500 -> 600) gives the button
+  // depth the badge doesn't have. `bg-${accent}` (background-color) stays as
+  // a literal, solid fallback layer UNDER `bg-gradient-to-r` + `from`/`to`
+  // (background-image) -- both are real, distinct Tailwind utilities and can
+  // coexist; the gradient paints over the solid, and emitter-tokens.test.mjs
+  // asserts the literal `bg-{accent}` substring reaches the emitted button
+  // (§6.1 rule 3's accent-agreement contract) as proof the CMS accent, not
+  // just a decorative shade, drove the colour.
+  const accentDeep = shiftShade(tokens.colors.accent, 600);
+  const tokenClasses = `${tokens.components.button} ${tokens.borderRadius.button} ${tokens.shadows.button} bg-${tokens.colors.accent} bg-gradient-to-r from-${tokens.colors.accent} to-${accentDeep} px-6 py-3 text-${tokens.colors.accentContrast} ${tokens.typography.headingWeight} w-fit`;
   if (!classes) return tokenClasses;
 
   const parts = [classes];
-  if (!/(^|\s)bg-\S+/.test(classes)) parts.push(`bg-${tokens.colors.accent}`);
+  if (!/(^|\s)bg-\S+/.test(classes)) parts.push(`bg-${tokens.colors.accent} bg-gradient-to-r from-${tokens.colors.accent} to-${accentDeep}`);
   if (!/(^|\s)text-(?!sm\b|base\b|lg\b|xl\b|\dxl\b|left\b|center\b|right\b)\S+/.test(classes)) {
     parts.push(`text-${tokens.colors.accentContrast}`);
   }
@@ -156,9 +175,12 @@ function renderElementNode(el, tokens) {
   if (/badge|eyebrow|kicker|tag/i.test(elementName)) {
     // Eyebrow/badge-type labels read as flat, default-browser text when only
     // tinted -- wrap them as a proper pill so a hero section reads as
-    // "designed" instead of plain. Uses only already-existing tokens.
+    // "designed" instead of plain. A SOFT tint (light wash + coloured text),
+    // not a solid fill, so the badge reads as a label next to the CTA rather
+    // than a second, competing button in the same solid colour.
+    const badgeWash = shiftShade(tokens.colors.accent, 50);
     textClasses.push(
-      `inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-${tokens.colors.accent} text-${tokens.colors.accentContrast}`,
+      `inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-${badgeWash} text-${tokens.colors.accent}`,
     );
   } else if (!/(^|\s)text-(?!sm\b|base\b|lg\b|xl\b|\dxl\b|left\b|center\b|right\b)\S+/.test(textClasses[0])) {
     if (/sub|description/i.test(elementName)) textClasses.push(`text-${tokens.colors.textMuted}`);
@@ -242,12 +264,20 @@ function renderRegion(region, elements, cards, tokens, bp) {
   }).filter(Boolean).join('\n\n');
 
   if (isMedia) {
-    return `      <div className="${widthClass}">
+    // An image panel with no background of its own is invisible against the
+    // section's own bg-white until an image actually loads -- the missing-
+    // asset placeholder then reads as a blank hole, not a media panel. A
+    // surfaceAlt tint gives it a visible boundary even before content lands.
+    return `      <div className="${widthClass} bg-${tokens.colors.surfaceAlt}">
 ${innerNodes}
       </div>`;
   }
 
-  return `      <div className="${widthClass} flex flex-col ${tokens.spacing.gap} ${tokens.spacing.sectionY}">
+  // The two columns were both on the same flat white, so nothing marked
+  // where "image" ended and "content" began. A left border in the accent hue
+  // on the content side, visible once the layout goes side-by-side, gives
+  // the split an actual seam instead of the columns just touching.
+  return `      <div className="${widthClass} flex flex-col ${tokens.spacing.gap} ${tokens.spacing.sectionY} ${bp}:border-l-4 ${bp}:border-${tokens.colors.accent} ${bp}:pl-10">
 ${innerNodes}
       </div>`;
 }
