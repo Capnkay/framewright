@@ -99,8 +99,9 @@ export default function Custom({ pageName = 'Home', section = {} }) {
 
   return (
     <section className={`w-full max-w-[1920px] mx-auto px-0 md:px-12 flex flex-col md:flex-row bg-gradient-to-br from-white via-red-50 to-orange-100 ${textContrastClass}`}>
-      <div className="w-full md:w-1/2 bg-gray-50 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-orange-500 opacity-20 blur-3xl" aria-hidden="true" />
+      <div className="w-full md:w-1/2 relative overflow-hidden bg-gradient-to-br from-gray-50 via-red-100 to-orange-100">
+        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-orange-500 opacity-30 blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-red-500 opacity-20 blur-3xl" aria-hidden="true" />
         <img
           id={ids.heroImage}
           className="dynamicStyle2 w-full h-auto object-cover"
@@ -186,6 +187,12 @@ export default function Custom({ pageName = 'Home', section = {} }) {
             // Stub — wired in a later phase.
           }}
         />
+
+        <div className="flex items-center gap-4">
+        <button type="button" className="dynamicStyle inline-flex items-center justify-center font-semibold rounded-md px-6 py-3 border-2 border-red-500 text-red-500 bg-transparent hover:bg-red-50 w-fit">
+          Learn more
+        </button>
+        </div>
       </div>
     </section>
   );

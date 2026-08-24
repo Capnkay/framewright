@@ -289,9 +289,17 @@ function renderRegion(region, elements, cards, tokens, bp) {
     // media column a sense of depth/placement instead of a plain rectangle.
     // Guarded with `|| accent` so this stays valid even if the concurrent
     // designTokens.js pass hasn't landed accentAlt yet.
+    // A flat surfaceAlt tint on the media panel was still a plain grey box
+    // once an actual image is missing (the common case for a fresh
+    // generation, before anyone uploads an asset) -- it read as "unstyled",
+    // not "designed". A real diagonal gradient across the whole panel (not
+    // just a corner glow) gives it colour and presence on its own, with or
+    // without an image ever loading.
     const glowTint = tokens.colors.accentAlt || tokens.colors.accent;
-    return `      <div className="${widthClass} bg-${tokens.colors.surfaceAlt} relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-${glowTint} opacity-20 blur-3xl" aria-hidden="true" />
+    const deepTint = shiftShade(tokens.colors.accent, 100);
+    return `      <div className="${widthClass} relative overflow-hidden bg-gradient-to-br from-${tokens.colors.surfaceAlt} via-${deepTint} to-${shiftShade(glowTint, 100)}">
+        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-${glowTint} opacity-30 blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-${tokens.colors.accent} opacity-20 blur-3xl" aria-hidden="true" />
 ${innerNodes}
       </div>`;
   }
@@ -303,8 +311,27 @@ ${innerNodes}
   // spacing.heroGap was added for exactly this content column but nothing
   // read it -- falls back to spacing.gap if absent so this never regresses.
   const contentGap = tokens.spacing.heroGap || tokens.spacing.gap;
+
+  // A single CTA sitting alone read as thin, not deliberate -- real hero
+  // sections almost always pair a primary action with a lower-emphasis
+  // secondary one. This is purely decorative markup: no id, no ids/DEFAULTS
+  // entry, nothing added to the CMS field set or §9's mount-fetch list, so
+  // it carries no editable state and cannot desync from the store the way a
+  // real element could. It only appears when the section actually has a
+  // real CTA to sit beside, never invented into a section with no button.
+  const hasCta = children.some((el) => el.contentType === 'Button');
+  const secondaryCta = hasCta
+    ? `
+        <button type="button" className="dynamicStyle inline-flex items-center justify-center font-semibold ${tokens.borderRadius.button} px-6 py-3 border-2 border-${tokens.colors.accent} text-${tokens.colors.accent} bg-transparent hover:bg-${shiftShade(tokens.colors.accent, 50)} w-fit">
+          Learn more
+        </button>`
+    : '';
+
   return `      <div className="${widthClass} flex flex-col ${contentGap} ${tokens.spacing.sectionY} ${bp}:border-l-4 ${bp}:border-${tokens.colors.accent} ${bp}:pl-10">
-${innerNodes}
+${innerNodes}${secondaryCta ? `
+
+        <div className="flex items-center gap-4">${secondaryCta}
+        </div>` : ''}
       </div>`;
 }
 

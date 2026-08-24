@@ -4,9 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, RotateCw, Monitor, Smartphone, Tablet, ExternalLink, Code } from "lucide-react";
 import { Label, fade, isFramed } from "../components/Shell";
 import SideEditor from "../studio/SideEditor";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { fetchElementsByIds } from "../redux/fetchElementsByIds.js";
-import { loadPageSections } from "../redux/appSlice.js";
 
 const generatedModules = import.meta.glob('../sections/generated/*.jsx', { eager: true });
 
@@ -59,20 +58,25 @@ export default function Preview() {
   const { pageName = 'Home' } = useParams();
   const navigate = useNavigate();
   const [variation, setVariation] = useState("A");
+  const [sectionDocs, setSectionDocs] = useState([]);
   const [viewport, setViewport] = useState("Desktop");
   const [reloadKey, setReloadKey] = useState(0);
-  
+
   const [editingFieldId, setEditingFieldId] = useState(null);
   const [editorPos, setEditorPos] = useState({ top: 0, left: 0 });
 
   const dispatch = useDispatch();
-
-  const sectionDocs = useSelector(state => state.app.sections.filter(s => s.pageName === pageName));
   const framed = isFramed();
 
   useEffect(() => {
     document.title = `${pageName} - Preview`;
-    if (pageName) dispatch(loadPageSections(pageName));
+    fetch('/api/sections')
+      .then((r) => r.json())
+      .then((sections) => {
+        setSectionDocs(sections.filter((s) => s.pageName === pageName));
+      })
+      .catch((err) => console.error(err));
+
     dispatch(fetchElementsByIds({ pageName }));
   }, [pageName, dispatch]);
 
