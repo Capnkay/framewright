@@ -31,9 +31,11 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
   const effectiveColor = /^#[0-9a-fA-F]{3,8}$/.test(accent || "") ? accent : "#3b82f6";
   const p = scope === "composer" ? "composer-" : "";
   const tid = name => `${p}${name}`;
+  const actualHeight = Math.max(CANVAS_H, elements.reduce((max, el) => Math.max(max, (el.y || 0) + (el.height || 50)), CANVAS_H) + 50);
+
   return (
-    <div className="design-canvas-wrap">
-      <div className={`design-canvas ${elements.length === 0 ? 'empty' : ''}`} style={{ width: CANVAS_W, height: CANVAS_H }} data-testid={tid("design-canvas")}>
+    <div className="design-canvas-wrap" style={{ overflowY: 'auto' }}>
+      <div className={`design-canvas ${elements.length === 0 ? 'empty' : ''}`} style={{ width: CANVAS_W, height: actualHeight }} data-testid={tid("design-canvas")}>
         {elements.length === 0 ? (
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#71717a', fontSize: '13px'}}>
             Awaiting generation...
@@ -42,7 +44,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
           elements.map(el => {
             const bg = el.bg || (el.type === "button" ? effectiveColor : el.type === "image" ? "#e5e5e0" : "transparent");
             const maxX = Math.max(0, CANVAS_W - el.width);
-            const maxY = Math.max(0, CANVAS_H - (el.height || 30));
+            const maxY = Math.max(0, actualHeight - (el.height || 30));
             return (
               <motion.div
                 key={el.id}
@@ -51,6 +53,7 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, accent,
                   x: el.x, y: el.y, width: el.width, height: el.height || undefined,
                   fontSize: el.fontSize || undefined, fontWeight: el.fontWeight || undefined,
                   color: el.color || undefined, background: bg, textAlign: el.align, padding: el.padding,
+                  position: 'absolute'
                 }}
                 drag dragMomentum={false}
                 dragConstraints={{ left: 0, top: 0, right: maxX, bottom: maxY }}

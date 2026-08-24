@@ -210,34 +210,66 @@ export default function Studio() {
             // start. Stacking by an estimated wrapped-text height (chars-per-line at
             // this fontSize and width, times line-height) keeps blocks from
             // colliding without needing an actual DOM measurement pass.
-            const CANVAS_WIDTH = 380;
+            const CANVAS_WIDTH = 760;
             const GAP = 16;
             let yCursor = 20;
             const mappedElements = fetchedElements.map((el) => {
-              const fontSize = el.tag === "h1" ? 36 : el.tag === "h2" ? 24 : 16;
+              let fontSize = el.tag === "h1" ? 36 : el.tag === "h2" ? 24 : 16;
               const content = el.content || (el.loop ? "[Cards/List]" : "");
-              const charsPerLine = Math.max(1, Math.floor(CANVAS_WIDTH / (fontSize * 0.55)));
+              
+              let x = 20;
+              let y = yCursor;
+              let width = CANVAS_WIDTH;
+              let height = undefined;
+              let fontWeight = el.tag === "h1" || el.tag === "h2" || el.contentType === "Button" ? 700 : 400;
+              let color = "#18181b";
+              let align = "left";
+              let bg = el.contentType === "Button" ? undefined : (el.contentType === "Image" ? "#e5e7eb" : "transparent");
+
+              if (el.css) {
+                const leftMatch = el.css.match(/left:\s*(\d+)px/);
+                const topMatch = el.css.match(/top:\s*(\d+)px/);
+                const widthMatch = el.css.match(/width:\s*(\d+)px/);
+                const heightMatch = el.css.match(/height:\s*(\d+)px/);
+                const fsMatch = el.css.match(/font-size:\s*(\d+)px/);
+                const fwMatch = el.css.match(/font-weight:\s*(bold|\d+)/);
+                const colorMatch = el.css.match(/color:\s*(#[0-9a-fA-F]{3,6})/i);
+                const alignMatch = el.css.match(/text-align:\s*(center|right|left)/);
+
+                if (leftMatch) x = parseInt(leftMatch[1], 10);
+                if (topMatch) y = parseInt(topMatch[1], 10);
+                if (widthMatch) width = parseInt(widthMatch[1], 10);
+                if (heightMatch) height = parseInt(heightMatch[1], 10);
+                if (fsMatch) fontSize = parseInt(fsMatch[1], 10);
+                if (fwMatch) fontWeight = fwMatch[1] === 'bold' ? 700 : parseInt(fwMatch[1], 10);
+                if (colorMatch) color = colorMatch[1];
+                if (alignMatch) align = alignMatch[1];
+              }
+
+              const charsPerLine = Math.max(1, Math.floor(width / (fontSize * 0.55)));
               const lineCount = Math.max(1, Math.ceil((content.length || 1) / charsPerLine));
               const lineHeight = fontSize * 1.3;
-              const estimatedHeight = Math.round(lineCount * lineHeight) + 12;
+              const estimatedHeight = height || Math.round(lineCount * lineHeight) + 12;
 
-              const mapped = {
+              if (!el.css || !el.css.match(/top:/)) {
+                yCursor += estimatedHeight + GAP;
+              }
+
+              return {
                 id: el.fieldId,
                 label: el.elementName || el.fieldId,
                 type: el.contentType === "Button" ? "button" : el.contentType === "Image" ? "image" : "text",
                 content,
-                x: 20,
-                y: yCursor,
-                width: CANVAS_WIDTH,
+                x,
+                y,
+                width,
                 height: estimatedHeight,
                 fontSize,
-                fontWeight: el.tag === "h1" || el.tag === "h2" || el.contentType === "Button" ? 700 : 400,
-                color: "#18181b",
-                align: "left",
-                bg: el.contentType === "Button" ? undefined : "transparent"
+                fontWeight,
+                color,
+                align,
+                bg
               };
-              yCursor += estimatedHeight + GAP;
-              return mapped;
             });
             setElements(mappedElements);
             setSelectedField(mappedElements[0]?.id || null);
