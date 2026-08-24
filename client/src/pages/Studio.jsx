@@ -180,7 +180,6 @@ export default function Studio() {
     setElements(els => { const next = els.map(el => (el.id === id ? { ...el, ...patch } : el)); setCodeText(generateCode(next, accent)); return next; });
   };
   const onElementRemove = (id) => {
-    if (!window.confirm("Remove this element?")) return;
     setElements(els => {
       const next = els.filter(el => el.id !== id);
       setCodeText(generateCode(next, accent));

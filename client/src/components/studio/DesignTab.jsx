@@ -60,7 +60,6 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onRemov
                 drag dragMomentum={false}
                 dragConstraints={{ left: 0, top: 0, right: maxX, bottom: maxY }}
                 onPointerDown={() => onSelect(el.id)}
-                onDoubleClick={() => onRemove && onRemove(el.id)}
                 onDragEnd={(e, info) => onUpdate(el.id, {
                   x: Math.round(clamp(el.x + info.offset.x, 0, maxX)),
                   y: Math.round(clamp(el.y + info.offset.y, 0, maxY)),
@@ -68,6 +67,15 @@ export function DesignCanvas({ elements, selectedId, onSelect, onUpdate, onRemov
                 data-testid={tid(`design-block-${el.id}`)}
               >
                 {el.type !== "image" ? el.content : null}
+                {onRemove && selectedEl?.id === el.id && (
+                  <button
+                    className="design-block-remove"
+                    title="Remove element"
+                    onClick={(e) => { e.stopPropagation(); onRemove(el.id); }}
+                  >
+                    &#10005;
+                  </button>
+                )}
               </motion.div>
             );
           })
