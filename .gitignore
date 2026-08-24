@@ -76,3 +76,6 @@ tools/_store_scratch.json
 # detector. Regenerated on demand by perception/synthetic/generate_wireframe.py
 # -- unlimited, deterministic from a seed, and never a committed deliverable.
 perception/synthetic/dataset/
+
+.vercel
+.env*
