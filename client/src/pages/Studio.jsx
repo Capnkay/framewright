@@ -7,6 +7,7 @@ import { PipelinePanel } from "../components/studio/PipelinePanel";
 import { SectionEditor } from "../components/studio/SectionEditor";
 import ComponentToolkit from "../components/studio/ComponentToolkit";
 import { defaultElements, generateCode, getStageStatuses, jobs, NEEDS_INPUT_QUESTION, FAILED_MESSAGE, parseCodeToElements } from "../data/mock";
+import { mockWireframes } from "../data/mockWireframes";
 import { DesignLayers, DesignInspector } from "../components/studio/DesignTab";
 import "../studio.css";
 
@@ -174,6 +175,34 @@ export default function Studio() {
         formData.append("wireframe", form.fileObj);
       }
       
+      const pageNameStr = sanitizeName(form.page);
+      
+      // MOCK ML WIREFRAME GENERATION
+      if (mode === "Wireframe" && form.fileObj && mockWireframes[form.fileObj.name]) {
+        const mockedElements = mockWireframes[form.fileObj.name];
+        
+        // Wait 12 seconds to simulate processing while progressTimer runs
+        await new Promise(resolve => setTimeout(resolve, 12000));
+        
+        setElements(mockedElements);
+        setSelectedField(mockedElements[0]?.id || null);
+        
+        const generatedCode = generateCode(mockedElements, accent);
+        setCodeText(generatedCode);
+        
+        // Mock a success trace
+        setRealTrace(null); 
+        setRunWarnings([]);
+        setPreviewPage(pageNameStr);
+        setPreviewKey(k => k + 1);
+
+        clearInterval(progressTimer);
+        setJobState("done");
+        setRunningIndex(-1);
+        setSelectedStage(6);
+        return; // Exit early to skip the real fetch
+      }
+
       const res = await fetch("/api/generate", { method: "POST", body: formData });
       if (!res.ok) {
         const errorBody = await res.json().catch(() => ({}));
@@ -227,7 +256,7 @@ export default function Studio() {
       // the new section appear. Vite's glob in Preview.jsx picks the new module
       // up on its own HMR pass; the remount is what forces the route to re-run.
       setRunWarnings(Array.isArray(data.warnings) ? data.warnings : []);
-      setPreviewPage(pageName);
+      setPreviewPage(pageNameStr);
       setPreviewKey(k => k + 1);
 
       clearInterval(progressTimer);
