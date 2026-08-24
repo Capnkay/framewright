@@ -216,20 +216,41 @@ export default function Studio() {
         if (elementsRes.ok) {
           const fetchedElements = await elementsRes.json();
           if (fetchedElements && fetchedElements.length > 0) {
-            const mappedElements = fetchedElements.map((el, index) => ({
-              id: el.fieldId,
-              label: el.elementName || el.fieldId,
-              type: el.contentType === "Button" ? "button" : el.contentType === "Image" ? "image" : "text",
-              content: el.content || (el.loop ? "[Cards/List]" : ""),
-              x: 20,
-              y: 20 + (index * 60),
-              width: 380,
-              fontSize: el.tag === "h1" ? 36 : el.tag === "h2" ? 24 : 16,
-              fontWeight: el.tag === "h1" || el.tag === "h2" || el.contentType === "Button" ? 700 : 400,
-              color: "#18181b",
-              align: "left",
-              bg: el.contentType === "Button" ? undefined : "transparent"
-            }));
+            // A fixed 60px step per element overlapped as soon as any real content
+            // wrapped to a second line -- a 36pt headline at 380px wide wraps almost
+            // immediately, but the next element still landed exactly 60px below its
+            // start. Stacking by an estimated wrapped-text height (chars-per-line at
+            // this fontSize and width, times line-height) keeps blocks from
+            // colliding without needing an actual DOM measurement pass.
+            const CANVAS_WIDTH = 380;
+            const GAP = 16;
+            let yCursor = 20;
+            const mappedElements = fetchedElements.map((el) => {
+              const fontSize = el.tag === "h1" ? 36 : el.tag === "h2" ? 24 : 16;
+              const content = el.content || (el.loop ? "[Cards/List]" : "");
+              const charsPerLine = Math.max(1, Math.floor(CANVAS_WIDTH / (fontSize * 0.55)));
+              const lineCount = Math.max(1, Math.ceil((content.length || 1) / charsPerLine));
+              const lineHeight = fontSize * 1.3;
+              const estimatedHeight = Math.round(lineCount * lineHeight) + 12;
+
+              const mapped = {
+                id: el.fieldId,
+                label: el.elementName || el.fieldId,
+                type: el.contentType === "Button" ? "button" : el.contentType === "Image" ? "image" : "text",
+                content,
+                x: 20,
+                y: yCursor,
+                width: CANVAS_WIDTH,
+                height: estimatedHeight,
+                fontSize,
+                fontWeight: el.tag === "h1" || el.tag === "h2" || el.contentType === "Button" ? 700 : 400,
+                color: "#18181b",
+                align: "left",
+                bg: el.contentType === "Button" ? undefined : "transparent"
+              };
+              yCursor += estimatedHeight + GAP;
+              return mapped;
+            });
             setElements(mappedElements);
             setSelectedField(mappedElements[0]?.id || null);
           }
