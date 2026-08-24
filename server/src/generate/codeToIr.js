@@ -266,9 +266,23 @@ function readElements(ast, maps) {
     const tag = node.openingElement.name.name;
     const loop = isLoopContainer(node);
 
+    // emitComponent's renderElementNode has a dedicated `contentType === 'Button'`
+    // branch that renders PrimeReact's `label`/`aria-label` props — the only way a
+    // <Button> shows text, since PrimeReact ignores dangerouslySetInnerHTML on it.
+    // Missing this mapping silently produced a blank button on every pasted section
+    // that had one: contentType fell through to 'Text', which emits
+    // dangerouslySetInnerHTML instead of `label`, and PrimeReact renders nothing.
+    const contentType = loop
+      ? 'Cards'
+      : tag === 'img'
+        ? 'Image'
+        : tag === 'Button'
+          ? 'Button'
+          : 'Text';
+
     found.push({
       elementName,
-      contentType: loop ? 'Cards' : tag === 'img' ? 'Image' : 'Text',
+      contentType,
       tag,
       order: order++,
       default: loop ? null : extractDefaultContent(node, maps),
