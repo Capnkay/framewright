@@ -42,11 +42,7 @@ export function SectionEditor({ elements, accent, code, selectedField, setSelect
   // named. Requesting it here, then navigating client-side (same document,
   // no reload) is what keeps the fullscreen session alive into /preview.
   const openFullScreenPreview = () => {
-    const root = document.documentElement;
-    if (root.requestFullscreen) {
-      root.requestFullscreen().catch(() => {});
-    }
-    navigate(previewSrc);
+    window.open(previewSrc, "_blank", "noopener,noreferrer");
   };
 
   const TABS = [
