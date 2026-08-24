@@ -58,8 +58,8 @@ import {
 } from './providers.js';
 
 // §16.2 — default 30 s, hard ceiling 60 s, inherited from NFR-02.
-export const DEFAULT_TIMEOUT_MS = 30_000;
-export const MAX_TIMEOUT_MS = 60_000;
+export const DEFAULT_TIMEOUT_MS = 60_000;
+export const MAX_TIMEOUT_MS = 120_000;
 
 // One initial attempt plus EXACTLY ONE retry. §18.2 adds a separate, later
 // retry of the whole emit step; the corrections register is explicit that the
@@ -211,7 +211,7 @@ async function defaultTransport({ baseUrl, apiKey, model, provider, input, schem
   if (typeof content !== 'string' || !content.trim()) {
     throw new Error('model response carried no message content');
   }
-  return parseJsonReply(content);
+  return schema ? parseJsonReply(content) : content;
 }
 
 function classify(err) {

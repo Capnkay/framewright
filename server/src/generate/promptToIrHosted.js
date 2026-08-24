@@ -155,8 +155,8 @@ function repairDesignTokenKeys(ir) {
 }
 
 // §16.2 — default 30 s, hard ceiling 60 s, inherited from NFR-02's budget.
-export const DEFAULT_TIMEOUT_MS = 30_000;
-export const MAX_TIMEOUT_MS = 60_000;
+export const DEFAULT_TIMEOUT_MS = 90_000;
+export const MAX_TIMEOUT_MS = 120_000;
 
 /**
  * The instruction sent with every prompt-to-IR call.

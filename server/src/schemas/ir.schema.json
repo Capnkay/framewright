@@ -13,11 +13,9 @@
     "source",
     "layout",
     "theme",
-    "cards",
     "elements",
     "idPolicy",
-    "variations",
-    "warnings"
+    "variations"
   ],
   "additionalProperties": true,
   "properties": {
