@@ -45,8 +45,39 @@ function Composer({ mode, setMode, form, setForm, accent, setAccent, generate, r
       <AnimatePresence mode="wait">
         <motion.div className="mode-content" key={mode} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           {mode === "Wireframe" && (
-            <div className={`upload-zone ${form.fileObj ? 'has-file' : ''}`} onClick={() => file.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const dropped = e.dataTransfer.files[0]; set("file")(dropped?.name || "wireframe.png"); set("fileObj")(dropped); }} data-testid="wireframe-upload-zone">
-              <input ref={file} type="file" hidden onChange={e => { const picked = e.target.files[0]; set("file")(picked?.name || "wireframe.png"); set("fileObj")(picked); }} data-testid="wireframe-file-input" />
+            <div className={`upload-zone ${form.fileObj ? 'has-file' : ''}`} onClick={() => file.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { 
+              e.preventDefault(); 
+              const dropped = e.dataTransfer.files[0]; 
+              if (dropped) {
+                const fileName = dropped.name || "wireframe.png";
+                setForm(f => {
+                  const next = { ...f, file: fileName, fileObj: dropped };
+                  const baseName = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ');
+                  if (baseName && baseName.toLowerCase() !== "wireframe") {
+                    const capitalized = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+                    next.page = capitalized;
+                    next.section = `${capitalized} section`;
+                  }
+                  return next;
+                });
+              }
+            }} data-testid="wireframe-upload-zone">
+              <input ref={file} type="file" hidden onChange={e => { 
+                const picked = e.target.files[0]; 
+                if (picked) {
+                  const fileName = picked.name || "wireframe.png";
+                  setForm(f => {
+                    const next = { ...f, file: fileName, fileObj: picked };
+                    const baseName = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ');
+                    if (baseName && baseName.toLowerCase() !== "wireframe") {
+                      const capitalized = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+                      next.page = capitalized;
+                      next.section = `${capitalized} section`;
+                    }
+                    return next;
+                  });
+                }
+              }} data-testid="wireframe-file-input" />
               {form.fileObj ? (
                  <div className="upload-preview" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '10px 0'}}>
                     <img src={URL.createObjectURL(form.fileObj)} alt="Preview" style={{maxHeight: '140px', maxWidth: '100%', borderRadius: '8px', border: '2px solid var(--border)', objectFit: 'contain', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
